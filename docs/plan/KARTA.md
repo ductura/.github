@@ -60,7 +60,7 @@ Koraci U1–U11 su nazivi iz [plan servera](https://github.com/ductura/server/bl
 | 2.c1 popis i katalog komponenti | — | web | ui | B5: vizualni testovi od prvog zadatka |
 | 2.c2 testovi komponenti | — | web | ui | |
 | 2.c3 tipizirani klijent | — | web | contracts | ← U10 |
-| 2.c4 komponente po području | — | web | contracts, ui, editor-core | ← shema rute |
+| 2.c4 komponente po području | — | web | contracts, ui, editor-core | ← 2.c3, shema rute, vektori U7 i U8, oznake iz 2.c1 (§1b migracije) |
 | 2.c5 `src/platform` | — | web | — | uključuje bivše 2.c7 i 2.c8 (A1) |
 | 2.c6 e2e | — | web | parity, test-fakes | matrica: Chromium/Chrome, Firefox, WebKit, Edge, mobilna emulacija; Opera ručno |
 | 2.c7 mobilni web | — | web | — | A1: spojeno u 2.c5/2.c6 |

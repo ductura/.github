@@ -410,7 +410,7 @@ Pretpostavka: početak u ponedjeljak 17. 11., nakon prezentacije. Dokumenti i sp
 | T-0.1 | Pomoćni repo: profil organizacije, predlošci issuea i PR-a, zajednički popis labela | `.github` (ili server) | V-1, odluka 3 | standard |
 | T-0.2 | Zajednički workflowi: CI osnova s `ci-ok`, gate, tajne, ovisnosti; S-0.10-a/b se pišu ovdje, ne u serveru | `.github` | U2, S-0.9 | critical |
 | T-0.3 | Zajednička Mergify pravila i nasljeđivanje | `.github` | S-0.20 | critical |
-| T-0.4 | Generator početnih datoteka novog repoa | `.github` | S-0.6, S-0.10-a | standard |
+| T-0.4 | Generator početnih datoteka novog repoa | `.github` | S-0.6, T-0.2 (uključuje S-0.10-a) | standard |
 | T-0.5 | Objava paketa: verzije, zapisi promjena, objava iz Actionsa | server | S-1H.1-b, odluka 2 | critical |
 | T-0.6 | Skripte orkestratora za sedam repozitorija, preklapanje preko repozitorija | Ductus | S-0.21 | critical |
 | T-0.7 | Tjedna provjera razilaženja postavki (samo čitanje) | `.github` | T-0.2 | standard |
@@ -442,11 +442,12 @@ Pretpostavka: početak u ponedjeljak 17. 11., nakon prezentacije. Dokumenti i sp
 
 **Tjedan 2 (24.–28. 11.)**
 - Ti: V-2 zaštita grane, V-3 prijenos i instalacija aplikacije botova, Mergify i Codex, V-4 tajne.
-- Server: S-0.6, S-0.8, S-0.12, zatim S-0.9, S-0.10-a, S-0.10-b, S-0.11, S-0.13, S-0.14.
+- Server: S-0.6, S-0.8, S-0.12, zatim S-0.9, S-0.11, S-0.13, S-0.14, a nakon S-0.11 i V-3 S-0.20 (Mergify).
+- `.github`: T-0.2 (u sklopu kojeg se pišu S-0.10-a i S-0.10-b, nakon S-0.9). Redoslijed V-2 (§7): S-0.9 i S-0.10-b dokažu prolaz i očekivani pad prije nego V-2 dopiše statuse.
 - T-0.6 i M-0.1 u Ductusu, nakon S-0.21. Mjere počinju s prvim PR-om u serveru.
 - E-0.1 u Ductusu (granica paketa editora), nakon prezentacije i uz pisca koji poznaje `src/editor`.
 - Ako je pisac slobodan: P-0.1 i P-0.2 (bez servera).
 
 **Izlaz iz dva tjedna:** `Ductura/server` ima CI s `ci-ok`, gate, botove i Mergify, a jedan pravi PR prošao je cijeli gate. Migracije su prenesene s istim ledgerom. Orkestrator prati server iz svojih skripti. Odluke 1–6, 11 i 14–16 su zapisane na #87.
 
-Ostatak vala 0 (S-0.15, S-0.17, S-0.18, S-0.19, S-0.20) i T-0.1 do T-0.4 ide u treći tjedan.
+Ostatak vala 0 (S-0.15, S-0.17, S-0.18, S-0.19) i T-0.1, T-0.3, T-0.4 i T-0.7 ide u treći tjedan. T-0.2 (s S-0.10-a/b) je u drugom tjednu jer je preduvjet za T-0.4, T-0.7 i za V-2.

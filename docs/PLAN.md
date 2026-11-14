@@ -51,7 +51,7 @@ Ne prenose se: skripte orkestratora (ostaju u Ductusu, T-0.6), `CODEOWNERS` (Git
 |---|---|---|---|
 | U2 (server plan; PRIJEDLOG ID) | Stvaranje repoa i prvi sadržaj; ide **odmah nakon kostura servera** | V-1 | standard |
 | T-0.1 | Profil, predlošci issuea i PR-a, labele | U2 | standard |
-| T-0.2 | Reusable workflowi: CI osnova s `ci-ok`, tajne, ovisnosti, gate | U2; S-0.10-a/b se pišu **ovdje**, ne u serveru, i nema izdvajanja iz servera | critical |
+| T-0.2 | Reusable workflowi: CI osnova s `ci-ok`, tajne, ovisnosti, gate | U2, S-0.9; S-0.10-a/b se pišu **ovdje**, ne u serveru, i nema izdvajanja iz servera | critical |
 | — (novo, PRIJEDLOG ID) | Preseti `@ductura/tsconfig`, `eslint-config`, `prettier-config` na GitHub Packages | U2 | standard |
 | T-0.3 | Mergify osnova i `extends` | S-0.20 | critical |
 | T-0.4 | Generator novog repoa | S-0.6, T-0.2 | standard |
