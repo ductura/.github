@@ -87,6 +87,8 @@ const structural = [
   ["unknown group", [{ ...valid, group: "misc" }], /group/],
   ["prefix in the wrong group", [{ ...valid, name: "area:db", group: "role" }], /group/],
   ["group prefix without the prefix", [{ ...valid, name: "db", group: "area" }], /group/],
+  ["uppercase prefix outside its group", [{ ...valid, name: "AREA:auth", group: "bot" }], /group/],
+  ["uppercase prefix in its group", [{ ...valid, name: "Area:auth", group: "area" }], null],
 ];
 
 for (const [name, labels, pattern] of structural) {
@@ -107,6 +109,7 @@ const syntax = [
   ["accepts comments, blank lines and CRLF", doc("# c", "", ok()).replace(/\n/g, "\r\n"), null],
   ["accepts escaped quote in description", doc(ok({ description: 'Reci "da"' })), null],
   ["wrong version", doc(ok()).replace("version: 1", "version: 2"), /version/],
+  ["no space after the version colon (not a YAML mapping entry)", doc(ok()).replace("version: 1", "version:1"), /version/],
   ["missing version", doc(ok()).replace("version: 1\n", ""), /version/],
   ["empty label list", "version: 1\nlabels:\n", /no labels/],
   ["unknown key", doc([...ok(), "    owner: x"]), /unknown key/],

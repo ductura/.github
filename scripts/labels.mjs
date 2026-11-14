@@ -70,7 +70,7 @@ export function parseLabels(text) {
     const where = `line ${n}`;
     if (raw.trim() === "" || /^\s*#/.test(raw)) return;
     let m;
-    if (version === null && !inLabels && (m = /^version:\s*(\S.*)$/.exec(raw))) {
+    if (version === null && !inLabels && (m = /^version: +(\S.*)$/.exec(raw))) {
       if (m[1] !== "1") throw new Error(`${where}: unsupported version ${m[1]} (expected 1)`);
       version = 1;
     } else if (version !== null && !inLabels && raw === "labels:") {
@@ -122,7 +122,8 @@ export function validateLabels(labels) {
     if (!GROUPS.has(l.group)) {
       problems.push(`${at}: unknown group ${JSON.stringify(l.group)}`);
     } else if (typeof l.name === "string") {
-      const prefix = /^([a-z]+):/.exec(l.name)?.[1];
+      // Names are case-insensitive on GitHub, so "AREA:x" is an area label too.
+      const prefix = /^([a-z]+):/.exec(l.name.toLowerCase())?.[1];
       const wantPrefix = PREFIXED.has(l.group);
       if (wantPrefix ? prefix !== l.group : PREFIXED.has(prefix)) {
         problems.push(`${at}: group "${l.group}" does not match the name prefix`);
