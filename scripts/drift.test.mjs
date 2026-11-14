@@ -280,23 +280,15 @@ test("observe keeps going after a network failure and the scan reports it", asyn
 
 // --- workflow --------------------------------------------------------------------------
 
-test("drift-check workflow: weekly, scan read-only, only the report job writes issues", () => {
+test("drift-check workflow: weekly, read-only and runs the script", () => {
   const wf = readFileSync(join(ROOT, ".github", "workflows", "drift-check.yml"), "utf8");
   assert.match(wf, /schedule:\n(?: +#.*\n)? +- cron: "[^"]+"/);
   assert.match(wf, /workflow_dispatch:/);
   assert.match(wf, /^permissions: \{\}\n/m);
-  const scan = wf.slice(wf.indexOf("\n  scan:"), wf.indexOf("\n  report:"));
-  const report = wf.slice(wf.indexOf("\n  report:"));
-  assert.match(scan, /permissions:\n {6}contents: read\n {4}outputs:/);
-  assert.doesNotMatch(scan, /: write\b/);
-  assert.match(scan, /node scripts\/drift\.mjs drift\/expected\.json --report-file/);
-  assert.match(report, /permissions:\n {6}contents: read\n {6}issues: write\n {4}steps:/);
-  assert.equal(wf.match(/^ +[a-z-]+: write$/gm).length, 1);
-  assert.match(report, /if: \$\{\{ needs\.scan\.outputs\.drift == 'true' \}\}/);
-  // The report reaches the script through env, never spliced into the shell text.
-  assert.match(report, /REPORT: \$\{\{ needs\.scan\.outputs\.report \}\}/);
-  for (const line of wf.split("\n").filter((l) => l.includes("${{"))) assert.match(line, /^ +(?:[A-Za-z_-]+): \$\{\{ [^}]+ \}\}$/, line);
+  assert.match(wf, /\n {4}permissions:\n {6}contents: read\n {4}steps:/);
+  assert.doesNotMatch(wf, /^ +[a-z-]+: write$/m);
   assert.doesNotMatch(wf, /pull_request_target|secrets\./);
+  assert.match(wf, /run: node scripts\/drift\.mjs drift\/expected\.json\n/);
 });
 
 test("loadExpected rejects an invalid file", () => {

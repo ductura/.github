@@ -1,9 +1,8 @@
-# Weekly check that Ductura repositories match drift/expected.json: default
-# branch, branch protection, required ci-ok status and labels.yml.
-# The scan job only reads (contents: read; scripts/drift.mjs sends nothing but
-# GET) and never changes any repository. When it finds drift, the report job
-# posts the report to the coordination issue named in drift/expected.json, in
-# this repository only (issues: write, nothing else), and fails the run.
+# Weekly read-only check that Ductura repositories match drift/expected.json:
+# default branch, branch protection, required ci-ok status and labels.yml.
+# It never changes a repository: the token can only read contents, and
+# scripts/drift.mjs sends nothing but GET. Findings go to the job summary and
+# fail the run. Delivery to the coordination issue is a later PR (DAN-749).
 name: drift-check
 on:
   schedule:
@@ -20,9 +19,6 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
-    outputs:
-      drift: ${{ steps.scan.outputs.drift }}
-      report: ${{ steps.scan.outputs.report }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -31,52 +27,8 @@ jobs:
         with:
           node-version-file: .nvmrc
       - name: Compare repository settings with drift/expected.json
-        id: scan
-        shell: bash
         env:
           # Public repositories are readable with this token; it has no write scope here.
           GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          set +e
-          report="$RUNNER_TEMP/drift.md"
-          node scripts/drift.mjs drift/expected.json --report-file "$report"
-          status=$?
-          set -e
-          # 0 no drift, 1 drift found, anything else is a broken check.
-          if [ "$status" -ne 0 ] && [ "$status" -ne 1 ]; then exit "$status"; fi
-          delim="REPORT_$(openssl rand -hex 16)"
-          {
-            if [ "$status" -eq 1 ]; then echo "drift=true"; else echo "drift=false"; fi
-            echo "report<<$delim"
-            cat "$report"
-            echo "$delim"
-          } >> "$GITHUB_OUTPUT"
-
-  report:
-    needs: scan
-    if: ${{ needs.scan.outputs.drift == 'true' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      issues: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-      - name: Post the report to the coordination issue
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          REPORT: ${{ needs.scan.outputs.report }}
-        run: |
-          set -euo pipefail
-          printf '%s\n' "$REPORT" > "$RUNNER_TEMP/drift.md"
-          node scripts/drift-report.mjs "$RUNNER_TEMP/drift.md" drift/expected.json
-      - name: Drift found
-        run: |
-          echo "::error::settings drift found; see the coordination issue and the scan job summary"
-          exit 1
+        # Exit 0 no drift, 1 drift found (summary written), 2 broken configuration.
+        run: node scripts/drift.mjs drift/expected.json
