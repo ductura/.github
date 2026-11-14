@@ -65,3 +65,24 @@ for (const [name, text, lines] of eolCases) {
 test("countUses sees uses lines with any line ending", () => {
   assert.equal(countUses(`- uses: a/b@${SHA}\r\n- uses: ./x\r- run: echo\n`), 2);
 });
+
+test("CLI exits 1 on an unpinned action and 0 once it is pinned", async () => {
+  const { mkdtempSync, writeFileSync, rmSync } = await import("node:fs");
+  const { spawnSync } = await import("node:child_process");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = mkdtempSync(join(tmpdir(), "pin-check-"));
+  try {
+    const file = join(dir, "w.yml");
+    const cli = new URL("./pin-check.mjs", import.meta.url).pathname;
+    writeFileSync(file, "jobs:\n  a:\n    steps:\n      - uses: actions/checkout@v4\n");
+    const bad = spawnSync(process.execPath, [cli, dir], { encoding: "utf8" });
+    assert.equal(bad.status, 1, bad.stdout + bad.stderr);
+    assert.match(bad.stderr, /w\.yml:4: not pinned to a full SHA: actions\/checkout@v4/);
+    writeFileSync(file, `jobs:\n  a:\n    steps:\n      - uses: actions/checkout@${SHA}\n`);
+    const good = spawnSync(process.execPath, [cli, dir], { encoding: "utf8" });
+    assert.equal(good.status, 0, good.stdout + good.stderr);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

@@ -82,3 +82,58 @@ jobs:
             echo "::error::expected exactly TS2532 and TS7006, got: $codes"
             exit 1
           fi
+
+  secret-scan:
+    uses: ./.github/workflows/secret-scan.yml
+
+  # Runs the scan script that secret-scan.yml ships against throwaway repos.
+  secret-scan-negative:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Clean repo passes, a leak and a folder without history fail
+        shell: bash
+        run: |
+          set -euo pipefail
+          scan="$RUNNER_TEMP/scan.sh"
+          node scripts/extract-run.mjs .github/workflows/secret-scan.yml secret-scan > "$scan"
+          root="$(mktemp -d "$RUNNER_TEMP/scan.XXXXXX")"
+          mkdir "$root/clean" "$root/leak" "$root/plain"
+          commit() { git -C "$1" init -q && git -C "$1" add . && git -C "$1" -c user.name=CI -c user.email=ci@example.invalid commit -qm fixture; }
+          echo "nothing secret" > "$root/clean/readme.txt"
+          commit "$root/clean"
+          # A random token in the GitHub PAT shape, made now and never committed to this repo.
+          printf 'token = "ghp_%s"\n' "$(openssl rand -hex 18)" > "$root/leak/config.txt"
+          commit "$root/leak"
+          echo "nothing secret" > "$root/plain/readme.txt"
+          SCAN_DIR="$root/clean" bash "$scan"
+          expect_fail() {
+            local out
+            if out="$(SCAN_DIR="$root/$1" bash "$scan" 2>&1)"; then
+              echo "$out"; echo "::error::scan passed the $1 case"; exit 1
+            fi
+            echo "$out"
+            grep -qE "$2" <<< "$out" || { echo "::error::$1 failed for another reason"; exit 1; }
+          }
+          expect_fail leak 'leaks found: [1-9]'
+          expect_fail plain 'scanned no commits'
+
+  dependency-review:
+    if: ${{ github.event_name == 'pull_request' }}
+    uses: ./.github/workflows/dependency-review.yml
+
+  ci-ok:
+    if: ${{ always() }}
+    needs: [actionlint, pin-check, node-ok, node-ok-multiline, presets, secret-scan, secret-scan-negative, dependency-review]
+    uses: ./.github/workflows/ci-ok.yml
+    with:
+      results: ${{ toJSON(needs) }}
+      # dependency-review runs only on pull requests; there it must not be skipped.
+      # '' is falsy in expressions, so `cond && '' || x` would always give x.
+      allow-skipped: ${{ github.event_name != 'pull_request' && 'dependency-review' || '' }}
