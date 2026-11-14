@@ -33,7 +33,7 @@ jobs:
       - name: Every action pinned to a full SHA
         run: node scripts/pin-check.mjs .github/workflows
 
-  # Verdict check of the engineering gate (engineering-gate.yml) over invented PRs.
+  # Verdict core of the engineering gate (scripts/gate/verdicts.ts) over invented PRs.
   gate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
