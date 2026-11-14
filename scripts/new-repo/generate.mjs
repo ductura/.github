@@ -177,6 +177,10 @@ export function writeRepo(dir, options) {
   const files = renderRepo(options);
   const root = resolve(dir);
   const result = { created: [], unchanged: [], conflicts: [] };
+  // The target folder itself is checked like every path below it: a link
+  // (or a file) there is a conflict, so nothing is written through it.
+  const top = lstatSync(root, { throwIfNoEntry: false });
+  if (top !== undefined && !top.isDirectory()) return { ...result, conflicts: ["."] };
   for (const [path, text] of files) {
     const target = resolve(root, path);
     const rel = relative(root, target);

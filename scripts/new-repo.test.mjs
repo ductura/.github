@@ -248,6 +248,32 @@ test("a folder, a dangling link or a link to the same content is a conflict and 
   }
 });
 
+test("a target folder that is a link or a file is a conflict, so nothing is written through it", (t) => {
+  const base = tempDir(t);
+  const outside = tempDir(t);
+  symlinkSync(outside, join(base, "novi"));
+  writeFileSync(join(base, "datoteka"), "x\n");
+  for (const target of ["novi", "datoteka"]) {
+    const result = writeRepo(join(base, target), OPTS);
+    assert.deepEqual(result, { created: [], unchanged: [], conflicts: ["."] }, target);
+  }
+  assert.deepEqual(readdirSync(outside), []);
+  assert.equal(readFileSync(join(base, "datoteka"), "utf8"), "x\n");
+  const cli = run(
+    "--name",
+    "primjer",
+    "--preset",
+    "generic",
+    "--codeowner",
+    "@ductura/vlasnici",
+    "--ref",
+    SHA,
+    join(base, "novi"),
+  );
+  assert.equal(cli.status, 1);
+  assert.deepEqual(readdirSync(outside), []);
+});
+
 test("a linked parent folder is a conflict, so nothing is written through it", (t) => {
   const dir = tempDir(t);
   const outside = tempDir(t);
