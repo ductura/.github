@@ -34,11 +34,13 @@ jobs:
         run: node scripts/pin-check.mjs .github/workflows
 
   node-ok:
+    permissions: { contents: read, packages: read }
     uses: ./.github/workflows/ci-node.yml
     with:
       working-directory: fixtures/node-ok
 
   node-ok-multiline:
+    permissions: { contents: read, packages: read }
     uses: ./.github/workflows/ci-node.yml
     with:
       working-directory: fixtures/node-ok

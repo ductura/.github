@@ -1,0 +1,4 @@
+{
+  "extends": "@ductura/tsconfig/base.json",
+  "include": ["*.ts", "src/**/*.ts"]
+}

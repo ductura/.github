@@ -1,0 +1,13 @@
+{
+  "$comment": "Najniži risk po putanji. Najviša razina pobjeđuje; putanja bez pravila dobiva default. Format je PRIJEDLOG do S-0.10-a.",
+  "version": 1,
+  "default": "standard",
+  "rules": [
+    { "pattern": ".github/**", "risk": "critical", "reason": "workflowi, CODEOWNERS i risk tablica" },
+    { "pattern": "AGENTS.md", "risk": "critical", "reason": "adapter pravila" },
+    { "pattern": "CLAUDE.md", "risk": "critical", "reason": "adapter pravila" },
+    { "pattern": ".claude/**", "risk": "critical", "reason": "pravila za agente" },
+    { "pattern": "docs/**", "risk": "low", "reason": "dokumentacija" },
+    { "pattern": "README.md", "risk": "low", "reason": "dokumentacija" }
+  ]
+}
