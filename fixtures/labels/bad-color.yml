@@ -1,0 +1,7 @@
+# Negative fixture: colour is not six lowercase hex digits. Must fail.
+version: 1
+labels:
+  - name: "bug"
+    color: "#d73a4a"
+    description: "Boja s ljestvama"
+    group: bot

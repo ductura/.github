@@ -1,0 +1,11 @@
+# Negative fixture: the same label twice (differs only in case). Must fail.
+version: 1
+labels:
+  - name: "bug"
+    color: "d73a4a"
+    description: "Prvi zapis"
+    group: bot
+  - name: "Bug"
+    color: "d73a4a"
+    description: "Drugi zapis istog naziva"
+    group: bot
