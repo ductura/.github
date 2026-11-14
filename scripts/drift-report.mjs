@@ -8,11 +8,11 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { clip } from "./drift.mjs";
 
 export const BOT = "github-actions[bot]";
 // owner/name; "." and ".." are never names, so the path cannot climb out of /repos/.
 const REPO = /^(?!\.{1,2}\/)[A-Za-z0-9_-][A-Za-z0-9_.-]*\/(?!\.{1,2}$)[A-Za-z0-9_.-]+$/;
-const MAX_BODY = 60_000; // GitHub rejects issue bodies and comments over 65 536 characters.
 
 /** Number of the open report issue among listed issues, or null. Pull requests and other authors never match. */
 export function findReportIssue(issues, title) {
@@ -20,13 +20,6 @@ export function findReportIssue(issues, title) {
     (i) => i?.state === "open" && !i.pull_request && i.title === title && i.user?.login === BOT,
   );
   return hit.length ? Math.min(...hit.map((i) => i.number)) : null;
-}
-
-/** Cuts an over-long report at a line break and says so. */
-export function clip(body) {
-  if (body.length <= MAX_BODY) return body;
-  const cut = body.lastIndexOf("\n", MAX_BODY);
-  return `${body.slice(0, cut > 0 ? cut : MAX_BODY)}\n\n_Izvještaj je skraćen; cijeli je u sažetku posla._\n`;
 }
 
 /** Posts body to the report issue of repo; returns { action, number }. Throws on any non-2xx answer. */

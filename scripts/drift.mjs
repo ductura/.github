@@ -44,19 +44,26 @@ export function validateExpected(e) {
 
 // A response counts only when it is HTTP 200, parsed and of the right shape;
 // anything else (transport error, bad JSON, wrong type) is reported as unreadable.
-const ok = (res, shape = "object") =>
-  res?.status === 200 && res.error === undefined && (shape === "array" ? Array.isArray(res.body) : res.body !== null && typeof res.body === "object" && !Array.isArray(res.body));
+const isObject = (x) => x !== null && typeof x === "object" && !Array.isArray(x);
+const SHAPES = {
+  object: isObject,
+  rules: (b) => Array.isArray(b) && b.every(isObject),
+  labels: (b) => Array.isArray(b) && b.every((l) => isObject(l) && typeof l.name === "string"),
+};
+const ok = (res, shape = "object") => res?.status === 200 && res.error === undefined && SHAPES[shape](res.body);
+const list = (x) => (Array.isArray(x) ? x : []);
 const why = (res) => res?.error ?? `HTTP ${res?.status ?? "bez odgovora"}`;
 
 // Required check names from classic branch protection and from rulesets.
 function requiredContexts(branch, rules) {
   const names = new Set();
   const rsc = branch?.protection?.required_status_checks;
-  for (const c of rsc?.contexts ?? []) names.add(c);
-  for (const c of rsc?.checks ?? []) if (c?.context) names.add(c.context);
-  for (const rule of Array.isArray(rules) ? rules : []) {
+  const add = (c) => typeof c === "string" && names.add(c);
+  for (const c of list(rsc?.contexts)) add(c);
+  for (const c of list(rsc?.checks)) add(c?.context);
+  for (const rule of list(rules)) {
     if (rule?.type !== "required_status_checks") continue;
-    for (const c of rule.parameters?.required_status_checks ?? []) if (c?.context) names.add(c.context);
+    for (const c of list(rule.parameters?.required_status_checks)) add(c?.context);
   }
   return names;
 }
@@ -95,15 +102,26 @@ export function checkDrift(expected, labels, observed) {
   const findings = [];
   const add = (f) => findings.push({ level: "drift", ...f });
   for (const { name, optional = false } of expected.repos) {
-    const o = observed[name] ?? {};
+    const before = findings.length;
+    try {
+      checkRepo(name, optional, observed[name] ?? {});
+    } catch (error) {
+      // Defence in depth: an odd response shape must become a finding, never stop the scan.
+      findings.length = before;
+      add({ repo: name, kind: "unreadable", detail: `neočekivan oblik odgovora (${error?.name ?? "Error"})` });
+    }
+  }
+  return findings;
+
+  function checkRepo(name, optional, o) {
     if (o.repo?.status === 404) {
       if (optional) findings.push({ repo: name, kind: "repo-absent", detail: "neobvezan repo još ne postoji", level: "note" });
       else add({ repo: name, kind: "repo-missing", detail: "repo ne postoji ili nije čitljiv" });
-      continue;
+      return;
     }
     if (!ok(o.repo)) {
       add({ repo: name, kind: "unreadable", detail: `repo: ${why(o.repo)}` });
-      continue;
+      return;
     }
     if (o.repo.body?.archived === true) add({ repo: name, kind: "archived", detail: "repo je arhiviran" });
     if (o.repo.body?.default_branch !== expected.branch) {
@@ -111,7 +129,7 @@ export function checkDrift(expected, labels, observed) {
     }
     if (o.branch?.status === 404) {
       add({ repo: name, kind: "branch-missing", detail: expected.branch });
-    } else if (!ok(o.branch) || !ok(o.rules, "array")) {
+    } else if (!ok(o.branch) || !ok(o.rules, "rules")) {
       const which = !ok(o.branch) ? `grana: ${why(o.branch)}` : `pravila: ${why(o.rules)}`;
       add({ repo: name, kind: "unreadable", detail: which });
     } else {
@@ -119,13 +137,12 @@ export function checkDrift(expected, labels, observed) {
       const have = requiredContexts(o.branch.body, o.rules.body);
       for (const c of expected.requiredChecks) if (!have.has(c)) add({ repo: name, kind: "check-missing", detail: c });
     }
-    if (!ok(o.labels, "array")) {
+    if (!ok(o.labels, "labels")) {
       add({ repo: name, kind: "unreadable", detail: `labele: ${why(o.labels)}` });
     } else {
       for (const f of diffLabels(name, labels, o.labels.body)) add(f);
     }
   }
-  return findings;
 }
 
 const KIND_TEXT = {
@@ -146,6 +163,22 @@ const KIND_TEXT = {
 // Workflow command data: % and line breaks must be escaped (actions/toolkit).
 const commandData = (s) => String(s).replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
 const cell = (s) => String(s).replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/[\r\n]+/g, " ").replace(/[<>`]/g, (c) => `\\${c}`);
+
+// The report travels as a job output and an environment variable (Linux
+// limit 128 KiB per string) into an issue (GitHub limit 65 536 characters).
+export const MAX_REPORT_BYTES = 60_000;
+
+/** Cuts a report to at most MAX_REPORT_BYTES UTF-8 bytes at a line break and says so. */
+export function clip(report, max = MAX_REPORT_BYTES) {
+  const bytes = Buffer.from(report, "utf8");
+  if (bytes.length <= max) return report;
+  const note = "\n\n_Izvještaj je skraćen; cijeli je u sažetku posla._\n";
+  const room = max - Buffer.byteLength(note);
+  // Decoding a cut buffer may end in U+FFFD; drop the partial last line instead.
+  const head = bytes.subarray(0, room).toString("utf8");
+  const cut = head.lastIndexOf("\n");
+  return `${cut > 0 ? head.slice(0, cut) : ""}${note}`;
+}
 
 /** Markdown report in Croatian; one table row per finding. */
 export function formatReport(findings, { org, date } = {}) {
@@ -261,7 +294,7 @@ async function main() {
   const report = formatReport(findings, { org: config.expected.org, date: new Date().toISOString().slice(0, 10) });
   console.log(report);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, report);
-  if (reportFile) writeFileSync(reportFile, report);
+  if (reportFile) writeFileSync(reportFile, clip(report));
   const drift = findings.filter((f) => f.level === "drift");
   for (const f of drift) console.log(`::error title=drift ${f.repo}::${f.kind}: ${commandData(f.detail)}`);
   return drift.length > 0 ? 1 : 0;

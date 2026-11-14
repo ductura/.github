@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { checkDrift, formatReport, loadExpected, makeClient, observe, validateExpected } from "./drift.mjs";
+import { MAX_REPORT_BYTES, checkDrift, clip, formatReport, loadExpected, makeClient, observe, validateExpected } from "./drift.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -124,6 +124,24 @@ test("wrong default branch, missing branch and archived repository", () => {
   ]);
 });
 
+test("malformed elements inside a 200 array are unreadable, not a crash", () => {
+  // QA finding 1 on 0ba83e2: labels [null] used to throw in diffLabels.
+  assert.deepEqual(kinds(run({ labels: r(200, [null]) })), ["unreadable:labele: HTTP 200"]);
+  assert.deepEqual(kinds(run({ labels: r(200, [{ name: 7, color: "d73a4a" }]) })), ["unreadable:labele: HTTP 200"]);
+  assert.deepEqual(kinds(run({ rules: r(200, [null]) })), ["unreadable:pravila: HTTP 200"]);
+  // Non-list fields inside valid objects are read as empty, so ci-ok is reported missing.
+  const branch = r(200, { protected: true, protection: { required_status_checks: { contexts: 5, checks: "ci-ok" } } });
+  const rules = r(200, [{ type: "required_status_checks", parameters: { required_status_checks: { context: "ci-ok" } } }]);
+  assert.deepEqual(kinds(run({ branch, rules })), ["check-missing:ci-ok"]);
+});
+
+test("any exception while checking one repository becomes a finding for it alone", () => {
+  const exploding = { get repo() { throw new RangeError("x"); } };
+  const expected = { ...EXPECTED, repos: [{ name: "alfa" }, { name: "beta" }] };
+  const findings = checkDrift(expected, LABELS, { alfa: exploding, beta: healthy() });
+  assert.deepEqual(findings.map((f) => `${f.repo}:${f.kind}:${f.detail}`), ["alfa:unreadable:neočekivan oblik odgovora (RangeError)"]);
+});
+
 // --- report ------------------------------------------------------------------------
 
 test("report says there is no drift, or lists one row per finding", () => {
@@ -133,6 +151,29 @@ test("report says there is no drift, or lists one row per finding", () => {
   assert.match(out, /\| alfa \| razilaženje \| grana nije zaštićena \| main \|/);
   const note = formatReport([{ repo: "beta", kind: "repo-absent", detail: "x", level: "note" }]);
   assert.match(note, /samo napomene/);
+});
+
+test("clip keeps short reports and cuts long ones by UTF-8 bytes at a line break", () => {
+  assert.equal(clip("kratko\n"), "kratko\n");
+  for (const row of ["| a | b |\n", "| žđ | 🙂🙂 |\n"]) {
+    const out = clip(row.repeat(20_000));
+    assert.ok(Buffer.byteLength(out) <= MAX_REPORT_BYTES, row);
+    assert.ok(!out.includes("\uFFFD"), row);
+    assert.match(out, /\|\n\n_Izvještaj je skraćen; cijeli je u sažetku posla\._\n$/);
+  }
+});
+
+test("a clipped report of extra labels still fits one environment variable", () => {
+  // QA finding 2 on 0ba83e2: 4 repos x 500 extra 50-character labels went over 128 KiB.
+  const findings = [];
+  for (const repo of ["server", "preloader", "web", ".github"]) {
+    for (let i = 0; i < 500; i++) findings.push({ repo, kind: "label-extra", detail: `ž${String(i).padStart(48, "x")}`, level: "drift" });
+  }
+  const full = formatReport(findings, { org: "primjer-org" });
+  assert.ok(Buffer.byteLength(full) > 128 * 1024);
+  const r = spawnSync("bash", ["-c", 'printf %s "$REPORT" | wc -c'], { env: { PATH: process.env.PATH, REPORT: clip(full) }, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(Number(r.stdout.trim()) <= MAX_REPORT_BYTES);
 });
 
 test("report escapes table and markup characters from label names", () => {

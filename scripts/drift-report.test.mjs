@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BOT, clip, findReportIssue, publishReport } from "./drift-report.mjs";
+import { BOT, findReportIssue, publishReport } from "./drift-report.mjs";
 
 // Invented data only.
 const TITLE = "Razilaženje postavki (drift-check)";
@@ -13,14 +13,6 @@ test("findReportIssue picks the oldest open bot issue with the exact title", () 
   assert.equal(findReportIssue([issue(1, { title: `${TITLE} ` })], TITLE), null);
   assert.equal(findReportIssue([issue(1, { state: "closed" })], TITLE), null);
   assert.equal(findReportIssue({ message: "x" }, TITLE), null);
-});
-
-test("clip keeps short reports and cuts long ones at a line break", () => {
-  assert.equal(clip("kratko\n"), "kratko\n");
-  const long = `${"| a | b |\n".repeat(10_000)}`;
-  const out = clip(long);
-  assert.ok(out.length < 61_000);
-  assert.match(out, /\| a \| b \|\n\n_Izvještaj je skraćen/);
 });
 
 function fakeFetch(issues, status = {}) {
