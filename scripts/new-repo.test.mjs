@@ -191,6 +191,15 @@ test("a differing file is a conflict and nothing at all is written", (t) => {
   assert.equal(readFileSync(join(dir, "README.md"), "utf8"), "vlastiti README\n");
 });
 
+test("a file in place of a parent folder is a conflict and nothing is written", (t) => {
+  const dir = tempDir(t);
+  writeFileSync(join(dir, ".github"), "datoteka\n");
+  const result = writeRepo(dir, { ...OPTS, preset: "generic" });
+  assert.deepEqual(result.conflicts, [".github"]);
+  assert.deepEqual(result.created, []);
+  assert.deepEqual(listFiles(dir), [".github"]);
+});
+
 test("a folder in place of a file fails without writing", (t) => {
   const dir = tempDir(t);
   mkdirSync(join(dir, "README.md"));
