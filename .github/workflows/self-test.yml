@@ -16,7 +16,7 @@ jobs:
       - name: Install actionlint (verified by the Go checksum database)
         run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
       - name: actionlint
-        run: "$(go env GOPATH)/bin/actionlint -color"
+        run: '"$(go env GOPATH)/bin/actionlint" -color'
 
   pin-check:
     runs-on: ubuntu-latest
