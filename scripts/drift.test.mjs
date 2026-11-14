@@ -138,10 +138,54 @@ test("malformed elements inside a 200 array are unreadable, not a crash", () => 
   assert.deepEqual(kinds(run({ labels: r(200, [null]) })), ["unreadable:labele: HTTP 200"]);
   assert.deepEqual(kinds(run({ labels: r(200, [{ name: 7, color: "d73a4a" }]) })), ["unreadable:labele: HTTP 200"]);
   assert.deepEqual(kinds(run({ rules: r(200, [null]) })), ["unreadable:pravila: HTTP 200"]);
-  // Non-list fields inside valid objects are read as empty, so ci-ok is reported missing.
-  const branch = r(200, { protected: true, protection: { required_status_checks: { contexts: 5, checks: "ci-ok" } } });
-  const rules = r(200, [{ type: "required_status_checks", parameters: { required_status_checks: { context: "ci-ok" } } }]);
-  assert.deepEqual(kinds(run({ branch, rules })), ["check-missing:ci-ok"]);
+});
+
+// One malformed shape per field that checkDrift reads (UGOVOR, 4th round). Each
+// row starts from a healthy repository, so the only finding must be unreadable.
+const goodBranch = () => ({ protected: true, protection: { enabled: true, required_status_checks: { contexts: ["ci-ok"], checks: [] } } });
+const goodRule = () => ({ type: "required_status_checks", parameters: { required_status_checks: [{ context: "ci-ok" }] } });
+const goodLabel = () => ({ name: "bug", color: "d73a4a", description: "Greška" });
+const SHAPE_CASES = [
+  ["repo", "repo is an array", { repo: r(200, []) }],
+  ["repo", "default_branch missing", { repo: r(200, { archived: false }) }],
+  ["repo", "default_branch not a string", { repo: r(200, { default_branch: 1 }) }],
+  ["repo", "archived not a boolean", { repo: r(200, { default_branch: "main", archived: "no" }) }],
+  ["grana", "branch is null", { branch: r(200, null) }],
+  ["grana", "protected missing", { branch: r(200, { protection: goodBranch().protection }) }],
+  ["grana", "protected not a boolean", { branch: r(200, { ...goodBranch(), protected: "true" }) }],
+  ["grana", "protection not an object", { branch: r(200, { protected: true, protection: [] }) }],
+  ["grana", "required_status_checks not an object", { branch: r(200, { protected: true, protection: { required_status_checks: "ci-ok" } }) }],
+  ["grana", "contexts not an array", { branch: r(200, { protected: true, protection: { required_status_checks: { contexts: 5 } } }) }],
+  ["grana", "contexts item not a string", { branch: r(200, { protected: true, protection: { required_status_checks: { contexts: [1] } } }) }],
+  ["grana", "checks not an array", { branch: r(200, { protected: true, protection: { required_status_checks: { checks: "ci-ok" } } }) }],
+  ["grana", "checks item without context", { branch: r(200, { protected: true, protection: { required_status_checks: { checks: [{}] } } }) }],
+  ["pravila", "rules is an object", { rules: r(200, {}) }],
+  ["pravila", "rule is null", { rules: r(200, [null]) }],
+  ["pravila", "rule without type ([{}])", { rules: r(200, [{}]) }],
+  ["pravila", "type not a string", { rules: r(200, [{ type: 1 }]) }],
+  ["pravila", "required_status_checks rule without parameters", { rules: r(200, [{ type: "required_status_checks" }]) }],
+  ["pravila", "parameters list not an array", { rules: r(200, [{ type: "required_status_checks", parameters: { required_status_checks: { context: "ci-ok" } } }]) }],
+  ["pravila", "parameters item without context", { rules: r(200, [{ type: "required_status_checks", parameters: { required_status_checks: [{}] } }]) }],
+  ["labele", "labels is an object", { labels: r(200, {}) }],
+  ["labele", "label is null", { labels: r(200, [null]) }],
+  ["labele", "name not a string", { labels: r(200, [{ ...goodLabel(), name: 7 }]) }],
+  ["labele", "color missing", { labels: r(200, [{ name: "bug", description: "Greška" }]) }],
+  ["labele", "description a number", { labels: r(200, [{ ...goodLabel(), description: 3 }]) }],
+];
+
+for (const [where, what, patch] of SHAPE_CASES) {
+  test(`strict shape: ${what} is unreadable`, () => {
+    assert.deepEqual(kinds(run(patch)), [`unreadable:${where}: HTTP 200`]);
+  });
+}
+
+test("strict shapes accept the optional fields GitHub may leave out", () => {
+  assert.deepEqual(run({ repo: r(200, { default_branch: "main" }) }), []);
+  assert.deepEqual(run({ branch: r(200, { protected: false }), rules: r(200, [goodRule()]) }), []);
+  assert.deepEqual(run({ branch: r(200, { protected: true, protection: { required_status_checks: null } }), rules: r(200, [goodRule()]) }), []);
+  const labels = r(200, [{ ...goodLabel() }, { name: "risk:low", color: "0e8a16", description: "Niski rizik" }]);
+  assert.deepEqual(run({ labels, branch: r(200, goodBranch()) }), []);
+  assert.deepEqual(kinds(run({ labels: r(200, [{ ...goodLabel(), description: null }, { name: "risk:low", color: "0e8a16", description: "Niski rizik" }]) })), ["label-description:bug"]);
 });
 
 test("any exception while checking one repository becomes a finding for it alone", () => {

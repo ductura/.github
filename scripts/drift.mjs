@@ -42,36 +42,53 @@ export function validateExpected(e) {
   return problems;
 }
 
-// A response counts only when it is HTTP 200, parsed and of the right shape;
-// anything else (transport error, bad JSON, wrong type) is reported as unreadable.
+// A response counts only when it is HTTP 200, parsed and matches the strict
+// shape for its kind below: every field checkDrift reads, with its type.
+// Anything else (transport error, bad JSON, missing or mistyped field) is
+// reported as unreadable, never as a pass.
 const isObject = (x) => x !== null && typeof x === "object" && !Array.isArray(x);
-const SHAPES = {
-  object: isObject,
-  rules: (b) => Array.isArray(b) && b.every(isObject),
-  labels: (b) => Array.isArray(b) && b.every((l) => isObject(l) && typeof l.name === "string"),
+const isString = (x) => typeof x === "string";
+const optional = (x, test) => x === undefined || test(x);
+const arrayOf = (test) => (x) => Array.isArray(x) && x.every(test);
+const withContext = (c) => isObject(c) && isString(c.context);
+
+const requiredChecks = (r) =>
+  isObject(r) && optional(r.contexts, arrayOf(isString)) && optional(r.checks, arrayOf(withContext));
+const rule = (r) =>
+  isObject(r) &&
+  isString(r.type) &&
+  (r.type !== "required_status_checks" || (isObject(r.parameters) && arrayOf(withContext)(r.parameters.required_status_checks)));
+
+export const SHAPES = {
+  repo: (b) => isObject(b) && isString(b.default_branch) && optional(b.archived, (a) => typeof a === "boolean"),
+  branch: (b) =>
+    isObject(b) &&
+    typeof b.protected === "boolean" &&
+    optional(b.protection, (p) => isObject(p) && optional(p.required_status_checks, (r) => r === null || requiredChecks(r))),
+  rules: arrayOf(rule),
+  labels: arrayOf((l) => isObject(l) && isString(l.name) && isString(l.color) && (l.description === null || isString(l.description))),
 };
-const ok = (res, shape = "object") => res?.status === 200 && res.error === undefined && SHAPES[shape](res.body);
-const list = (x) => (Array.isArray(x) ? x : []);
+const ok = (res, shape) => res?.status === 200 && res.error === undefined && SHAPES[shape](res.body);
 const notFound = (res) => res?.status === 404 && res.error === undefined;
 const why = (res) => res?.error ?? `HTTP ${res?.status ?? "bez odgovora"}`;
 
 // Required check names from classic branch protection and from rulesets.
 function requiredContexts(branch, rules) {
   const names = new Set();
-  const rsc = branch?.protection?.required_status_checks;
-  const add = (c) => typeof c === "string" && names.add(c);
-  for (const c of list(rsc?.contexts)) add(c);
-  for (const c of list(rsc?.checks)) add(c?.context);
-  for (const rule of list(rules)) {
-    if (rule?.type !== "required_status_checks") continue;
-    for (const c of list(rule.parameters?.required_status_checks)) add(c?.context);
+  // Shapes are already checked (SHAPES), so every list here is an array of the right type.
+  const rsc = branch.protection?.required_status_checks;
+  for (const c of rsc?.contexts ?? []) names.add(c);
+  for (const c of rsc?.checks ?? []) names.add(c.context);
+  for (const r of rules) {
+    if (r.type !== "required_status_checks") continue;
+    for (const c of r.parameters.required_status_checks) names.add(c.context);
   }
   return names;
 }
 
 function isProtected(branch, rules) {
-  if (branch?.protected === true) return true;
-  return Array.isArray(rules) && rules.some((r) => ["pull_request", "required_status_checks", "non_fast_forward", "deletion", "update"].includes(r?.type));
+  if (branch.protected) return true;
+  return rules.some((r) => ["pull_request", "required_status_checks", "non_fast_forward", "deletion", "update"].includes(r.type));
 }
 
 function diffLabels(repo, want, have) {
@@ -121,7 +138,7 @@ export function checkDrift(expected, labels, observed) {
       else add({ repo: name, kind: "repo-missing", detail: "repo ne postoji ili nije čitljiv" });
       return;
     }
-    if (!ok(o.repo)) {
+    if (!ok(o.repo, "repo")) {
       add({ repo: name, kind: "unreadable", detail: `repo: ${why(o.repo)}` });
       return;
     }
@@ -131,8 +148,8 @@ export function checkDrift(expected, labels, observed) {
     }
     if (notFound(o.branch)) {
       add({ repo: name, kind: "branch-missing", detail: expected.branch });
-    } else if (!ok(o.branch) || !ok(o.rules, "rules")) {
-      const which = !ok(o.branch) ? `grana: ${why(o.branch)}` : `pravila: ${why(o.rules)}`;
+    } else if (!ok(o.branch, "branch") || !ok(o.rules, "rules")) {
+      const which = !ok(o.branch, "branch") ? `grana: ${why(o.branch)}` : `pravila: ${why(o.rules)}`;
       add({ repo: name, kind: "unreadable", detail: which });
     } else {
       if (!isProtected(o.branch.body, o.rules.body)) add({ repo: name, kind: "unprotected", detail: expected.branch });
