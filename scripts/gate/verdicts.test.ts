@@ -207,6 +207,7 @@ test("owner override counts only for the exact head, from the owner, with a reas
   assert.equal(state(prBody("critical"), [override(head)]), "success");
   assert.equal(state(prBody("critical"), [override(older)]), "pending");
   assert.equal(state(prBody("critical"), [override(head, "")]), "pending");
+  assert.equal(state(prBody("critical"), [override(head, undefined, { edited: true })]), "pending");
   assert.equal(
     state(prBody("critical"), [override(head, undefined, { login: "member-y" })], { trustedLogins: ["member-y"] }),
     "pending",

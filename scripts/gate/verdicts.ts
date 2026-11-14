@@ -220,6 +220,8 @@ export function latestVerdicts(entries: readonly Entry[], spec: Spec, headSha: s
 function overrideOnHead(entries: readonly Entry[], headSha: string, ownerLogin: string): boolean {
   return entries.some(
     (entry) =>
+      // F-012: an edited override, like an edited verdict, never passes.
+      !entry.edited &&
       entry.appSlug === null &&
       entry.login === ownerLogin &&
       canonicalBlock(entry.body, "Owner-Override") &&

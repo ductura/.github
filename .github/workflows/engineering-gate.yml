@@ -39,6 +39,11 @@ jobs:
     name: Engineering gate evaluator
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # One evaluation per PR at a time, so an older run never overwrites the
+    # status of a newer one; queued, never cancelled (no red evaluator).
+    concurrency:
+      group: engineering-gate-${{ github.repository }}-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
+      cancel-in-progress: false
     permissions:
       contents: read
       issues: read
