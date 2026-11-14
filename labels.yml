@@ -1,0 +1,95 @@
+# Shared label list for Ductura repositories (DAN-746, T-0.1).
+# Source: labels of danielrisavi77-create/Ductus on 2026-11-14; colours lowercased.
+# New here: risk:* (Ductus has only an undescribed "critical") and the
+# area:docs description (empty in Ductus).
+#
+# Strict YAML subset read by scripts/labels.mjs: name, color and description
+# are double-quoted (only \" and \\ escapes), group is a bare word. Check with
+#   node scripts/labels.mjs labels.yml
+version: 1
+labels:
+  # risk
+  - name: "risk:low"
+    color: "0e8a16"
+    description: "Rizik low: dokumentacija, copy bez promjene značenja, jednostavna konfiguracija"
+    group: risk
+  - name: "risk:standard"
+    color: "fbca04"
+    description: "Rizik standard: uobičajena promjena koda; traži review"
+    group: risk
+  - name: "risk:critical"
+    color: "b60205"
+    description: "Rizik critical: identitet, ovlasti, evidencija, predaja, workflowi; review i QA"
+    group: risk
+  # area
+  - name: "area:auth"
+    color: "1d76db"
+    description: "Područje: prijava i ovlasti"
+    group: area
+  - name: "area:ci"
+    color: "1d76db"
+    description: "CI, GitHub Actions workflowi, gate provjere"
+    group: area
+  - name: "area:db"
+    color: "1d76db"
+    description: "Područje: baza"
+    group: area
+  - name: "area:docs"
+    color: "ededed"
+    description: "Područje: dokumentacija"
+    group: area
+  - name: "area:platforma"
+    color: "1d76db"
+    description: "Razvojna platforma, alati, demo stog, botovi"
+    group: area
+  - name: "area:sync"
+    color: "1d76db"
+    description: "Područje: sinkronizacija"
+    group: area
+  - name: "area:ui"
+    color: "1d76db"
+    description: "Područje: sučelje"
+    group: area
+  # role
+  - name: "role:backend"
+    color: "5319e7"
+    description: "Pisac Backend"
+    group: role
+  - name: "role:frontend"
+    color: "5319e7"
+    description: "Pisac Frontend"
+    group: role
+  - name: "role:platforma"
+    color: "5319e7"
+    description: "Pisac Platforma"
+    group: role
+  # state
+  - name: "ready-for-claude"
+    color: "0e8a16"
+    description: "Issue je spreman da ga preuzme Claude sesija"
+    group: state
+  - name: "claude:in-progress"
+    color: "fbca04"
+    description: "Claude sesija radi na ovom issueu"
+    group: state
+  - name: "izvjestaj-ceka"
+    color: "fbca04"
+    description: "Izvještaj sesije čeka orkestratora (SESSIONS.md §2a)"
+    group: state
+  # bot
+  - name: "plan-napada"
+    color: "fbca04"
+    description: "Plan napada prije koda"
+    group: bot
+  - name: "bug"
+    color: "d73a4a"
+    description: "Something isn't working"
+    group: bot
+  - name: "security"
+    color: "b60205"
+    description: "Sigurnosni nalaz ili rizik"
+    group: bot
+  - name: "pitanje-za-grok"
+    color: "5319e7"
+    description: "Pitanje za jednog od Grok botova"
+    group: bot
