@@ -116,6 +116,15 @@ test("a 200 response with an error or the wrong shape is unreadable, never a pas
   assert.deepEqual(kinds(run({ labels: { status: 0, body: null, error: "mreža: TypeError" } })), ["unreadable:labele: mreža: TypeError"]);
 });
 
+test("a 404 with an error is unreadable, never absent or missing", () => {
+  // QA finding on dbb1ba7: an optional repo answering 404 with bad JSON gave only a note.
+  const bad404 = { status: 404, body: null, error: "HTTP 404, neispravan JSON" };
+  const optional = { ...EXPECTED, repos: [{ name: "alfa", optional: true }] };
+  const found = checkDrift(optional, LABELS, { alfa: { repo: bad404 } });
+  assert.deepEqual(found.map((f) => [f.kind, f.level, f.detail]), [["unreadable", "drift", "repo: HTTP 404, neispravan JSON"]]);
+  assert.deepEqual(kinds(run({ branch: bad404 })), ["unreadable:grana: HTTP 404, neispravan JSON"]);
+});
+
 test("wrong default branch, missing branch and archived repository", () => {
   assert.deepEqual(kinds(run({ repo: r(200, { default_branch: "master", archived: true }), branch: r(404, null) })), [
     "archived:repo je arhiviran",

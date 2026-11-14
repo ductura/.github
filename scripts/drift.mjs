@@ -52,6 +52,7 @@ const SHAPES = {
 };
 const ok = (res, shape = "object") => res?.status === 200 && res.error === undefined && SHAPES[shape](res.body);
 const list = (x) => (Array.isArray(x) ? x : []);
+const notFound = (res) => res?.status === 404 && res.error === undefined;
 const why = (res) => res?.error ?? `HTTP ${res?.status ?? "bez odgovora"}`;
 
 // Required check names from classic branch protection and from rulesets.
@@ -114,7 +115,8 @@ export function checkDrift(expected, labels, observed) {
   return findings;
 
   function checkRepo(name, optional, o) {
-    if (o.repo?.status === 404) {
+    // A 404 counts as "absent" only when it was read cleanly; a 404 with an error is unreadable.
+    if (notFound(o.repo)) {
       if (optional) findings.push({ repo: name, kind: "repo-absent", detail: "neobvezan repo još ne postoji", level: "note" });
       else add({ repo: name, kind: "repo-missing", detail: "repo ne postoji ili nije čitljiv" });
       return;
@@ -127,7 +129,7 @@ export function checkDrift(expected, labels, observed) {
     if (o.repo.body?.default_branch !== expected.branch) {
       add({ repo: name, kind: "default-branch", detail: `${o.repo.body?.default_branch} umjesto ${expected.branch}` });
     }
-    if (o.branch?.status === 404) {
+    if (notFound(o.branch)) {
       add({ repo: name, kind: "branch-missing", detail: expected.branch });
     } else if (!ok(o.branch) || !ok(o.rules, "rules")) {
       const which = !ok(o.branch) ? `grana: ${why(o.branch)}` : `pravila: ${why(o.rules)}`;
