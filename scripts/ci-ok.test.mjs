@@ -66,4 +66,6 @@ test("self-test ci-ok needs every other job", () => {
   const listed = /needs:\s*\[([^\]]*)\]/.exec(okBlock)?.[1].split(",").map((s) => s.trim()) ?? [];
   assert.deepEqual([...listed].sort(), jobs.filter((j) => j !== "ci-ok").sort());
   assert.match(okBlock, /if:\s*\$\{\{\s*always\(\)\s*\}\}/);
+  // On pull requests nothing may be skipped; the empty branch must come last.
+  assert.match(okBlock, /allow-skipped: \$\{\{ github\.event_name != 'pull_request' && 'dependency-review' \|\| '' \}\}/);
 });

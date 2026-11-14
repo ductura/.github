@@ -135,4 +135,5 @@ jobs:
     with:
       results: ${{ toJSON(needs) }}
       # dependency-review runs only on pull requests; there it must not be skipped.
-      allow-skipped: ${{ github.event_name == 'pull_request' && '' || 'dependency-review' }}
+      # '' is falsy in expressions, so `cond && '' || x` would always give x.
+      allow-skipped: ${{ github.event_name != 'pull_request' && 'dependency-review' || '' }}
