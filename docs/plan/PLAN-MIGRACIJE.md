@@ -156,7 +156,7 @@ Zašto ovako:
 
 Ductus danas: oko 806 `.ts`, 104 `.tsx` i 217 `.mjs` datoteka; 37 ruta u `app/api`; 99 pgTAP datoteka; oko 100 datoteka u `e2e/`; oko 275 datoteka u `src/components`. Novi repozitoriji pišu skripte samo u TypeScriptu, pa se `.mjs` prevodi pri prijenosu.
 
-Pravilo za svaki prijenos: PR navodi izvorni SHA Ductusa, isti testovi prolaze prije i poslije, a logika se u istom PR-u ne mijenja. Povijest gita se ne prenosi, samo sadržaj (otvorena točka 13).
+Pravilo za svaki prijenos: PR navodi izvorni SHA Ductusa, isti testovi prolaze prije i poslije, a logika se u istom PR-u ne mijenja. Povijest gita se ne prenosi, samo sadržaj (odluka vlasnika, Ductus#87 c.6881719844, točka 13): svaki prijenosni PR navodi izvorni SHA Ductusa.
 
 | Repo | Polazište iz Ductusa | Kada |
 |---|---|---|
@@ -169,7 +169,7 @@ Pravilo za svaki prijenos: PR navodi izvorni SHA Ductusa, isti testovi prolaze p
 
 **Ostaje samo u Ductusu, kao povijest:** `docs/` (odluke, Ustav, plan, sažeci), `STATE.md`, skripte orkestratora (`scripts/orchestrator`), alati za gate Ductusa dok Ductus živi, `spikes/`, `plugins/`, `.claude/` i `.agents/` Ductusa, `middleware.ts` i Next.js rute API-ja (zamjenjuju ih rute servera), stari vizualni snimci.
 
-**Dvostruke promjene tijekom prijelaza:** nakon prijenosa područja nova promjena ide prvo u novi repo, a Ductus dobiva samo popravke (otvorena točka 14). Nova migracija glavne baze nastaje prvo u serveru i kopira se u Ductus pod istim imenom (otvorena točka 17).
+**Dvostruke promjene tijekom prijelaza (odluka vlasnika, Ductus#87 c.6881719844, točke 14 i 17):** od 14. 11. sav novi razvoj ide u Ducturu, a Ductus dobiva samo popravke; Ductus do 20. 12. ostaje funkcijski zaostao. Nova migracija glavne baze nastaje u `ductura/server` i kopira se u Ductus pod istim imenom i verzijom; CI provjerava jednakost `migrations.sum` u oba repoa do zamrzavanja Ductusa.
 
 ---
 
@@ -360,7 +360,7 @@ Najviše **tri** orkestratora u isto vrijeme.
 2. **Razilaženje postavki među repozitorijima.** Prijedlog: tjedna provjera (T-0.7) koja samo čita: zaštita grane, obvezni statusi, instalirane aplikacije, labele. Nalaz ide u koordinacijski issue.
 3. **Novi repo bez standarda.** Prijedlog: generator početnih datoteka (T-0.4). Novi repo dobiva README, adaptere pravila, CODEOWNERS, predložak PR-a, risk tablicu i labele u jednom PR-u.
 4. **Ductus i novi repozitoriji paralelno.** Rizik: dvostruke promjene i dvije istine. Prijedlog u tri koraka:
-   - sada: Ductus dovršava PR-ove u gateu, novi posao ide u Ducturu (već odlučeno);
+   - sada: Ductus dovršava PR-ove u gateu, od 14. 11. sav novi razvoj ide u Ducturu, a Ductus dobiva samo popravke (odluka vlasnika, Ductus#87 c.6881719844, točka 14);
    - **zamrzavanje** kad web-chrome prođe glavni tok na novom serveru (kraj faze C): Ductus dobiva samo sigurnosne popravke. **Ne prije izbora sustava za pilot 20. 12. 2026. (O-1, §4d; D-295);**
    - **zaključavanje samo za čitanje** dva tjedna nakon prebacivanja domene (kraj faze D).
 5. **Desktop: tanka ljuska, nikad novi editor.** Izvorni editor u C#-u ili Swiftu bio bi četvrti i peti editor, uz web-chrome, mobile i other. To je najveći mogući trošak i rizik plana. Prijedlog: desktop je tanka izvorna ljuska oko **istog web paketa**. Ljuska radi prozor, instalaciju, ažuriranje, prijavu tokom (S-1E-e) i lokalno spremište. Tri moguća puta:
@@ -398,7 +398,7 @@ Rizici uz odluku vlasnika 14. 11. (Ductus#87 c.6880835493). Svaki ima jednog nos
 | R-2 | Lokalni zapis (dnevnik) u pregledniku. | Šifriranje ili rok trajanja lokalnog zapisa odlučen prije pilota (D-122); shema dnevnika u E-0.1. |
 | R-3 | Izmjene izdanja tijekom pilota. | Faza A pilota zamrzava izdanje (§4d). |
 | R-4 | Domena je vezana uz AAI registraciju i `__Host-` kolačić (§1c). | V-0 mora biti konačan prije zahtjeva Srcu (V-5). |
-| R-5 | Knjiga migracija (ledger). | Samo za dodavanje (append-only). S-0.13 navodi prenosi li se ista knjiga. |
+| R-5 | Knjiga migracija (ledger). | Samo za dodavanje (append-only). S-0.13 prenosi 112 migracija i `migrations.sum` doslovno u `db/main/migrations/`, s istom knjigom (usklađeno s §4, §10 i serverskim planom, `ductura/server` docs/PLAN.md redak 61). Nove migracije vidi §3 (točka 17). |
 | R-6 | Domena evidencije i registar ključeva. | Dolaze iz konfiguracije operatera (D-102, DAN-759), ne iz koda. |
 | R-7 | Sintetički prolaz na stagingu. | Ovisi o B0.1. |
 | R-8 | Proba povrata baze nikad nije izvršena. | Proba (M11.2-P04) mora uključiti nižu reviziju na poslužitelju nakon povrata. Odluka vlasnika (Ductus#87 c.6880906459, varijanta A): na nižoj reviziji nakon povrata klijent ponovno šalje lokalne korake kao nove revizije s novim potpisanim potvrdama; lanac dokaza nosi oznaku „obnovljeno iz lokalne kopije nakon povrata”. |
@@ -445,7 +445,7 @@ Pretpostavka: početak u ponedjeljak 17. 11., nakon prezentacije. Dokumenti i sp
 | S-0.9, S-0.20 | Grade se u serveru kao danas. Pišu se tako da ih T-0.2 i T-0.3 kasnije izdvoje bez promjene ponašanja. |
 | S-0.10-a, S-0.10-b | Pišu se u `.github` (kao T-0.2), ne u serveru; server ih poziva punim SHA-om. |
 | S-0.11 | Ovisi i o prijenosu aplikacije botova u organizaciju (V-3). Labele dolaze iz zajedničkog popisa kad postoji T-0.1. |
-| S-0.19 | Briše se „Otvoreno: prelazi u shared-core”. `server/domain` ostaje u serveru i objavljuje se u `@ductura/contracts`. Otvorena točka 12 se zatvara. |
+| S-0.19 | Briše se „Otvoreno: prelazi u shared-core”. `server/domain` ostaje u serveru i objavljuje se u `@ductura/contracts`. Time je pitanje shared-corea zatvoreno (zamijenjeno paketima, KARTA §4). |
 | S-0.21 | Popis praćenih repozitorija ima svih sedam plus Ductus. Proširenje preko repozitorija je T-0.6. |
 | S-1L.1 | Briše se „dugoročno mjesto lokala je shared-core”. Serverske lokale ostaju u serveru. Lokale sučelja idu u `@ductura/ui`. Test u `@ductura/ui` provjerava da svaki kod greške iz ugovora ima tekst. |
 | S-1M-c | Katalog grešaka objavljuje se u `@ductura/contracts`, jer ga preloader treba. |
