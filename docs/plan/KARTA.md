@@ -4,6 +4,7 @@ Kanonski plan migracije: [PLAN-MIGRACIJE.md](https://github.com/ductura/.github/
 
 Stanje: 14. 11. 2026. · **Samo plan.** Svaka stavka plana cijele aplikacije i plana prvog vala ima **jedan** repozitorij ili paket.
 Uključene vlasnikove odluke 14. 11.:
+- **O** (Ductus#87 c.6880835493, dopuna c.6880861260): O-1 pilot na jednom sustavu, izbor 20. 12. 2026.; O-2 VS-1 s potpisom u istom odgovoru samo nad sintetičkim podacima, VS-1b bezuvjetan; O-3 uski rez servera iza S-0.19. Vidi PLAN-MIGRACIJE §4a-1, §4c, §4d i §8a.
 - **A** („Prihvaćam tvoje ova tri prijedloga”): A1 jedan web repo `ductura/web`, A2 prijenos s testovima, A3 ugovor API-ja prvi.
 - **B** (#87 c.6870353871, „Ok, može sve, sviđa mi se”): B1 ugovor kao izvor koda, B2 `ductura/.github`, B3 modularni monolit, B4 zajednički paket lažnih zamjena, B5 katalog komponenti, B6 gate prema riziku zadnji.
 
@@ -45,6 +46,7 @@ Koraci U1–U11 su nazivi iz [plan servera](https://github.com/ductura/server/bl
 | 1M stanje, kontekst, katalog grešaka | S-1M-a, S-1M-b, S-1M-c | server | contracts | ulaz za P-0.4, P-0.5, P-0.8 |
 | 1N i 3d pravni dio | S-1N-a … S-1N-d | server (API, baza); prikaz u preloader (P-0.6, P-0.9) i web | contracts | |
 | 3b brisanje radova | S-3B-a … S-3B-e | server; ekrani u web | contracts | S-3B-e i izvršni dio S-3B-b/d čekaju D-30, Q-16 |
+| uski rez za VS-1 (O-3) | ID-eve dodjeljuje orkestrator | server | — | sesija, `open`, `commit`, `replay`; zasebni `critical` PR-ovi redom iza S-0.19, usporedno s valovima 1–5; nije izdanje (migracija §4c) |
 | val 6 prijenos područja | S-M-1, S-M-2a, S-M-2b, S-M-3, S-M-4, S-M-5, S-M-6, S-M-7, S-M-8, S-M-10 | server | — | A2: s testovima; S-M-9 namjerno izostavljen u zadacima |
 | 1G backup | S-1G-a … S-1G-f | server | — | |
 | 1H ugovori (ranije dio) | S-1H.1-a, S-1H.1-b, S-1H.1-c, S-1H.4 (= U4–U7) | server | contracts | **A3/B1: pomaknuto odmah nakon kostura** |
@@ -80,7 +82,8 @@ Koraci U1–U11 su nazivi iz [plan servera](https://github.com/ductura/server/bl
 | D-0.1 | Ductus (`spikes/`) | nakon faze B |
 | E-0.1, E-0.2 | Ductus | editor-core nastaje u Ductusu |
 | E-0.3 | web | |
-| VS-1 | preloader + web + server | jedini zadatak preko tri repoa; nositelj PRIJEDLOG web |
+| VS-1 | preloader + web + server | jedini zadatak preko tri repoa; nositelj PRIJEDLOG web. O-2: samo sintetički podaci, protokol 1 (potpis u istom odgovoru), uključuje VS-1.13; ovisi o uskom rezu (O-3) |
+| VS-1b | server + web | O-2: `202 pending_signature`, worker, red poslova, oporavak; bezuvjetan; uvjet za osnovicu 20. 12. 2026. i za stvarne podatke (D-71); ovisi o VS-1 |
 | VS-2 | web | A1: mobilni prikaz u istom repou |
 | M-0.1 | Ductus | mjere |
 
@@ -88,13 +91,13 @@ Koraci U1–U11 su nazivi iz [plan servera](https://github.com/ductura/server/bl
 
 | ID | Što (sažeto) | Repo |
 |---|---|---|
-| V-0 | domena (`ductura.cfd` ili `.top`) i adresa e-pošte | sve (preloader proxy) |
+| V-0 | domena (`ductura.cfd` ili `.top`) i adresa e-pošte; konačan prije zahtjeva Srcu (R-4) | sve (preloader proxy) |
 | V-1 | organizacija `Ductura` i repo `server` (gotovo 14. 11.) | server; B2 dodaje `.github` |
 | V-1b | aktivacija repoa po fazama (migracija) | preloader i web (odobreno 14. 11., ne čeka fazu C); desktop je zasebna radnja „Faza E · aktivacija desktop razvoja”; arhiviranje `web-mobile`, `web-other` nakon potvrde |
 | V-2 | zaštita grane, `ci-ok`, statusi gatea | svaki repo |
 | V-3 | aplikacija botova i Mergify | svaki repo |
 | V-4 | tajne i CI runneri | server |
-| V-5 | zahtjev Srcu (registracija, ne-preglednički klijent) | server (S-1E-b, S-1E-e) |
+| V-5 | zahtjev Srcu (registracija, ne-preglednički klijent); tek nakon konačnog V-0 (R-4) | server (S-1E-b, S-1E-e) |
 | V-6 | backup u produkciji | server (nakon S-1G-e) |
 | V-7 | račun admina aplikacije izvan aplikacije | server (nakon S-1J.1-b) |
 
@@ -123,7 +126,7 @@ Koraci U1–U11 su nazivi iz [plan servera](https://github.com/ductura/server/bl
 
 ## 5. Stavke koje ne pašu čisto (s preporukom)
 
-1. **Zadaci u Ductusu** (S-0.1, S-0.2, S-0.3, S-0.21, T-0.6, M-0.1, E-0.1, E-0.2, D-0.1): ostaju u Ductusu. Preporuka: Ductus se ne zamrzava dok E-0.2 i S-0.2 nisu gotovi.
+1. **Zadaci u Ductusu** (S-0.1, S-0.2, S-0.3, S-0.21, T-0.6, M-0.1, E-0.1, E-0.2, D-0.1): ostaju u Ductusu. Preporuka: Ductus se ne zamrzava dok E-0.2 i S-0.2 nisu gotovi. **O-1:** ni prije izbora sustava za pilot na kontrolnoj točki 20. 12. 2026. (D-295).
 2. **CSP** (`src/server/http/content-security-policy.ts`): opisuje stranice, a server ih nema. Preporuka: prijenos s testom u preloader `deploy/edge/`; proxy postavlja CSP za preloader i web.
 3. **Stranica za preuzimanje**: zadaci §6 je stavljaju u web (2.c9), migracija P-0.9 u preloader. Preporuka: preloader (javna, prije prijave).
 4. **Sinkronizacija u editor-coreu**: migracija §2c traži „osam stanja” u paketu i navodi `src/lib/sync`, a stroj je u `src/domain/sync` i `src/domain/serverSync`, koje §3 šalje kopijom. Preporuka: oba u `@ductura/editor-core` s testovima.
