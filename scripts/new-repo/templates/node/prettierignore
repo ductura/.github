@@ -1,0 +1,3 @@
+pnpm-lock.yaml
+# Verbatim copy of ductura/.github PULL_REQUEST_TEMPLATE.md; its "- " placeholders are intentional.
+.github/pull_request_template.md
