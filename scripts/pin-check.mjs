@@ -16,9 +16,17 @@ export function isPinned(ref) {
   return PINNED.test(ref);
 }
 
+// YAML accepts CRLF and lone CR as line breaks; splitting on "\n" alone would
+// leave "\r" on every line and hide each `uses:` from the key regex.
+const lines = (text) => text.split(/\r\n|\r|\n/);
+
+export function countUses(text) {
+  return lines(text).filter((raw) => USES_KEY.test(raw)).length;
+}
+
 export function checkText(text, file) {
   const problems = [];
-  text.split("\n").forEach((raw, index) => {
+  lines(text).forEach((raw, index) => {
     const key = USES_KEY.exec(raw);
     if (!key) return;
     // A value on the next line (block scalar or continuation) is not checked: report it.
@@ -47,8 +55,10 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
     console.error("pin-check: no workflow files found");
     process.exit(2);
   }
-  const problems = files.flatMap((file) => checkText(readFileSync(file, "utf8"), file));
+  const texts = files.map((file) => [file, readFileSync(file, "utf8")]);
+  const problems = texts.flatMap(([file, text]) => checkText(text, file));
+  const uses = texts.reduce((sum, [, text]) => sum + countUses(text), 0);
   for (const p of problems) console.error(`${p.file}:${p.line}: not pinned to a full SHA: ${p.ref}`);
-  console.log(`pin-check: ${files.length} file(s), ${problems.length} unpinned reference(s)`);
+  console.log(`pin-check: ${files.length} file(s), ${uses} uses line(s), ${problems.length} unpinned reference(s)`);
   process.exit(problems.length === 0 ? 0 : 1);
 }

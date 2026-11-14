@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { checkText } from "./pin-check.mjs";
+import { checkText, countUses } from "./pin-check.mjs";
 
 const SHA = "3d3c42e5aac5ba805825da76410c181273ba90b1";
 const DIGEST = "a".repeat(64);
@@ -47,4 +47,21 @@ test("reports file and line number", () => {
   assert.deepEqual(checkText(text, "w.yml"), [
     { file: "w.yml", line: 3, ref: "actions/setup-node@v4" },
   ]);
+});
+
+const eolCases = [
+  ["CRLF unpinned", "steps:\r\n  - uses: actions/checkout@v4\r\n", [2]],
+  ["CRLF pinned", `steps:\r\n  - uses: actions/checkout@${SHA}\r\n`, []],
+  ["lone CR unpinned", "steps:\r  - uses: actions/checkout@v4\r", [2]],
+  ["mixed endings keep line numbers", `a:\n  - uses: x/y@${SHA}\r\n  - uses: x/y@main\r  - uses: x/y@v1\n`, [3, 4]],
+];
+
+for (const [name, text, lines] of eolCases) {
+  test(`line endings: ${name}`, () => {
+    assert.deepEqual(checkText(text, "x.yml").map((p) => p.line), lines);
+  });
+}
+
+test("countUses sees uses lines with any line ending", () => {
+  assert.equal(countUses(`- uses: a/b@${SHA}\r\n- uses: ./x\r- run: echo\n`), 2);
 });
