@@ -16,4 +16,4 @@ Pozivaj ih s punim SHA-om ovog repoa (`@<40 znakova> # <oznaka>`), nikad s grano
 
 ## Tjedna provjera razilaženja
 
-`drift-check.yml` (ponedjeljkom i ručno) samo čita postavke repoa navedenih u `drift/expected.json`: zadanu granu, zaštitu grane, obvezni status `ci-ok` i labele iz `labels.yml`. Nalaz je u sažetku posla, a posao tada pada. Logika je u `scripts/drift.mjs` (čiste funkcije, testovi u `scripts/drift.test.mjs`).
+`drift-check.yml` (ponedjeljkom i ručno) samo čita postavke repoa navedenih u `drift/expected.json`: zadanu granu, zaštitu grane, obvezni status `ci-ok` i labele iz `labels.yml`. Posao koji čita ima samo `contents: read` i ništa ne mijenja. Kad postoji razilaženje, zaseban posao s `issues: write` samo na ovom repou objavljuje izvještaj u koordinacijski issue `Razilaženje postavki (drift-check)` i pada. Nečitljiv odgovor (mreža, neispravan JSON, krivi oblik) je nalaz, nikad prolaz. Logika je u `scripts/drift.mjs` i `scripts/drift-report.mjs`, s testovima uz njih.

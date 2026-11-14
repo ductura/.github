@@ -3,15 +3,17 @@
 // protection, required status checks and labels from labels.yml.
 // checkDrift and formatReport are pure functions over raw REST responses; the
 // client below can only send GET, so the check can never change a repository.
-// Usage: node scripts/drift.mjs [expected.json]   (default: drift/expected.json)
+// Usage: node scripts/drift.mjs [expected.json] [--report-file report.md]
+//   (default: drift/expected.json; the report file is always written)
 // Env: GITHUB_TOKEN (optional for public repos), GITHUB_API_URL, GITHUB_STEP_SUMMARY.
 // Exit: 0 no drift, 1 drift found, 2 bad configuration.
-import { appendFileSync, readFileSync } from "node:fs";
+import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseLabels, validateLabels } from "./labels.mjs";
 
-const NAME = /^[A-Za-z0-9_.-]+$/;
+const NAME = /^(?!\.{1,2}$)[A-Za-z0-9_.-]+$/;
+const MAX_PAGES = 50;
 
 /** Validates drift/expected.json; returns a list of problems ([] when valid). */
 export function validateExpected(e) {
@@ -23,6 +25,9 @@ export function validateExpected(e) {
     problems.push("requiredChecks must be a list of non-empty strings");
   }
   if (typeof e?.labels !== "string") problems.push("labels must be a path to labels.yml");
+  if (typeof e?.reportIssue !== "string" || e.reportIssue.length === 0 || e.reportIssue.length > 256) {
+    problems.push("reportIssue must be an issue title of 1-256 characters");
+  }
   if (!Array.isArray(e?.repos) || e.repos.length === 0) {
     problems.push("repos must be a non-empty list");
   } else {
@@ -37,7 +42,11 @@ export function validateExpected(e) {
   return problems;
 }
 
-const ok = (res) => res?.status === 200;
+// A response counts only when it is HTTP 200, parsed and of the right shape;
+// anything else (transport error, bad JSON, wrong type) is reported as unreadable.
+const ok = (res, shape = "object") =>
+  res?.status === 200 && res.error === undefined && (shape === "array" ? Array.isArray(res.body) : res.body !== null && typeof res.body === "object" && !Array.isArray(res.body));
+const why = (res) => res?.error ?? `HTTP ${res?.status ?? "bez odgovora"}`;
 
 // Required check names from classic branch protection and from rulesets.
 function requiredContexts(branch, rules) {
@@ -93,7 +102,7 @@ export function checkDrift(expected, labels, observed) {
       continue;
     }
     if (!ok(o.repo)) {
-      add({ repo: name, kind: "unreadable", detail: `repo: HTTP ${o.repo?.status ?? "bez odgovora"}` });
+      add({ repo: name, kind: "unreadable", detail: `repo: ${why(o.repo)}` });
       continue;
     }
     if (o.repo.body?.archived === true) add({ repo: name, kind: "archived", detail: "repo je arhiviran" });
@@ -102,16 +111,16 @@ export function checkDrift(expected, labels, observed) {
     }
     if (o.branch?.status === 404) {
       add({ repo: name, kind: "branch-missing", detail: expected.branch });
-    } else if (!ok(o.branch) || !ok(o.rules)) {
-      const which = !ok(o.branch) ? `grana: HTTP ${o.branch?.status ?? "bez odgovora"}` : `pravila: HTTP ${o.rules?.status ?? "bez odgovora"}`;
+    } else if (!ok(o.branch) || !ok(o.rules, "array")) {
+      const which = !ok(o.branch) ? `grana: ${why(o.branch)}` : `pravila: ${why(o.rules)}`;
       add({ repo: name, kind: "unreadable", detail: which });
     } else {
       if (!isProtected(o.branch.body, o.rules.body)) add({ repo: name, kind: "unprotected", detail: expected.branch });
       const have = requiredContexts(o.branch.body, o.rules.body);
       for (const c of expected.requiredChecks) if (!have.has(c)) add({ repo: name, kind: "check-missing", detail: c });
     }
-    if (!ok(o.labels) || !Array.isArray(o.labels.body)) {
-      add({ repo: name, kind: "unreadable", detail: `labele: HTTP ${o.labels?.status ?? "bez odgovora"}` });
+    if (!ok(o.labels, "array")) {
+      add({ repo: name, kind: "unreadable", detail: `labele: ${why(o.labels)}` });
     } else {
       for (const f of diffLabels(name, labels, o.labels.body)) add(f);
     }
@@ -150,32 +159,49 @@ export function formatReport(findings, { org, date } = {}) {
 
 /**
  * A REST client that can only read. Paths must be /repos/...; pagination
- * follows rel="next" links only on the same origin.
+ * follows rel="next" links only on the same origin. Transport failures, bad
+ * JSON, a foreign pagination link and too many pages come back as a response
+ * with `error` set, so one bad request never stops the scan.
  */
 export function makeClient({ fetchImpl = globalThis.fetch, token, base = "https://api.github.com" } = {}) {
   const origin = new URL(base).origin;
   const headers = { accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28", "user-agent": "ductura-drift-check" };
   if (token) headers.authorization = `Bearer ${token}`;
   const once = async (url) => {
-    const res = await fetchImpl(url, { method: "GET", headers, redirect: "error" });
-    const body = res.status === 204 ? null : await res.json().catch(() => null);
-    return { status: res.status, body, link: res.headers?.get?.("link") ?? null };
+    let res;
+    try {
+      res = await fetchImpl(url, { method: "GET", headers, redirect: "error", signal: AbortSignal.timeout(30_000) });
+    } catch (error) {
+      return { status: 0, body: null, error: `mreža: ${error?.name ?? "Error"}` };
+    }
+    const link = res.headers?.get?.("link") ?? null;
+    if (res.status === 204) return { status: 204, body: null, link };
+    try {
+      return { status: res.status, body: await res.json(), link };
+    } catch {
+      return { status: res.status, body: null, link, error: `HTTP ${res.status}, neispravan JSON` };
+    }
   };
+  const result = (r) => (r.error === undefined ? { status: r.status, body: r.body } : { status: r.status, body: null, error: r.error });
   return {
     async get(path, { paginate = false } = {}) {
       if (!path.startsWith("/repos/")) throw new Error(`refusing path outside /repos/: ${path}`);
       let res = await once(`${base.replace(/\/$/, "")}${path}`);
-      if (!paginate || res.status !== 200 || !Array.isArray(res.body)) return { status: res.status, body: res.body };
+      if (!paginate || res.status !== 200 || !Array.isArray(res.body)) return result(res);
       const all = [...res.body];
-      for (let pages = 1; pages < 50; pages++) {
+      for (let pages = 1; ; pages++) {
         const next = /<([^>]+)>;\s*rel="next"/.exec(res.link ?? "")?.[1];
-        if (!next) break;
-        if (new URL(next).origin !== origin) throw new Error(`refusing pagination link to another origin: ${next}`);
+        if (!next) return { status: 200, body: all };
+        if (pages >= MAX_PAGES) return { status: 200, body: null, error: `više od ${MAX_PAGES} stranica` };
+        let nextOrigin = null;
+        try {
+          nextOrigin = new URL(next).origin;
+        } catch {}
+        if (nextOrigin !== origin) return { status: 200, body: null, error: "poveznica stranice na drugi origin" };
         res = await once(next);
-        if (res.status !== 200 || !Array.isArray(res.body)) return { status: res.status, body: res.body };
+        if (res.status !== 200 || !Array.isArray(res.body)) return result(res.error ? res : { ...res, error: `stranica ${pages + 1}: HTTP ${res.status}` });
         all.push(...res.body);
       }
-      return { status: 200, body: all };
     },
   };
 }
@@ -216,8 +242,11 @@ export function loadExpected(file) {
 
 async function main() {
   const args = process.argv.slice(2);
-  if (args.length > 1) {
-    console.error("usage: node scripts/drift.mjs [expected.json]");
+  let reportFile = null;
+  const at = args.indexOf("--report-file");
+  if (at !== -1) [, reportFile] = args.splice(at, 2);
+  if (args.length > 1 || (at !== -1 && !reportFile) || args.some((a) => a.startsWith("--"))) {
+    console.error("usage: node scripts/drift.mjs [expected.json] [--report-file report.md]");
     return 2;
   }
   let config;
@@ -232,6 +261,7 @@ async function main() {
   const report = formatReport(findings, { org: config.expected.org, date: new Date().toISOString().slice(0, 10) });
   console.log(report);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, report);
+  if (reportFile) writeFileSync(reportFile, report);
   const drift = findings.filter((f) => f.level === "drift");
   for (const f of drift) console.log(`::error title=drift ${f.repo}::${f.kind}: ${commandData(f.detail)}`);
   return drift.length > 0 ? 1 : 0;

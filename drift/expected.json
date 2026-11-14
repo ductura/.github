@@ -4,6 +4,7 @@
   "branch": "main",
   "requiredChecks": ["ci-ok"],
   "labels": "labels.yml",
+  "reportIssue": "Razilaženje postavki (drift-check)",
   "repos": [
     { "name": "server" },
     { "name": "preloader" },
