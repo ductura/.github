@@ -192,7 +192,7 @@ Pravilo za svaki prijenos: PR navodi izvorni SHA Ductusa, isti testovi prolaze p
 Cilj: što ranije dokazati da sedam repozitorija stvarno radi zajedno, prije nego što izgradimo sve valove servera.
 
 - **VS-1:** preloader + web-chrome + server. Korisnik se prijavi (lažni AAI@EduHr), otvori rad, spremi jednu rečenicu, osvježi stranicu i vidi rečenicu.
-- **Ulaz VS-1:** od servera samo prijava i spremanje rada, ne svi valovi: S-1E-a (prijava), S-1D-d (kolačić i odjava), S-1M-a (zdravlje s verzijom) i S-M-5 (otvaranje i spremanje evidencije). S-M-5 predlažem povući na početak vala 6. **Dopuna O-3 (Ductus#87 c.6880835493):** otvaranje, spremanje i ponavljanje evidencije dolaze iz uskog reza servera (§4c) odmah iza S-0.19, ne čekaju valove 1 do 5. Od Ductusa: `@ductura/editor-core` 0.x (E-0.2).
+- **Ulaz VS-1:** od servera samo prijava i spremanje rada, ne svi valovi: S-1E-a (prijava), S-1D-d (kolačić i odjava), S-1M-a (zdravlje s verzijom) i uski rez servera (§4c; ranije S-M-5). **O-3 (Ductus#87 c.6880835493):** otvaranje, spremanje i ponavljanje evidencije dolaze iz uskog reza servera odmah iza S-0.19, ne čekaju valove 1 do 5 ni val 6. Od Ductusa: `@ductura/editor-core` 0.x (E-0.2).
 - **Kriterij prihvata VS-1 (ispravak 14. 11.):** sintetički student se prijavi kroz lažni OIDC, spremi rečenicu i nakon osvježavanja stranice vidi tu rečenicu. Ovisi o DAN-758 (sheme i vektori za otvaranje i spremanje), DAN-759 (minimalni lokalni stog, umjesto S-1H.7) i DAN-760 (kriterij prihvata).
 - **Izlaz VS-1:** test „prijava → otvori → spremi → osvježi” prolazi na sistemskom stogu, sa zapisanim SHA svakog repoa. Preloader i web-chrome imaju samo onoliko koda koliko presjek traži.
 - **VS-1b (O-2):** zaseban, bezuvjetan nastavak VS-1; vidi §4a-1.
@@ -212,7 +212,7 @@ Uz tvrdnje VS-1 (numeracija VS-1.x prema DAN-760) vrijede dvije dopune iz iste o
 - **VS-1.13 (nova tvrdnja):** nakon VS-1.7 proces servera (i radnika, ako postoji) gasi se i ponovno podiže, zatim se ponavlja VS-1.9. Isti dokument, ista revizija, isti hash i isti tekst moraju se vratiti iz trajne baze, ne iz memorije procesa.
 - **Zabrana administratorske veze na bazu kao dokaza čitanja:** tvrdnje o čitanju (VS-1.9 i VS-1.13) dokazuju se kroz API servera kao student i kroz ulogu aplikacije s RLS-om. Čitanje preko administratorske ili vlasničke veze na bazu ne računa se kao dokaz.
 
-**VS-1b (nova stavka, O-2).** Slijedi odmah nakon VS-1, **bezuvjetna je** i **uvjet je za osnovicu 20. 12. 2026. i za svaki rad sa stvarnim podacima (D-71)**. Sadržaj: odgovor `202 pending_signature`, worker koji potpisuje, red poslova, oporavak nakon prekida (worker, red i proces), te prikaz „Spremljeno na poslužitelju” tek nakon provjere potpisa. Do prolaza VS-1b ništa nad stvarnim podacima ne ide kroz protokol 1 (R-1, §8a). VS-1b je `critical`, a ovisi o VS-1.
+**VS-1b (nova stavka, O-2).** Slijedi odmah nakon VS-1, **bezuvjetna je** i **uvjet je za osnovicu 20. 12. 2026. i za svaki rad sa stvarnim podacima (D-71)**. Sadržaj: odgovor `202 pending_signature`, worker koji potpisuje, red poslova, oporavak nakon prekida (worker, red i proces), te prikaz „Spremljeno na poslužitelju” tek nakon provjere potpisa. Protokol 1 nad stvarnim podacima nikad (D-71, R-1, §8a); prolaz VS-1b ne otvara protokol 1. VS-1b je `critical`, a ovisi o VS-1.
 
 **Prihvat VS-2.** Isti student u novom mobilnom kontekstu kroz isti web otvara rad iz VS-1 i s poslužitelja dobiva istu potvrđenu reviziju i rečenicu. Rezultat navodi uređaj ili emulaciju i preglednički motor. Produkcijski AAI, objava desktop paketa i prijelaz postojećih studentskih radova imaju zasebne uvjete prihvata.
 
@@ -401,7 +401,7 @@ Rizici uz odluku vlasnika 14. 11. (Ductus#87 c.6880835493). Svaki ima jednog nos
 | R-5 | Knjiga migracija (ledger). | Samo za dodavanje (append-only). S-0.13 navodi prenosi li se ista knjiga. |
 | R-6 | Domena evidencije i registar ključeva. | Dolaze iz konfiguracije operatera (D-102, DAN-759), ne iz koda. |
 | R-7 | Sintetički prolaz na stagingu. | Ovisi o B0.1. |
-| R-8 | Proba povrata baze nikad nije izvršena. | Proba (M11.2-P04) mora uključiti nižu reviziju na poslužitelju nakon povrata. Dvije produktne varijante priprema orkestrator; izbor vlasnika još nije donesen. |
+| R-8 | Proba povrata baze nikad nije izvršena. | Proba (M11.2-P04) mora uključiti nižu reviziju na poslužitelju nakon povrata. Odluka vlasnika (Ductus#87 c.6880906459, varijanta A): na nižoj reviziji nakon povrata klijent ponovno šalje lokalne korake kao nove revizije s novim potpisanim potvrdama; lanac dokaza nosi oznaku „obnovljeno iz lokalne kopije nakon povrata”. |
 | R-9 | Inventar v1. | Potvrda inventara; izbor po `receiptSchema`. |
 | R-10 | Dva statusa spremanja („Spremljeno na uređaju”, „Spremljeno na poslužitelju”) nasuprot osam stanja sinkronizacije. | Preslikavanje između dva statusa i osam stanja mora biti zapisano i testirano prije nego se „Spremljeno na poslužitelju” prikaže (kroz VS-1 i VS-1b). |
 
@@ -425,7 +425,7 @@ Rizici uz odluku vlasnika 14. 11. (Ductus#87 c.6880835493). Svaki ima jednog nos
 | 12 | Jedan ili dva desktop repozitorija | Dva (`desktop-windows`, `desktop-macos`) uz put A; jedan `desktop` s dva cilja uz put B |
 | 13 | `web-other` | Web-chrome za sve preglednike na računalu uz matricu preglednika u CI-ju; `web-other` kao tanki repo za kompatibilnost i testove ako želiš zadržati sedam repozitorija |
 | 14 | Editor i sinkronizacija | Jedan paket `@ductura/editor-core`: počinje u Ductusu, seli se u web-chrome po uvjetima iz §2d |
-| 15 | Vertikalni presjek | Da: VS-1 odmah nakon S-1E-a, S-1D-d, S-1M-a i S-M-5; S-M-5 povući na početak vala 6. **Dopuna O-2, O-3:** VS-1 samo nad sintetičkim podacima, VS-1b bezuvjetan; uski rez servera iza S-0.19 (§4a-1, §4c) |
+| 15 | Vertikalni presjek | Da: VS-1 odmah nakon S-1E-a, S-1D-d, S-1M-a i uskog reza servera (§4c; ranije S-M-5, više nije ulaz VS-1). **Dopuna O-2, O-3:** VS-1 samo nad sintetičkim podacima, VS-1b bezuvjetan; uski rez servera iza S-0.19 (§4a-1, §4c) |
 | 16 | Mjere razdvajanja | Da: M-0.1 u `orch:metrics` od prvih zadataka, s pravilom „tri gotovo jednaka PR-a → dijeli više” |
 | 17 | Orkestratori po repozitoriju | Ne sedam odmah: glavni + front (od VS-1) + desktop (od faze E), najviše tri, dodatni u oblaku ili na laptopu (§7a) |
 | 18 | Pilot na jednom sustavu (O-1) | Odlučeno 14. 11.: izbor na kontrolnoj točki 20. 12. 2026. (§4d) |
