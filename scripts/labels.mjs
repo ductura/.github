@@ -42,6 +42,15 @@ export const REQUIRED_LABELS = [
 
 const lines = (text) => text.split(/\r\n|\r|\n/);
 
+// YAML white space is only space and tab (YAML 1.2 §5.5). JavaScript's \s and
+// trim() also match U+00A0, U+FEFF and other Unicode spaces, which YAML reads
+// as content, so neither is used anywhere here: these are the only lines the
+// parser skips. Both may be indented with spaces only, because PyYAML refuses
+// a tab on a blank or comment line inside a block mapping.
+const BLANK = /^ *$/;
+const COMMENT = /^ *#.*$/;
+const SURROUNDING_SPACE = /^[ \t]|[ \t]$/;
+
 // Characters YAML 1.2 allows in a file (§5.1), minus U+2028/U+2029, which
 // YAML 1.1 parsers treat as line breaks. With the u flag a lone surrogate is
 // its own code point and falls outside the set.
@@ -82,9 +91,9 @@ export function parseLabels(text) {
   lines(text).forEach((raw, index) => {
     const n = index + 1;
     const where = `line ${n}`;
-    if (raw.trim() === "" || /^\s*#/.test(raw)) return;
+    if (BLANK.test(raw) || COMMENT.test(raw)) return;
     let m;
-    if (version === null && !inLabels && (m = /^version: +(\S.*)$/.exec(raw))) {
+    if (version === null && !inLabels && (m = /^version: +([^ ].*)$/.exec(raw))) {
       if (m[1] !== "1") throw new Error(`${where}: unsupported version ${m[1]} (expected 1)`);
       version = 1;
     } else if (version !== null && !inLabels && raw === "labels:") {
@@ -121,7 +130,7 @@ export function validateLabels(labels) {
   const seen = new Map();
   labels.forEach((l, i) => {
     const at = `label ${i + 1} ${JSON.stringify(l.name)}`;
-    if (typeof l.name !== "string" || l.name.length === 0 || l.name.length > MAX_NAME || l.name.trim() !== l.name) {
+    if (typeof l.name !== "string" || l.name.length === 0 || l.name.length > MAX_NAME || SURROUNDING_SPACE.test(l.name)) {
       problems.push(`${at}: name must be 1-${MAX_NAME} characters without surrounding spaces`);
     } else {
       // GitHub label names are case-insensitive.
@@ -130,7 +139,7 @@ export function validateLabels(labels) {
       else seen.set(key, i + 1);
     }
     if (!/^[0-9a-f]{6}$/.test(l.color ?? "")) problems.push(`${at}: color must be six lowercase hex digits without #`);
-    if (typeof l.description !== "string" || l.description.trim() === "" || l.description.length > MAX_DESCRIPTION) {
+    if (typeof l.description !== "string" || /^[ \t]*$/.test(l.description) || l.description.length > MAX_DESCRIPTION) {
       problems.push(`${at}: description must be non-empty and at most ${MAX_DESCRIPTION} characters`);
     }
     if (!GROUPS.has(l.group)) {

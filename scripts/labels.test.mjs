@@ -165,3 +165,63 @@ test("characters: accepts letters outside ASCII and astral symbols", () => {
 test("parse errors name the line", () => {
   assert.throws(() => parseLabels(doc([...ok(), "    owner: x"])), /line 7/);
 });
+
+// JavaScript's \s and trim() treat these as whitespace; YAML does not (its
+// white space is only space and tab), so each one is content to a YAML parser.
+// The parser must never skip, strip or ignore them.
+const unicodeSpaces = [
+  " ", " ", " ", " ", " ", " ", " ", " ", " ",
+  " ", " ", " ", " ", " ", " ", "　", "﻿",
+];
+const hex = (ch) => "U+" + ch.codePointAt(0).toString(16).toUpperCase().padStart(4, "0");
+for (const ch of unicodeSpaces) {
+  const rejected = [
+    ["alone on a line", doc(ok()).replace("labels:\n", `labels:\n${ch}\n`)],
+    ["at the start of the first line", ch + doc(ok())],
+    ["before a comment", `${ch}# c\n` + doc(ok())],
+    ["between spaces and a comment", `  ${ch}# c\n` + doc(ok())],
+    ["at the start of an entry line", doc(ok()).replace("  - name", `${ch}  - name`)],
+    ["at the start of a field line", doc(ok()).replace("    group", `${ch}   group`)],
+    ["after the version", doc(ok()).replace("version: 1", `version: 1${ch}`)],
+    ["before the version value", doc(ok()).replace("version: 1", `version: ${ch}1`)],
+    ["after labels:", doc(ok()).replace("labels:", `labels:${ch}`)],
+    ["before a quoted value", doc(ok()).replace('description: "Opis"', `description: ${ch}"Opis"`)],
+    ["after a quoted value", doc(ok()).replace('"Opis"', `"Opis"${ch}`)],
+    ["after the group", doc(ok()).replace("group: bot", `group: bot${ch}`)],
+  ];
+  for (const [where, text] of rejected) {
+    test(`unicode space: rejects ${hex(ch)} ${where}`, () => {
+      assert.throws(() => parseLabels(text), /line \d+/);
+    });
+  }
+  test(`unicode space: keeps ${hex(ch)} inside a quoted value`, () => {
+    const description = `${ch}Opis${ch}`;
+    const { labels } = parseLabels(doc(ok({ description })));
+    assert.equal(labels[0].description, description);
+  });
+  test(`unicode space: ${hex(ch)} is not a surrounding space in a name or a blank description`, () => {
+    assert.deepEqual(validateLabels([{ ...valid, name: `${ch}bug${ch}`, description: ch }]), []);
+  });
+}
+
+const yamlSpaces = [
+  ["blank line of spaces", doc(ok()).replace("labels:\n", "labels:\n   \n"), null],
+  // PyYAML refuses a tab on a blank line inside a block mapping.
+  ["blank line with a tab", doc(ok()).replace("labels:\n", "labels:\n \t \n"), /unexpected line/],
+  ["indented comment", doc(ok()).replace("labels:\n", "labels:\n    # c\n"), null],
+  ["tab before a comment", "\t# c\n" + doc(ok()), /unexpected line|version/],
+  ["name with a surrounding tab", null, /name/],
+  ["description of spaces and tabs", null, /description/],
+];
+for (const [name, text, pattern] of yamlSpaces) {
+  test(`yaml space: ${name}`, () => {
+    if (text === null) {
+      const label = name.startsWith("name") ? { ...valid, name: "bug\t" } : { ...valid, description: " \t " };
+      assert.ok(validateLabels([label]).some((p) => pattern.test(p)));
+    } else if (pattern === null) {
+      assert.equal(parseLabels(text).labels.length, 1);
+    } else {
+      assert.throws(() => parseLabels(text), pattern);
+    }
+  });
+}
