@@ -13,3 +13,7 @@ Pozivaj ih s punim SHA-om ovog repoa (`@<40 znakova> # <oznaka>`), nikad s grano
 | `dependency-review.yml` | Na pull requestu odbija novu ovisnost s ranjivošću (od `moderate`) ili licencom izvan popisa; izvan PR-a pada |
 
 `self-test.yml` provjerava ove predloške nad fixtureima, a `scripts/pin-check.mjs` provjerava da je svaka akcija prikvačena na puni SHA.
+
+## Tjedna provjera razilaženja
+
+`drift-check.yml` (ponedjeljkom i ručno) samo čita postavke repoa navedenih u `drift/expected.json`: zadanu granu, zaštitu grane, obvezni status `ci-ok` i labele iz `labels.yml`. Nalaz je u sažetku posla, a posao tada pada. Logika je u `scripts/drift.mjs` (čiste funkcije, testovi u `scripts/drift.test.mjs`).

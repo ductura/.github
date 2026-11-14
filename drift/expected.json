@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "org": "ductura",
+  "branch": "main",
+  "requiredChecks": ["ci-ok"],
+  "labels": "labels.yml",
+  "repos": [
+    { "name": "server" },
+    { "name": "preloader" },
+    { "name": "web" },
+    { "name": ".github" },
+    { "name": "desktop-windows", "optional": true, "note": "nastaje u fazi E" },
+    { "name": "desktop-macos", "optional": true, "note": "nastaje u fazi E" }
+  ]
+}
