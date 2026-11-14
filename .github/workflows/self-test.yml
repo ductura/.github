@@ -38,6 +38,14 @@ jobs:
     with:
       working-directory: fixtures/node-ok
 
+  node-ok-multiline:
+    uses: ./.github/workflows/ci-node.yml
+    with:
+      working-directory: fixtures/node-ok
+      scripts: |
+        typecheck
+        test
+
   presets:
     runs-on: ubuntu-latest
     timeout-minutes: 10

@@ -23,6 +23,11 @@ const cases = [
   ["remote reusable workflow on tag", "    uses: ductura/.github/.github/workflows/ci-node.yml@ci-v1", false],
   ["docker tag", "      - uses: docker://alpine:3.20", false],
   ["docker short digest", "      - uses: docker://alpine@sha256:abc", false],
+  ["space before colon", "      - uses : actions/checkout@v4", false],
+  ["single-quoted key", "      - 'uses': actions/checkout@v4", false],
+  ["double-quoted key", '      - "uses": actions/checkout@v4', false],
+  ["value on the next line", "      - uses:", false],
+  ["quoted key with full SHA", `      - "uses": actions/checkout@${SHA}`, true],
 ];
 
 for (const [name, line, ok] of cases) {

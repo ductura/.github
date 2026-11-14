@@ -5,7 +5,8 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const USES = /^\s*(?:-\s+)?uses:\s*(?:"([^"]*)"|'([^']*)'|([^\s#]+))/;
+const USES_KEY = /^\s*(?:-\s+)?(["']?)uses\1\s*:(.*)$/;
+const VALUE = /^\s*(?:"([^"]*)"|'([^']*)'|([^\s#]+))/;
 const PINNED = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.\/-]+@[0-9a-f]{40}$/;
 const DOCKER_PINNED = /^docker:\/\/[^@\s]+@sha256:[0-9a-f]{64}$/;
 
@@ -18,9 +19,11 @@ export function isPinned(ref) {
 export function checkText(text, file) {
   const problems = [];
   text.split("\n").forEach((raw, index) => {
-    const match = USES.exec(raw);
-    if (!match) return;
-    const ref = match[1] ?? match[2] ?? match[3];
+    const key = USES_KEY.exec(raw);
+    if (!key) return;
+    // A value on the next line (block scalar or continuation) is not checked: report it.
+    const match = VALUE.exec(key[2] ?? "");
+    const ref = match ? (match[1] ?? match[2] ?? match[3] ?? "") : "";
     if (!isPinned(ref)) problems.push({ file, line: index + 1, ref });
   });
   return problems;

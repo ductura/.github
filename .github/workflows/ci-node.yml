@@ -1,5 +1,5 @@
 # Reusable Node CI for Ductura repositories: pnpm, Node from .nvmrc, read-only token.
-# Caller: jobs.<id>.uses: ductura/.github/.github/workflows/ci-node.yml@<tag>
+# Caller: jobs.<id>.uses: ductura/.github/.github/workflows/ci-node.yml@<40-char SHA> # <tag>
 name: ci-node
 on:
   workflow_call:
@@ -9,7 +9,7 @@ on:
         type: string
         default: "."
       scripts:
-        description: Space-separated package scripts to run in order
+        description: Package scripts to run in order, separated by spaces or newlines
         type: string
         default: "typecheck test"
 permissions:
@@ -39,7 +39,7 @@ jobs:
           SCRIPTS: ${{ inputs.scripts }}
         run: |
           set -euo pipefail
-          read -ra names <<< "$SCRIPTS"
+          read -ra names <<< "${SCRIPTS//$'\n'/ }"
           if [ "${#names[@]}" -eq 0 ]; then
             echo "::error::input 'scripts' is empty"
             exit 1
