@@ -8,6 +8,8 @@ permissions:
   contents: read
 jobs:
   node:
+    # ci-node installs @ductura/* from GitHub Packages, which needs a token to read.
+    permissions: { contents: read, packages: read }
     uses: ductura/.github/.github/workflows/ci-node.yml@%%ref%% # %%refLabel%%
     with:
       scripts: typecheck lint format test

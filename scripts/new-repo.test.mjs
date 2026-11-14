@@ -94,6 +94,25 @@ for (const [preset, expected] of [
   });
 }
 
+test("node CI can read @ductura/* from GitHub Packages: caller grants packages: read, ci-node authenticates", () => {
+  const ci = renderRepo(OPTS).get(".github/workflows/ci.yml");
+  const nodeJob = ci.slice(ci.indexOf("  node:"), ci.indexOf("  secret-scan:"));
+  assert.match(nodeJob, /permissions: \{ contents: read, packages: read \}/);
+  assert.equal(renderRepo(OPTS).get(".npmrc"), "@ductura:registry=https://npm.pkg.github.com\n");
+  const ciNode = readFileSync(join(ROOT, ".github/workflows/ci-node.yml"), "utf8");
+  assert.match(ciNode, /^permissions:\n  contents: read\n  packages: read\n/m);
+  assert.match(ciNode, /registry-url: https:\/\/npm\.pkg\.github\.com\n\s+scope: "@ductura"/);
+  assert.match(ciNode, /pnpm install --frozen-lockfile\n\s+env:\n\s+NODE_AUTH_TOKEN: \$\{\{ github\.token \}\}/);
+  // A caller that grants less than ci-node asks for fails to start, so every caller here must grant it too.
+  for (const file of readdirSync(join(ROOT, ".github/workflows"))) {
+    const text = readFileSync(join(ROOT, ".github/workflows", file), "utf8");
+    for (const m of text.matchAll(/^  ([a-z-]+):\n((?:    .*\n|\n)*)/gm)) {
+      if (m[2].includes("workflows/ci-node.yml"))
+        assert.match(m[2], /permissions: \{ contents: read, packages: read \}/, `${file} job ${m[1]}`);
+    }
+  }
+});
+
 test("PR template, labels and .nvmrc are verbatim copies of this repository", () => {
   const files = renderRepo(OPTS);
   assert.equal(

@@ -9,6 +9,7 @@ permissions:
   contents: read
 jobs:
   lint-presets:
+    permissions: { contents: read, packages: read }
     uses: ./.github/workflows/ci-node.yml
     with:
       working-directory: fixtures/lint-presets

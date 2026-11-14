@@ -1,5 +1,9 @@
 # Reusable Node CI for Ductura repositories: pnpm, Node from .nvmrc, read-only token.
 # Caller: jobs.<id>.uses: ductura/.github/.github/workflows/ci-node.yml@<40-char SHA> # <tag>
+# The caller job must grant `permissions: { contents: read, packages: read }`:
+# installing @ductura/* from GitHub Packages needs a token even to read.
+# setup-node writes it to a user-level .npmrc (NPM_CONFIG_USERCONFIG) as
+# ${NODE_AUTH_TOKEN}; pnpm ignores env tokens in a repository .npmrc.
 name: ci-node
 on:
   workflow_call:
@@ -14,6 +18,7 @@ on:
         default: "typecheck test"
 permissions:
   contents: read
+  packages: read
 jobs:
   node:
     runs-on: ubuntu-latest
@@ -33,7 +38,11 @@ jobs:
           node-version-file: ${{ inputs.working-directory }}/.nvmrc
           cache: pnpm
           cache-dependency-path: ${{ inputs.working-directory }}/pnpm-lock.yaml
+          registry-url: https://npm.pkg.github.com
+          scope: "@ductura"
       - run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
       - name: Package scripts
         env:
           SCRIPTS: ${{ inputs.scripts }}
