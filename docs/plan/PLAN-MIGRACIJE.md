@@ -267,9 +267,9 @@ Pravi uređaji (iPhone, iPad, Android) za fazu D: Playwright emulacija ne zamjen
 
 ## 7. Gate, botovi i orkestracija na sedam repozitorija
 
-**Gate.** Workflow gatea i skripte (`risk-floor`, provjera verdikata) najprije nastaju u serveru (S-0.10-a/b). Kad ih zatreba drugi repo, izdvajaju se u zajedničke workflowe (T-0.2). Svaki repo ih poziva s oznakom verzije (npr. `gate-v1`) i daje samo svoju tablicu putanja za risk. Retci verdikta ostaju isti (`Agent-Review:`, `Review-Head:`, `Review-Verdict:`, `QA-*`), a format agenta ostaje `runtime:slot:role`.
+**Gate.** Workflow gatea i skripte (`risk-floor`, provjera verdikata) pišu se u `.github` (S-0.10-a/b, T-0.2), ne u serveru. Svaki repo ih poziva punim SHA-om `.github` repoa (`@<40 znakova> # gate-v1`; oznaka je samo komentar, nikad sam poziv, kako traži `README.md` tog repoa) i daje samo svoju tablicu putanja za risk. Retci verdikta ostaju isti (`Agent-Review:`, `Review-Head:`, `Review-Verdict:`, `QA-*`), a format agenta ostaje `runtime:slot:role`.
 
-**Redoslijed V-2 i obveznih statusa (ispravak 14. 11.):** S-0.9 i S-0.10-b u serveru prvo dokažu prolaz i očekivani pad svakog posla; zatim V-2 dopisuje točna emitirana imena u obvezne statuse; tek onda Mergify (S-0.20, koji čeka i S-0.11 te V-3). Postojeća zaštita (`test`) ostaje dok se u serveru ne dokaže prolaz i očekivani pad.
+**Redoslijed V-2 i obveznih statusa (ispravak 14. 11.):** S-0.9 (u serveru) i S-0.10-b (u `.github`, pozvan iz servera) prvo dokažu prolaz i očekivani pad svakog posla; zatim V-2 dopisuje točna emitirana imena u obvezne statuse; tek onda Mergify (S-0.20, koji čeka i S-0.11 te V-3). Postojeća zaštita (`test`) ostaje dok se u serveru ne dokaže prolaz i očekivani pad.
 
 **U11, gate prema riziku uz ugovorne testove (ispravak 14. 11.):** zadnji korak, nakon U10 i S-1H.8. Ide kao zaseban PR pravila, a vlasnik mora potvrditi tekst pravila prije spajanja.
 
@@ -393,7 +393,8 @@ Pretpostavka: početak u ponedjeljak 17. 11., nakon prezentacije. Dokumenti i sp
 |---|---|
 | S-0.1 | D-zapis navodi `preloader` kao sedmi repo umjesto `shared-core`. Dodaje odluke iz §9 koje potvrdiš (usmjeravanje, paketi, pomoćni repo, botovi). |
 | S-0.6 | Adapteri pravila nastaju tako da ih T-0.4 kasnije može kopirati u druge repozitorije. Sadržaj isti. |
-| S-0.9, S-0.10-b, S-0.20 | Grade se u serveru kao danas. Pišu se tako da ih T-0.2 i T-0.3 kasnije izdvoje bez promjene ponašanja. |
+| S-0.9, S-0.20 | Grade se u serveru kao danas. Pišu se tako da ih T-0.2 i T-0.3 kasnije izdvoje bez promjene ponašanja. |
+| S-0.10-a, S-0.10-b | Pišu se u `.github` (kao T-0.2), ne u serveru; server ih poziva punim SHA-om. |
 | S-0.11 | Ovisi i o prijenosu aplikacije botova u organizaciju (V-3). Labele dolaze iz zajedničkog popisa kad postoji T-0.1. |
 | S-0.19 | Briše se „Otvoreno: prelazi u shared-core”. `server/domain` ostaje u serveru i objavljuje se u `@ductura/contracts`. Otvorena točka 12 se zatvara. |
 | S-0.21 | Popis praćenih repozitorija ima svih sedam plus Ductus. Proširenje preko repozitorija je T-0.6. |
@@ -407,7 +408,7 @@ Pretpostavka: početak u ponedjeljak 17. 11., nakon prezentacije. Dokumenti i sp
 | ID | Što | Repo | Ovisi o | Risk |
 |---|---|---|---|---|
 | T-0.1 | Pomoćni repo: profil organizacije, predlošci issuea i PR-a, zajednički popis labela | `.github` (ili server) | V-1, odluka 3 | standard |
-| T-0.2 | Zajednički workflowi: CI osnova s `ci-ok`, gate, tajne, ovisnosti; izdvojeni iz servera | `.github` | S-0.9, S-0.10-b | critical |
+| T-0.2 | Zajednički workflowi: CI osnova s `ci-ok`, gate, tajne, ovisnosti; S-0.10-a/b se pišu ovdje, ne u serveru | `.github` | U2, S-0.9 | critical |
 | T-0.3 | Zajednička Mergify pravila i nasljeđivanje | `.github` | S-0.20 | critical |
 | T-0.4 | Generator početnih datoteka novog repoa | `.github` | S-0.6, S-0.10-a | standard |
 | T-0.5 | Objava paketa: verzije, zapisi promjena, objava iz Actionsa | server | S-1H.1-b, odluka 2 | critical |

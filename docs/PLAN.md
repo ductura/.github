@@ -6,7 +6,7 @@ Stanje: 14. 11. 2026. · **Samo plan.** Novi repo po vlasnikovoj odluci 14. 11. 
 
 ## 1. Svrha i granica
 
-**Svrha.** Jedno mjesto za ono što svih pet repozitorija (server, preloader, web, desktop-windows, desktop-macos) dijele: reusable workflowe, preseti za TypeScript, lint i format, predloške PR-a i issuea, labele, Mergify osnovu, generator novog repoa i tjednu provjeru razilaženja postavki. Svaki repo poziva workflow s oznakom verzije (npr. `ci-v1`, `gate-v1`) i daje samo svoje: tablicu putanja za risk, popis poslova i matricu.
+**Svrha.** Jedno mjesto za ono što svih pet repozitorija (server, preloader, web, desktop-windows, desktop-macos) dijele: reusable workflowe, preseti za TypeScript, lint i format, predloške PR-a i issuea, labele, Mergify osnovu, generator novog repoa i tjednu provjeru razilaženja postavki. Svaki repo poziva workflow s punim SHA-om ovog repoa (`@<40 znakova> # <oznaka>`, npr. `# ci-v1`, `# gate-v1`; oznaka je samo komentar, nikad sam poziv) i daje samo svoje: tablicu putanja za risk, popis poslova i matricu.
 
 **Granica (nikad ne ulazi):** kod aplikacije; tajne (workflowi ih primaju kao `secrets: inherit` ili ulaz, nikad ne sadrže vrijednost); pojedinosti sigurnosnih nalaza (repo je javan); odluke o prioritetu i statusu zadatka (Linear); vlastiti pisani retci verdikta (`Agent-Review:` i ostali ostaju u PR-u ciljnog repoa).
 
@@ -51,7 +51,7 @@ Ne prenose se: skripte orkestratora (ostaju u Ductusu, T-0.6), `CODEOWNERS` (Git
 |---|---|---|---|
 | U2 (server plan; PRIJEDLOG ID) | Stvaranje repoa i prvi sadržaj; ide **odmah nakon kostura servera** | V-1 | standard |
 | T-0.1 | Profil, predlošci issuea i PR-a, labele | U2 | standard |
-| T-0.2 | Reusable workflowi: CI osnova s `ci-ok`, tajne, ovisnosti, gate | U2; S-0.10-a/b se pišu **ovdje**, ne u serveru pa izdvajaju | critical |
+| T-0.2 | Reusable workflowi: CI osnova s `ci-ok`, tajne, ovisnosti, gate | U2; S-0.10-a/b se pišu **ovdje**, ne u serveru, i nema izdvajanja iz servera | critical |
 | — (novo, PRIJEDLOG ID) | Preseti `@ductura/tsconfig`, `eslint-config`, `prettier-config` na GitHub Packages | U2 | standard |
 | T-0.3 | Mergify osnova i `extends` | S-0.20 | critical |
 | T-0.4 | Generator novog repoa | S-0.6, T-0.2 | standard |
@@ -70,7 +70,7 @@ Promjena ponašanja gatea (risk floor, broj aplikacija za `critical`, popis obve
 | **Preseti** | fixture koji mora pasti (implicitni `any`, dubok uvoz kad su granice uključene, krivi format) i koji mora proći. |
 | **Generator** | novi repo dobiva README, adaptere pravila, CODEOWNERS, PR predložak, risk tablicu i labele; drugi prolaz ne mijenja ništa. |
 | **Provjera razilaženja** | lažni API odgovori: repo bez zaštite grane, bez obveznog `ci-ok`, s viškom labele → nalaz u koordinacijskom issueu; ništa se ne mijenja (samo čitanje). |
-| **Verzije** | promjena reusable workflowa bez nove oznake ne utječe na repo koji poziva staru oznaku (test nad fixtureom s prikvačenom oznakom). |
+| **Verzije** | promjena reusable workflowa ne utječe na repo koji poziva stariji puni SHA (test nad fixtureom s prikvačenim SHA-om); poziv oznakom ili granom pada. |
 
 Vizualni, pristupačnost i performanse se ne primjenjuju. **Matrica:** `ubuntu-latest`; `windows-latest` i `macos-latest` samo za `ci-dotnet` i `ci-swift` u fazi E. **Prag „gotovo”:** samotest zelen za svaki workflow; svaka akcija prikvačena; preneseni testovi gatea prolaze.
 
@@ -82,7 +82,7 @@ Vizualni, pristupačnost i performanse se ne primjenjuju. **Matrica:** `ubuntu-l
 
 ## 8. Kriterij izlaza (prvi val)
 
-1. Server, preloader i web pozivaju reusable workflowe s oznakom verzije; nijedan nema vlastitu kopiju gatea.
+1. Server, preloader i web pozivaju reusable workflowe punim SHA-om (oznaka samo kao komentar); nijedan nema vlastitu kopiju gatea.
 2. Preneseni testovi gatea prolaze; samotest zelen.
 3. Preseti objavljeni i korišteni u sva tri repoa faze A–C.
 4. Tjedna provjera razilaženja radi i javlja nalaz.

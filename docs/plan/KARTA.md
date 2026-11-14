@@ -66,7 +66,7 @@ Koraci U1–U11 su nazivi iz [plan servera](https://github.com/ductura/server/bl
 | 2.c7 mobilni web | — | web | — | A1: spojeno u 2.c5/2.c6 |
 | 2.c8 ostali preglednici | — | web | — | A1: spojeno u 2.c5/2.c6 |
 | 2.c9 stranica za preuzimanje | P-0.9 | preloader | contracts | vidi §4 |
-| faza 3 desktop | D-0.1, V-1b | Ductus (D-0.1), desktop-windows, desktop-macos | contracts (C#/Swift klijent) | kasnije |
+| faza 3 desktop | D-0.1, „Faza E · aktivacija desktop razvoja” | Ductus (D-0.1), desktop-windows, desktop-macos | contracts (C#/Swift klijent) | kasnije |
 | gate prema riziku uz ugovorne testove | U11 | `.github` | — | B6: zadnje; zaseban PR pravila, vlasnik potvrđuje |
 
 ## 2. Plan migracije: novi zadaci (§10b)
@@ -90,7 +90,7 @@ Koraci U1–U11 su nazivi iz [plan servera](https://github.com/ductura/server/bl
 |---|---|---|
 | V-0 | domena (`ductura.cfd` ili `.top`) i adresa e-pošte | sve (preloader proxy) |
 | V-1 | organizacija `Ductura` i repo `server` (gotovo 14. 11.) | server; B2 dodaje `.github` |
-| V-1b | aktivacija repoa po fazama (migracija) | preloader, web (C), desktop (E); arhiviranje `web-mobile`, `web-other` nakon potvrde |
+| V-1b | aktivacija repoa po fazama (migracija) | preloader i web (odobreno 14. 11., ne čeka fazu C); desktop je zasebna radnja „Faza E · aktivacija desktop razvoja”; arhiviranje `web-mobile`, `web-other` nakon potvrde |
 | V-2 | zaštita grane, `ci-ok`, statusi gatea | svaki repo |
 | V-3 | aplikacija botova i Mergify | svaki repo |
 | V-4 | tajne i CI runneri | server |
