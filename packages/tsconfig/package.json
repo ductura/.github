@@ -1,0 +1,11 @@
+{
+  "name": "@ductura/tsconfig",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Strogi TypeScript preset za Ductura repozitorije",
+  "license": "UNLICENSED",
+  "files": ["base.json"],
+  "exports": {
+    "./base.json": "./base.json"
+  }
+}
