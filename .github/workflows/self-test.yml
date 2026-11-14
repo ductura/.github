@@ -60,6 +60,8 @@ jobs:
       - name: Preset rejects implicit any and unchecked index access
         run: |
           set +e -uo pipefail
+          # Expected errors must not become PR annotations via setup-node's tsc matcher.
+          echo "::remove-matcher owner=tsc::"
           out="$(./node_modules/.bin/tsc -p presets-fail/tsconfig.json)"
           status=$?
           echo "$out"
