@@ -140,6 +140,28 @@ for (const [name, text, pattern] of syntax) {
   });
 }
 
+// YAML allows only printable characters (YAML 1.2 §5.1); NEL, LS and PS are
+// line breaks in YAML 1.1 parsers. Each must be refused anywhere in the file.
+const forbidden = [
+  ["DEL U+007F", "\u007f"], ["C1 control U+0080", "\u0080"], ["NEL U+0085", "\u0085"],
+  ["line separator U+2028", "\u2028"], ["paragraph separator U+2029", "\u2029"],
+  ["lone surrogate", "\ud800"], ["U+FFFE", "\ufffe"], ["NUL", "\u0000"], ["vertical tab", "\u000b"],
+];
+for (const [name, ch] of forbidden) {
+  test(`characters: rejects ${name} in a description`, () => {
+    // Raw character, not a JSON escape: JSON.stringify would escape some of them.
+    assert.throws(() => parseLabels(doc(ok()).replace('"Opis"', `"A${ch}B"`)), /character U\+[0-9A-F]{4} at line 5/);
+  });
+  test(`characters: rejects ${name} in a comment`, () => {
+    assert.throws(() => parseLabels(`# a${ch}b\n` + doc(ok())), /character U\+[0-9A-F]{4} at line 1/);
+  });
+}
+
+test("characters: accepts letters outside ASCII and astral symbols", () => {
+  const { labels } = parseLabels(doc(ok({ description: "Područje: čćđšž \u{1F4DD}" })));
+  assert.equal(labels[0].description, "Područje: čćđšž \u{1F4DD}");
+});
+
 test("parse errors name the line", () => {
   assert.throws(() => parseLabels(doc([...ok(), "    owner: x"])), /line 7/);
 });

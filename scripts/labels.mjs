@@ -42,6 +42,19 @@ export const REQUIRED_LABELS = [
 
 const lines = (text) => text.split(/\r\n|\r|\n/);
 
+// Characters YAML 1.2 allows in a file (§5.1), minus U+2028/U+2029, which
+// YAML 1.1 parsers treat as line breaks. With the u flag a lone surrogate is
+// its own code point and falls outside the set.
+const FORBIDDEN_CHAR = /[^\t\n\r\x20-\x7E\xA0-\u2027\u202A-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/u;
+
+function checkCharacters(text) {
+  const m = FORBIDDEN_CHAR.exec(text);
+  if (!m) return;
+  const line = lines(text.slice(0, m.index)).length;
+  const code = m[0].codePointAt(0).toString(16).toUpperCase().padStart(4, "0");
+  throw new Error(`character U+${code} at line ${line} is not allowed in YAML`);
+}
+
 // A double-quoted scalar that means the same in YAML and JSON: printable
 // characters, with only \" and \\ as escapes.
 function quoted(raw, where) {
@@ -53,6 +66,7 @@ function quoted(raw, where) {
 
 /** Parses labels.yml text into { version, labels }. Throws on any line outside the subset. */
 export function parseLabels(text) {
+  checkCharacters(text);
   let version = null;
   let inLabels = false;
   const labels = [];
