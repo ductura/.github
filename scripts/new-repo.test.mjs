@@ -3,7 +3,16 @@
 // scripts tests so the existing `node --test scripts/*.test.mjs` step runs it.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync, mkdirSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+  mkdirSync,
+} from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
@@ -219,11 +228,34 @@ test("a file in place of a parent folder is a conflict and nothing is written", 
   assert.deepEqual(listFiles(dir), [".github"]);
 });
 
-test("a folder in place of a file fails without writing", (t) => {
+test("a folder, a dangling link or a link to the same content is a conflict and nothing is written", (t) => {
+  const same = renderRepo({ ...OPTS, preset: "generic" }).get("CLAUDE.md");
+  for (const [what, make] of [
+    ["folder", (dir) => mkdirSync(join(dir, "CLAUDE.md"))],
+    ["dangling link", (dir) => symlinkSync("nema", join(dir, "CLAUDE.md"))],
+    [
+      "link to same content",
+      (dir) => (writeFileSync(join(dir, "izvor.md"), same), symlinkSync("izvor.md", join(dir, "CLAUDE.md"))),
+    ],
+  ]) {
+    const dir = tempDir(t);
+    make(dir);
+    const before = readdirSync(dir).sort();
+    const result = writeRepo(dir, { ...OPTS, preset: "generic" });
+    assert.deepEqual(result.conflicts, ["CLAUDE.md"], what);
+    assert.deepEqual(result.created, [], what);
+    assert.deepEqual(readdirSync(dir).sort(), before, what);
+  }
+});
+
+test("a linked parent folder is a conflict, so nothing is written through it", (t) => {
   const dir = tempDir(t);
-  mkdirSync(join(dir, "README.md"));
-  assert.throws(() => writeRepo(dir, OPTS));
-  assert.deepEqual(listFiles(dir), []);
+  const outside = tempDir(t);
+  symlinkSync(outside, join(dir, ".github"));
+  const result = writeRepo(dir, { ...OPTS, preset: "generic" });
+  assert.deepEqual(result.conflicts, [".github"]);
+  assert.deepEqual(readdirSync(outside), []);
+  assert.deepEqual(readdirSync(dir), [".github"]);
 });
 
 // --- options and templates ---------------------------------------------------

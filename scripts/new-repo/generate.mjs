@@ -5,7 +5,7 @@
 // a second run changes nothing, and a file with other content is a conflict.
 // Usage: node scripts/new-repo/generate.mjs --name <repo> --preset <node|generic>
 //          --codeowner <@user|@org/team> --ref <40-char SHA> [--ref-label <tag>] <dir>
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { lstatSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
@@ -181,16 +181,22 @@ export function writeRepo(dir, options) {
     const target = resolve(root, path);
     const rel = relative(root, target);
     if (rel.startsWith("..") || isAbsolute(rel)) throw new Error(`path leaves the target folder: ${path}`);
-    // A non-folder where a parent folder must go (e.g. a file named .github)
-    // would fail only after earlier files were written, so it is a conflict now.
+    // lstat, not stat: a symbolic link (even a dangling one) is never followed
+    // or replaced, and a non-folder where a parent folder must go (e.g. a file
+    // named .github) would fail only after earlier files were written.
+    const entry = (p) => lstatSync(join(root, p), { throwIfNoEntry: false });
     const blocked = rel
       .split(/[\\/]/)
       .slice(0, -1)
       .map((_, i, parts) => parts.slice(0, i + 1).join("/"))
-      .find((parent) => statSync(join(root, parent), { throwIfNoEntry: false })?.isDirectory() === false);
-    if (blocked !== undefined) result.conflicts.push(blocked);
-    else if (!existsSync(target)) result.created.push(path);
-    else if (readFileSync(target, "utf8") === text) result.unchanged.push(path);
+      .find((parent) => entry(parent) !== undefined && !entry(parent).isDirectory());
+    if (blocked !== undefined) {
+      result.conflicts.push(blocked);
+      continue;
+    }
+    const found = entry(rel);
+    if (found === undefined) result.created.push(path);
+    else if (found.isFile() && readFileSync(target, "utf8") === text) result.unchanged.push(path);
     else result.conflicts.push(path);
   }
   if (result.conflicts.length > 0) return { ...result, created: [], conflicts: [...new Set(result.conflicts)] };
