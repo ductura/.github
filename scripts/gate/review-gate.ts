@@ -48,6 +48,43 @@ function client(fetchImpl: Fetch, env: Env) {
   };
 }
 
+// A status belongs to a commit, so while another open PR shares this head the
+// verdicts of one PR would stand for the other: no green (Ductus SHARED_HEAD).
+export const SHARED_HEAD: GateResult = {
+  state: "pending",
+  description: "No green status while another open PR shares this head; close the other PR.",
+};
+const EVALUATING: GateResult = { state: "pending", description: "Engineering review gate is evaluating this head." };
+
+type Api = ReturnType<typeof client>;
+
+async function pages(api: Api, path: string): Promise<unknown[]> {
+  const items: unknown[] = [];
+  for (let page = 1; ; page += 1) {
+    if (page > MAX_PAGES) throw new Error(`Too many pages: ${path}`);
+    const batch = await api(`${path}${path.includes("?") ? "&" : "?"}per_page=100&page=${page}`);
+    if (!Array.isArray(batch)) throw new Error(`Expected an array: ${path}`);
+    items.push(...(batch as unknown[]));
+    if (batch.length < 100) return items;
+  }
+}
+
+async function sharesHead(api: Api, repository: string, pr: PullRequest): Promise<boolean> {
+  const open = (await pages(api, `/repos/${repository}/pulls?state=open`)) as Partial<PullRequest>[];
+  // An entry that cannot be read counts as sharing the head (fails closed).
+  return open.some(
+    (other) =>
+      typeof other?.head?.sha !== "string" ||
+      (other.number !== pr.number && other.head.sha.toLowerCase() === pr.head.sha),
+  );
+}
+
+async function shared(status: (result: GateResult) => Promise<void>): Promise<GateResult> {
+  await status(SHARED_HEAD);
+  console.log(`${STATUS_CONTEXT}: pending: ${SHARED_HEAD.description}`);
+  return SHARED_HEAD;
+}
+
 /** Evaluates one PR and writes its status; returns the result, or null when skipped. */
 export async function run(env: Env, fetchImpl: Fetch = fetch): Promise<GateResult | null> {
   const repository = env.GITHUB_REPOSITORY ?? "";
@@ -81,15 +118,12 @@ export async function run(env: Env, fetchImpl: Fetch = fetch): Promise<GateResul
       }),
     });
   };
+  // A run killed after this point (timeout, cancel) leaves this pending, never
+  // an older success.
+  await status(EVALUATING);
   try {
-    const comments: Comment[] = [];
-    for (let page = 1; ; page += 1) {
-      if (page > MAX_PAGES) throw new Error("Too many comment pages.");
-      const batch = await api(`/repos/${repository}/issues/${number}/comments?per_page=100&page=${page}`);
-      if (!Array.isArray(batch)) throw new Error("Expected an array of comments.");
-      comments.push(...(batch as Comment[]));
-      if (batch.length < 100) break;
-    }
+    if (await sharesHead(api, repository, pr)) return await shared(status);
+    const comments = (await pages(api, `/repos/${repository}/issues/${number}/comments`)) as Comment[];
     const result = evaluateVerdicts({
       body: pr.body ?? "",
       headSha: pr.head.sha,
@@ -99,6 +133,8 @@ export async function run(env: Env, fetchImpl: Fetch = fetch): Promise<GateResul
       trustedLogins: (env.GATE_TRUSTED_LOGINS ?? "").split(/\s+/).filter(Boolean),
     });
     await status(result);
+    // A PR opened on this head while the gate read the comments: no green stays.
+    if (result.state === "success" && (await sharesHead(api, repository, pr))) return await shared(status);
     console.log(`${STATUS_CONTEXT}: ${result.state}: ${result.description}`);
     return result;
   } catch (error) {

@@ -4,12 +4,20 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { prNumberFromEvent, run, STATUS_CONTEXT } from "./review-gate.ts";
+import { prNumberFromEvent, run, SHARED_HEAD, STATUS_CONTEXT } from "./review-gate.ts";
 
 const head = "c".repeat(40);
 const repo = "example-org/example";
 
-function setup(event: unknown, pr: Record<string, unknown>, pages: unknown[][] = [[]], failComments = false) {
+function setup(
+  event: unknown,
+  pr: Record<string, unknown>,
+  pages: unknown[][] = [[]],
+  failComments = false,
+  // The open PRs of each successive read of the open list; the last repeats.
+  openLists: unknown[][] = [[pr]],
+) {
+  let openReads = 0;
   const dir = mkdtempSync(join(tmpdir(), "gate-"));
   const eventPath = join(dir, "event.json");
   writeFileSync(eventPath, JSON.stringify(event));
@@ -19,6 +27,10 @@ function setup(event: unknown, pr: Record<string, unknown>, pages: unknown[][] =
     const path = url.replace("https://api.example.test", "");
     let payload: unknown = null;
     if (path === `/repos/${repo}/pulls/7`) payload = pr;
+    if (path === `/repos/${repo}/pulls?state=open&per_page=100&page=1`) {
+      payload = openLists[Math.min(openReads, openLists.length - 1)] ?? [];
+      openReads += 1;
+    }
     const page = /\/issues\/7\/comments\?per_page=100&page=(\d+)$/.exec(path)?.[1];
     if (page) {
       if (failComments) return new Response("boom", { status: 502 });
@@ -65,7 +77,7 @@ test("writes the result as the gate status on the PR head, reading every comment
   const { calls, env, fetchImpl } = setup({ pull_request: { number: 7 } }, openPr(), [filler, [passReview]]);
   const result = await run(env, fetchImpl);
   assert.equal(result?.state, "success");
-  const status = calls.at(-1);
+  const status = calls.filter((call) => call.method === "POST").at(-1);
   assert.equal(status?.url, `https://api.example.test/repos/${repo}/statuses/${head}`);
   assert.equal(status?.method, "POST");
   assert.deepEqual(status?.body, { state: "success", context: STATUS_CONTEXT, description: result?.description });
@@ -102,4 +114,54 @@ test("an event without a PR writes nothing", async () => {
   const { calls, env, fetchImpl } = setup({ issue: { number: 7 } }, openPr());
   assert.equal(await run(env, fetchImpl), null);
   assert.equal(calls.length, 0);
+});
+
+const posts = (calls: { method: string; body: unknown }[]) =>
+  calls.filter((call) => call.method === "POST").map((call) => call.body as { state: string; description: string });
+
+test("marks the head pending before reading any comment, so a killed run never leaves an older green", async () => {
+  const { calls, env, fetchImpl } = setup({ pull_request: { number: 7 } }, openPr(), [[passReview]]);
+  await run(env, fetchImpl);
+  const firstPost = calls.findIndex((call) => call.method === "POST");
+  const firstComments = calls.findIndex((call) => call.url.includes("/comments"));
+  assert.ok(firstPost >= 0 && firstPost < firstComments);
+  assert.deepEqual(
+    posts(calls).map((body) => body.state),
+    ["pending", "success"],
+  );
+});
+
+test("no green while another open PR shares the head", async () => {
+  const other = { ...openPr(), number: 8 };
+  const { calls, env, fetchImpl } = setup({ pull_request: { number: 7 } }, openPr(), [[passReview]], false, [
+    [openPr(), other],
+  ]);
+  assert.deepEqual(await run(env, fetchImpl), SHARED_HEAD);
+  assert.deepEqual(
+    posts(calls).map((body) => body.state),
+    ["pending", "pending"],
+  );
+  assert.equal(posts(calls).at(-1)?.description, SHARED_HEAD.description);
+});
+
+test("a PR opened on the head during the evaluation takes the green back", async () => {
+  const other = { ...openPr(), number: 8 };
+  const { calls, env, fetchImpl } = setup({ pull_request: { number: 7 } }, openPr(), [[passReview]], false, [
+    [openPr()],
+    [openPr(), other],
+  ]);
+  assert.deepEqual(await run(env, fetchImpl), SHARED_HEAD);
+  assert.deepEqual(
+    posts(calls).map((body) => body.state),
+    ["pending", "success", "pending"],
+  );
+});
+
+test("an unreadable open-PR list leaves the head pending", async () => {
+  const { calls, env, fetchImpl } = setup({ pull_request: { number: 7 } }, openPr(), [[passReview]], false, [
+    ["not a pull request list"],
+  ]);
+  const result = await run(env, fetchImpl).catch(() => null);
+  assert.notEqual(result?.state, "success");
+  assert.ok(posts(calls).every((body) => body.state === "pending"));
 });
