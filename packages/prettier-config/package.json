@@ -1,0 +1,28 @@
+{
+  "name": "@ductura/prettier-config",
+  "version": "0.1.0",
+  "description": "Prettier format za Ductura repozitorije, isti kao u Ductusu",
+  "license": "UNLICENSED",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ductura/.github.git",
+    "directory": "packages/prettier-config"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts"
+  ],
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
+  },
+  "peerDependencies": {
+    "prettier": "^3.10.1"
+  }
+}

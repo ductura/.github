@@ -1,0 +1,23 @@
+{
+  "name": "@ductura/fixture-lint-presets",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Samotest za @ductura/eslint-config i @ductura/prettier-config; mora biti zelen",
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "prettier": "@ductura/prettier-config",
+  "scripts": {
+    "lint": "eslint --flag unstable_native_nodejs_ts_config -c eslint.config.ts --max-warnings 0 .",
+    "format": "prettier --check . ../../packages/eslint-config ../../packages/prettier-config",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --test src/*.test.ts"
+  },
+  "devDependencies": {
+    "@ductura/eslint-config": "file:../../packages/eslint-config",
+    "@ductura/prettier-config": "file:../../packages/prettier-config",
+    "@types/node": "^24.19.2",
+    "eslint": "10.15.0",
+    "prettier": "3.10.1",
+    "typescript": "^5.9.3"
+  }
+}
