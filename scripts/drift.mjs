@@ -205,8 +205,11 @@ export function formatReport(findings, { org, date } = {}) {
   const head = `## Razilaženje postavki${org ? ` (${org})` : ""}${date ? `, ${date}` : ""}`;
   if (findings.length === 0) return `${head}\n\nNema razilaženja.\n`;
   const rows = findings.map((f) => `| ${cell(f.repo)} | ${f.level === "drift" ? "razilaženje" : "napomena"} | ${KIND_TEXT[f.kind] ?? f.kind} | ${cell(f.detail)} |`);
-  const summary = drift.length === 0 ? "Nema razilaženja; samo napomene." : `Razilaženja: ${drift.length}.`;
-  return [head, "", summary, "", "| Repo | Razina | Vrsta | Pojedinosti |", "|---|---|---|---|", ...rows, ""].join("\n");
+  const unreadable = new Set(findings.filter((f) => f.kind === "unreadable").map((f) => f.repo));
+  let summary = drift.length === 0 ? "Nema razilaženja; samo napomene." : `Razilaženja: ${drift.length}.`;
+  // An unreadable repository is never "no drift": its state is unknown and the report says so on its own line.
+  if (unreadable.size > 0) summary += `\n\nNečitljivo: ${unreadable.size}; za te repoe stanje nije poznato.`;
+  return [head, "", summary, "","| Repo | Razina | Vrsta | Pojedinosti |", "|---|---|---|---|", ...rows, ""].join("\n");
 }
 
 /**
