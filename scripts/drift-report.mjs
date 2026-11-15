@@ -58,7 +58,15 @@ export function decide({ scanResult, status, report, runUrl } = {}) {
   return unknown(`nepoznat status skeniranja „${status || ""}”`);
 }
 
-const isIssue = (i) => i !== null && typeof i === "object" && Number.isInteger(i.number) && typeof i.title === "string";
+// Every listed issue must belong to the coordination repository: a pagination link may point at another
+// repository on the same API host, and a foreign issue number must never pick the local issue to comment on.
+const isIssueOf = (repoUrl) => (i) =>
+  i !== null &&
+  typeof i === "object" &&
+  Number.isInteger(i.number) &&
+  typeof i.title === "string" &&
+  typeof i.repository_url === "string" &&
+  i.repository_url.toLowerCase() === repoUrl.toLowerCase();
 
 /** Number of the open report issue among listed issues, or null. Pull requests and other authors never match. */
 export function findReportIssue(issues, title) {
@@ -91,7 +99,12 @@ export async function publishReport({
     `${path}/issues?state=open&creator=${encodeURIComponent(BOT)}&per_page=100`,
     { paginate: true },
   );
-  if (list.status !== 200 || list.error !== undefined || !Array.isArray(list.body) || !list.body.every(isIssue)) {
+  if (
+    list.status !== 200 ||
+    list.error !== undefined ||
+    !Array.isArray(list.body) ||
+    !list.body.every(isIssueOf(`${base.replace(/\/$/, "")}${path}`))
+  ) {
     throw new Error(`issue list unreadable (${list.error ?? `HTTP ${list.status}`}); nothing posted`);
   }
   const number = findReportIssue(list.body, title);

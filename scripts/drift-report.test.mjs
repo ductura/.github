@@ -26,7 +26,15 @@ const DRIFT =
 const CLEAN = "## Razilaženje postavki (primjer-org), 2026-11-16\n\nNema razilaženja.\n";
 
 // Invented issues only.
-const issue = (number, extra = {}) => ({ number, title: TITLE, state: "open", user: { login: BOT }, ...extra });
+const REPO_URL = `${API}/repos/primjer-org/.github`;
+const issue = (number, extra = {}) => ({
+  number,
+  title: TITLE,
+  state: "open",
+  user: { login: BOT },
+  repository_url: REPO_URL,
+  ...extra,
+});
 
 /** Fake GitHub: routes for GET by URL, every call recorded; POST answers with postStatus. */
 function fakeApi({ routes = {}, postStatus = 201, postBody = { number: 77 } } = {}) {
@@ -160,6 +168,15 @@ test("an unreadable issue list posts nothing, so no duplicate issue is opened", 
     { [LIST]: { body: [null] } },
     { [LIST]: { body: [{ number: "3", title: TITLE }] } },
     { [LIST]: { body: [{ number: 3 }] } },
+    { [LIST]: { body: [issue(3, { repository_url: undefined })] } },
+    { [LIST]: { body: [issue(3, { repository_url: `${API}/repos/primjer-org/drugi` })] } },
+    // QA finding on 4b3d0f1: a same-host page link into another repository must not pick the issue.
+    {
+      [LIST]: { body: [], link: `<${API}/repos/primjer-org/drugi/issues?page=2>; rel="next"` },
+      [`${API}/repos/primjer-org/drugi/issues?page=2`]: {
+        body: [issue(3, { repository_url: `${API}/repos/primjer-org/drugi` })],
+      },
+    },
     { [LIST]: { body: [issue(1)], link: `<${page2}>; rel="next"` }, [page2]: { status: 502, body: {} } },
     { [LIST]: { body: [issue(1)], link: `<https://elsewhere.test/x>; rel="next"` } },
   ];
