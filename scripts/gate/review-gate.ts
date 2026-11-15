@@ -59,6 +59,11 @@ const FLOOR_STALE: GateResult = {
   state: "pending",
   description: "Risk floor was computed for another head; the gate runs again for the new head.",
 };
+// A PR whose head lives in another repository; never evaluated, never green.
+export const FOREIGN_HEAD: GateResult = {
+  state: "pending",
+  description: "A PR from another repository has this head; it is never evaluated, so no green status.",
+};
 const EVALUATING: GateResult = { state: "pending", description: "Engineering review gate is evaluating this head." };
 
 type Api = ReturnType<typeof client>;
@@ -90,7 +95,7 @@ async function shared(status: (result: GateResult) => Promise<void>): Promise<Ga
   return SHARED_HEAD;
 }
 
-/** Evaluates one PR and writes its status; returns the result, or null when skipped. */
+/** Evaluates one PR and writes its status; returns the result, or null when no status is written. */
 export async function run(env: Env, fetchImpl: Fetch = fetch): Promise<GateResult | null> {
   const repository = env.GITHUB_REPOSITORY ?? "";
   if (!/^[\w.-]+\/[\w.-]+$/.test(repository)) throw new Error("GITHUB_REPOSITORY is missing or invalid.");
@@ -122,12 +127,15 @@ export async function run(env: Env, fetchImpl: Fetch = fetch): Promise<GateResul
     });
   };
   // F-014: a head from another repository is never evaluated and never gets a
-  // green. It may share its SHA with an open PR here, whose green must not
-  // stand for it: then the head gets SHARED_HEAD, without reading any verdict.
+  // green. Its SHA may be the head of a green PR here, so pending is written
+  // first, before any read, and nothing after it is ever success: a failed
+  // read below leaves pending and fails the job.
   if (pr.head.repo?.full_name !== repository || pr.base.repo.full_name !== repository) {
+    await status(FOREIGN_HEAD);
+    // Only a clearer description for the PR here that shares the head.
     if (await sharesHead(api, repository, pr)) return await shared(status);
-    console.log(`PR #${number} has its head outside ${repository}; no status written.`);
-    return null;
+    console.log(`${STATUS_CONTEXT}: pending: ${FOREIGN_HEAD.description}`);
+    return FOREIGN_HEAD;
   }
   // A run killed after this point (timeout, cancel) leaves this pending, never
   // an older success.

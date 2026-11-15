@@ -4,7 +4,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { prNumberFromEvent, run, SHARED_HEAD, STATUS_CONTEXT } from "./review-gate.ts";
+import { FOREIGN_HEAD, prNumberFromEvent, run, SHARED_HEAD, STATUS_CONTEXT } from "./review-gate.ts";
 
 const head = "c".repeat(40);
 const repo = "example-org/example";
@@ -91,11 +91,8 @@ test("the path floor from the caller holds a lower declared risk", async () => {
   assert.equal(result?.state, "failure");
 });
 
-test("no status for a closed PR or a head from another repository", async () => {
-  for (const pr of [
-    { ...openPr(), state: "closed" },
-    { ...openPr(), head: { sha: head, repo: { full_name: "fork/example" } } },
-  ]) {
+test("no status for a closed PR; a head from another repository gets only pending", async () => {
+  for (const pr of [{ ...openPr(), state: "closed" }]) {
     const { calls, env, fetchImpl } = setup({ pull_request: { number: 7 } }, pr);
     assert.equal(await run(env, fetchImpl), null);
     assert.equal(
@@ -103,6 +100,10 @@ test("no status for a closed PR or a head from another repository", async () => 
       false,
     );
   }
+  const fork = { ...openPr(), head: { sha: head, repo: { full_name: "fork/example" } } };
+  const { calls, env, fetchImpl } = setup({ pull_request: { number: 7 } }, fork);
+  assert.deepEqual(await run(env, fetchImpl), FOREIGN_HEAD);
+  assert.ok(posts(calls).length > 0 && posts(calls).every((body) => body.state === "pending"));
 });
 
 test("a fork PR on the head of a green PR here takes the green back, without reading verdicts", async () => {
@@ -113,7 +114,7 @@ test("a fork PR on the head of a green PR here takes the green back, without rea
   assert.deepEqual(await run(env, fetchImpl), SHARED_HEAD);
   assert.deepEqual(
     posts(calls).map((body) => body.description),
-    [SHARED_HEAD.description],
+    [FOREIGN_HEAD.description, SHARED_HEAD.description],
   );
   assert.equal(
     calls.some((call) => call.url.includes("/comments")),
@@ -211,4 +212,74 @@ test("an unreadable open-PR list leaves the head pending", async () => {
   const result = await run(env, fetchImpl).catch(() => null);
   assert.notEqual(result?.state, "success");
   assert.ok(posts(calls).every((body) => body.state === "pending"));
+});
+
+// Fork path (third round on ductura/.github#12): pending first, never success.
+const forkPr = () => ({ ...openPr(), number: 8, head: { sha: head, repo: { full_name: "fork/example" } } });
+const statusPosts = (calls: { url: string; method: string; body: unknown }[]) =>
+  calls.filter((call) => call.method === "POST" && call.url.endsWith(`/statuses/${head}`));
+
+test("fork on the SHA of a green PR here: pending before any other read, the SHA ends pending", async () => {
+  // The PR here gets its green first.
+  const green = setup({ pull_request: { number: 7 } }, openPr(), [[passReview]]);
+  assert.equal((await run(green.env, green.fetchImpl))?.state, "success");
+  // Then a fork opens a PR on the same SHA; the fake API serves it at the event's path.
+  const fork = forkPr();
+  const { calls, env, fetchImpl } = setup({ pull_request: { number: 7 } }, fork, [[passReview]], false, [
+    [openPr(), fork],
+  ]);
+  await run(env, fetchImpl);
+  // Only the PR itself is read before the first status write.
+  assert.deepEqual(
+    calls.slice(0, 2).map((call) => call.method),
+    ["GET", "POST"],
+  );
+  assert.equal((calls[1]?.body as { state?: string } | null)?.state, "pending");
+  const writes = statusPosts([...green.calls, ...calls]).map((call) => (call.body as { state: string }).state);
+  assert.equal(writes.at(-1), "pending");
+  assert.ok(statusPosts(calls).every((call) => (call.body as { state: string }).state === "pending"));
+  assert.equal(
+    calls.some((call) => call.url.includes("/comments")),
+    false,
+  );
+});
+
+test("fork with a failing open-PR read (502 and timeout): pending stays and the job fails", async () => {
+  const failures: (() => Promise<Response>)[] = [
+    async () => new Response("bad gateway", { status: 502 }),
+    async () => {
+      throw new DOMException("The operation timed out.", "TimeoutError");
+    },
+  ];
+  for (const fail of failures) {
+    const fork = forkPr();
+    const base = setup({ pull_request: { number: 7 } }, fork, [[passReview]], false, [[openPr(), fork]]);
+    const fetchImpl = async (url: string, init: RequestInit = {}) => {
+      if (url.includes("/pulls?state=open")) {
+        base.calls.push({ url, method: init.method ?? "GET", body: null });
+        return fail();
+      }
+      return base.fetchImpl(url, init);
+    };
+    await assert.rejects(run(base.env, fetchImpl), /502|timed out/);
+    const firstPost = base.calls.findIndex((call) => call.method === "POST");
+    const firstList = base.calls.findIndex((call) => call.url.includes("/pulls?state=open"));
+    assert.ok(firstPost >= 0 && firstPost < firstList);
+    assert.ok(posts(base.calls).every((body) => body.state === "pending"));
+    assert.equal(posts(base.calls).at(-1)?.description, FOREIGN_HEAD.description);
+  }
+});
+
+test("fork on its own SHA: only pending, no verdict read", async () => {
+  const fork = forkPr();
+  const { calls, env, fetchImpl } = setup({ pull_request: { number: 7 } }, fork, [[passReview]], false, [[fork]]);
+  assert.deepEqual(await run(env, fetchImpl), FOREIGN_HEAD);
+  assert.deepEqual(
+    posts(calls).map((body) => body.description),
+    [FOREIGN_HEAD.description],
+  );
+  assert.equal(
+    calls.some((call) => call.url.includes("/comments")),
+    false,
+  );
 });
