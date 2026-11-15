@@ -1,0 +1,34 @@
+# Weekly read-only check that Ductura repositories match drift/expected.json:
+# default branch, branch protection, required ci-ok status and labels.yml.
+# It never changes a repository: the token can only read contents, and
+# scripts/drift.mjs sends nothing but GET. Findings go to the job summary and
+# fail the run. Delivery to the coordination issue is a later PR (DAN-749).
+name: drift-check
+on:
+  schedule:
+    # Mondays 05:17 UTC.
+    - cron: "17 5 * * 1"
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: drift-check
+  cancel-in-progress: false
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Compare repository settings with drift/expected.json
+        env:
+          # Public repositories are readable with this token; it has no write scope here.
+          GITHUB_TOKEN: ${{ github.token }}
+        # Exit 0 no drift, 1 drift found (summary written), 2 broken configuration.
+        run: node scripts/drift.mjs drift/expected.json
