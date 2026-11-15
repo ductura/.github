@@ -47,6 +47,31 @@ jobs:
       - name: Gate tests
         run: node --test scripts/gate/*.test.ts
 
+  # The reusable engineering-gate.yml itself, called with real inputs over
+  # fixtures/gate: the cases that must pass and those that must stay pending
+  # or fail. Local fake API only; no token reaches the runner.
+  engineering-gate:
+    strategy:
+      fail-fast: false
+      matrix:
+        case: [pass-standard, pass-override, no-verdict, stale-head, fail-on-head, bad-agent-format]
+        include:
+          - { case: fork-head }
+          - { case: api-error }
+          - { case: pass-critical, risk: critical, trusted: qa-person-y }
+          - { case: critical-no-qa, risk: critical }
+          - { case: below-floor, risk: critical }
+          - { case: floor-stale, floor: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb }
+    permissions: { contents: read, issues: read, pull-requests: read, statuses: write }
+    uses: ./.github/workflows/engineering-gate.yml
+    with:
+      gate-sha: ${{ github.event.pull_request.head.sha || github.sha }}
+      owner-login: owner-x
+      minimum-risk: ${{ matrix.risk || 'standard' }}
+      floor-sha: ${{ matrix.floor || 'cccccccccccccccccccccccccccccccccccccccc' }}
+      trusted-logins: ${{ matrix.trusted || '' }}
+      self-test: ${{ matrix.case }}
+
   node-ok:
     permissions: { contents: read, packages: read }
     uses: ./.github/workflows/ci-node.yml
@@ -146,7 +171,7 @@ jobs:
 
   ci-ok:
     if: ${{ always() }}
-    needs: [actionlint, pin-check, gate, node-ok, node-ok-multiline, presets, secret-scan, secret-scan-negative, dependency-review]
+    needs: [actionlint, pin-check, gate, engineering-gate, node-ok, node-ok-multiline, presets, secret-scan, secret-scan-negative, dependency-review]
     uses: ./.github/workflows/ci-ok.yml
     with:
       results: ${{ toJSON(needs) }}
