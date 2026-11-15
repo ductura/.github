@@ -146,8 +146,9 @@ function trustedEntries(comments: readonly Comment[], ownerLogin: string, logins
     if (comment.user?.type === "Bot" || !login || !allowed.has(login) || !body) return;
     const created = time(comment.created_at);
     const updated = time(comment.updated_at);
-    // F-012: an edited comment never gives a PASS; it fails closed on an unreadable time.
-    const edited = !Number.isNaN(updated) && (Number.isNaN(created) || updated > created);
+    // F-012: an edited comment never gives a PASS. An unreadable creation or
+    // edit time counts as an edit (fails closed).
+    const edited = Number.isNaN(created) || Number.isNaN(updated) || updated > created;
     const at = Number.isNaN(updated) ? created : Number.isNaN(created) ? updated : Math.max(created, updated);
     entries.push({
       body,
