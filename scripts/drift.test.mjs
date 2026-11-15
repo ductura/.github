@@ -324,15 +324,18 @@ test("observe keeps going after a network failure and the scan reports it", asyn
 
 // --- workflow --------------------------------------------------------------------------
 
-test("drift-check workflow: weekly, read-only and runs the script", () => {
+test("drift-check workflow: weekly, read-only scan and runs the script", () => {
   const wf = readFileSync(join(ROOT, ".github", "workflows", "drift-check.yml"), "utf8");
   assert.match(wf, /schedule:\n(?: +#.*\n)? +- cron: "[^"]+"/);
   assert.match(wf, /workflow_dispatch:/);
   assert.match(wf, /^permissions: \{\}\n/m);
-  assert.match(wf, /\n {4}permissions:\n {6}contents: read\n {4}steps:/);
+  const scan = wf.slice(wf.indexOf("\n  scan:\n"), wf.indexOf("\n  report:\n"));
+  assert.match(scan, /\n {4}permissions:\n {6}contents: read\n {4}outputs:/);
+  assert.doesNotMatch(scan, /: write$/m);
+  // No job has a write scope (scripts/drift-report.test.mjs checks the report job).
   assert.doesNotMatch(wf, /^ +[a-z-]+: write$/m);
   assert.doesNotMatch(wf, /pull_request_target|secrets\./);
-  assert.match(wf, /run: node scripts\/drift\.mjs drift\/expected\.json\n/);
+  assert.match(scan, /node scripts\/drift\.mjs drift\/expected\.json --report-file "\$report"\n/);
 });
 
 test("loadExpected rejects an invalid file", () => {
