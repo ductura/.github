@@ -1,12 +1,11 @@
-# Weekly check that Ductura repositories match drift/expected.json: default
-# branch, branch protection, required ci-ok status and labels.yml.
-# The scan job only reads (contents: read; scripts/drift.mjs sends nothing but
-# GET) and never changes any repository. The report job is the only one with a
-# token that can write, and only issues in this repository: it posts at most
-# one comment or one issue to the coordination issue named in
-# drift/expected.json (scripts/drift-report.mjs). A clean scan posts nothing;
-# drift and a scan that did not finish are posted and fail the run, so an
-# unknown state never looks like "no drift".
+# Weekly read-only check that Ductura repositories match drift/expected.json:
+# default branch, branch protection, required ci-ok status and labels.yml.
+# Every job has only contents: read and never changes a repository:
+# scripts/drift.mjs sends nothing but GET and scripts/drift-report.mjs sends no
+# request at all. The report job writes the outcome to the job summary and
+# uploads it as the drift-report artifact. Drift and a scan that did not finish
+# fail the run, so an unknown state never looks like "no drift". Delivery to
+# the coordination issue is a separate PR (DAN-749).
 name: drift-check
 on:
   schedule:
@@ -37,7 +36,7 @@ jobs:
         id: scan
         shell: bash
         env:
-          # Public repositories are readable with this token; it has no write scope here.
+          # Public repositories are readable with this token; here it can only read (contents: read).
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set +e
@@ -46,7 +45,7 @@ jobs:
           code=$?
           set -e
           # 0 no drift, 1 drift found; anything else fails this job and the
-          # report job posts "state unknown".
+          # report job reports "state unknown".
           case "$code" in
             0) status=clean ;;
             1) status=drift ;;
@@ -63,13 +62,12 @@ jobs:
 
   report:
     needs: scan
-    # Also after a failed or cancelled scan: that outcome is posted as "state unknown".
+    # Also after a failed or cancelled scan: that outcome is reported as "state unknown".
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
-      issues: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -77,11 +75,18 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-      - name: Post drift or an unfinished scan to the coordination issue
+      - name: Write the scan outcome to the job summary and the report file
         env:
-          GITHUB_TOKEN: ${{ github.token }}
           SCAN_RESULT: ${{ needs.scan.result }}
           SCAN_STATUS: ${{ needs.scan.outputs.status }}
           REPORT: ${{ needs.scan.outputs.report }}
-        # Exit 0 clean (nothing posted), 1 drift or unknown state (posted), 2 delivery failed.
-        run: node scripts/drift-report.mjs drift/expected.json
+        # Exit 0 clean, 1 drift or unknown state, 2 the report could not be written.
+        run: node scripts/drift-report.mjs --report-file "$RUNNER_TEMP/drift-report.md"
+      - name: Upload the report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: drift-report
+          path: ${{ runner.temp }}/drift-report.md
+          if-no-files-found: error
+          retention-days: 30
