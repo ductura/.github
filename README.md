@@ -11,6 +11,7 @@ Pozivaj ih s punim SHA-om ovog repoa (`@<40 znakova> # <oznaka>`), nikad s grano
 | `ci-ok.yml` | Zbirna provjera: zelena samo ako je svaki posao iz `needs` uspio. Preskočen posao pada ako nije naveden u `allow-skipped`. Pozivatelj šalje `results: ${{ toJSON(needs) }}` i postavlja `if: ${{ always() }}`. |
 | `secret-scan.yml` | gitleaks nad cijelom poviješću, slika prikvačena na digest, bez mreže; pada ako nije skeniran nijedan commit |
 | `dependency-review.yml` | Na pull requestu odbija novu ovisnost s ranjivošću (od `moderate`) ili licencom izvan popisa; izvan PR-a pada |
+| `engineering-gate.yml` | Status „Engineering review gate” na headu PR-a iz verdikata review i QA (runner `scripts/gate`); checkouta samo ovaj repo na `gate-sha`, nikad kod PR-a, bez tajni. Samotest nad `fixtures/gate` u `self-test.yml`. |
 
 `self-test.yml` provjerava ove predloške nad fixtureima, a `scripts/pin-check.mjs` provjerava da je svaka akcija prikvačena na puni SHA.
 

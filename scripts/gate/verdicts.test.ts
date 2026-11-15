@@ -171,6 +171,29 @@ test("a negative holds whatever author the body declares", () => {
   }
 });
 
+test("F-012: a comment with a missing or unreadable creation or edit time never passes", () => {
+  // Drops one time field, as a REST response without it would arrive.
+  const without = (item: Comment, key: "created_at" | "updated_at"): Comment => {
+    const copy = { ...item };
+    delete copy[key];
+    return copy;
+  };
+  const override = () => comment(`Owner-Override: PASS\nOverride-Head: ${head}\nOverride-Reason: hitno\n`);
+  const variants: ((item: Comment) => Comment)[] = [
+    (item) => without(item, "updated_at"),
+    (item) => without(item, "created_at"),
+    (item) => ({ ...item, created_at: "x" }),
+    (item) => ({ ...item, updated_at: "" }),
+  ];
+  for (const [index, change] of variants.entries()) {
+    assert.equal(state(prBody(), [change(review("codex:r1", "PASS"))]), "pending", `review ${index}`);
+    assert.equal(state(prBody("critical"), [change(override())]), "pending", `override ${index}`);
+  }
+  // A FAIL with an unreadable time still holds the gate.
+  const fail = without(review("codex:r1", "FAIL"), "updated_at");
+  assert.equal(state(prBody(), [fail, review("grok:r2", "PASS")]), "pending");
+});
+
 test("F-023: a later PASS of the same principal on the same head does not clear its FAIL", () => {
   assert.equal(state(prBody(), [review("codex:r1", "FAIL"), review("codex:r1", "PASS")]), "pending");
   assert.equal(state(prBody(), [review("codex:r1", "FAIL", { sha: older }), review("codex:r1", "PASS")]), "success");
