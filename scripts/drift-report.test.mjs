@@ -150,7 +150,9 @@ test("closed issues, pull requests, other authors and other titles never match: 
     issue(6, { title: "Drugi naslov" }),
   ];
   assert.equal(findReportIssue(listed, TITLE), null);
-  const api = fakeApi({ routes: { [LIST]: { body: listed } } });
+  // A closed record in a list asked for with state=open makes the list unreadable (see the state test below),
+  // so the delivery part lists only the open records that do not match.
+  const api = fakeApi({ routes: { [LIST]: { body: listed.filter((i) => i.state === "open") } } });
   assert.deepEqual(await publish(api), { action: "create", number: 77 });
   assert.equal(api.posts().length, 1);
   assert.equal(api.posts()[0].url, `${API}/repos/primjer-org/.github/issues`);
@@ -265,6 +267,122 @@ test("an unreadable issue list posts nothing, so no duplicate issue is opened", 
     const api = fakeApi({ routes });
     await assert.rejects(publish(api), /nothing posted/, JSON.stringify(routes));
     assert.equal(api.posts().length, 0, JSON.stringify(routes));
+  }
+});
+
+// --- review and QA on 4c06441f: every field the decision reads is checked first ------
+// A record with a missing or wrong value in any field that findReportIssue or publishReport reads makes the
+// list unreadable: no write through publishReport, and exit 2 through main. Each case is one record on its own
+// and next to a valid report issue, on the first page and on a later page.
+
+const MALFORMED = {
+  number: [
+    ["missing", { number: undefined }],
+    ["string", { number: "3" }],
+    ["zero", { number: 0 }],
+    ["negative", { number: -3 }],
+    ["fraction", { number: 3.5 }],
+    ["unsafe", { number: 1e21 }],
+    ["null", { number: null }],
+  ],
+  title: [
+    ["missing", { title: undefined }],
+    ["number", { title: 7 }],
+    ["null", { title: null }],
+    ["array", { title: [TITLE] }],
+  ],
+  state: [
+    ["missing", { state: undefined }],
+    ["closed", { state: "closed" }],
+    ["upper case", { state: "OPEN" }],
+    ["empty", { state: "" }],
+    ["null", { state: null }],
+    ["boolean", { state: true }],
+  ],
+  "user.login": [
+    ["user missing", { user: undefined }],
+    ["user null", { user: null }],
+    ["user string", { user: BOT }],
+    ["user array", { user: [{ login: BOT }] }],
+    ["login missing", { user: {} }],
+    ["login empty", { user: { login: "" } }],
+    ["login number", { user: { login: 7 } }],
+    ["login null", { user: { login: null } }],
+  ],
+  repository_url: [
+    ["missing", { repository_url: undefined }],
+    ["number", { repository_url: 7 }],
+    ["other repository", { repository_url: `${API}/repos/primjer-org/drugi` }],
+    ["other host", { repository_url: "https://elsewhere.test/repos/primjer-org/.github" }],
+  ],
+  pull_request: [
+    ["null", { pull_request: null }],
+    ["empty string", { pull_request: "" }],
+    ["false", { pull_request: false }],
+    ["zero", { pull_request: 0 }],
+    ["string", { pull_request: "x" }],
+    ["array", { pull_request: [] }],
+  ],
+};
+
+const reportEnv = {
+  GITHUB_TOKEN: "t",
+  GITHUB_API_URL: API,
+  GITHUB_REPOSITORY: REPO,
+  SCAN_RESULT: "success",
+  SCAN_STATUS: "drift",
+  REPORT: DRIFT,
+};
+
+async function assertUnreadable(routes, label) {
+  const api = fakeApi({ routes });
+  await assert.rejects(publish(api), /nothing posted/, label);
+  assert.equal(api.posts().length, 0, label);
+  const viaMain = fakeApi({ routes });
+  assert.equal(await main([join(ROOT, "drift", "expected.json")], reportEnv, viaMain.impl), 2, label);
+  assert.equal(viaMain.posts().length, 0, label);
+}
+
+for (const [field, cases] of Object.entries(MALFORMED)) {
+  test(`issue list field ${field}: a missing or wrong value writes nothing and exits 2`, async () => {
+    for (const [name, patch] of cases) {
+      const bad = issue(3, patch);
+      for (const [where, routes] of [
+        ["alone", { [LIST]: { body: [bad] } }],
+        ["next to the report issue", { [LIST]: { body: [issue(5), bad] } }],
+        ["on page 2", { [LIST]: { body: fullPage(100) }, [PAGE(2)]: { body: [issue(5), bad] } }],
+      ]) {
+        await assertUnreadable(routes, `${field} ${name}, ${where}`);
+      }
+    }
+  });
+}
+
+test("issue list: a number listed twice writes nothing and exits 2", async () => {
+  await assertUnreadable({ [LIST]: { body: [issue(3), issue(3)] } }, "same page");
+  await assertUnreadable({ [LIST]: { body: fullPage(100) }, [PAGE(2)]: { body: [issue(150)] } }, "across pages");
+});
+
+test("a write without a numeric 2xx status is a failed delivery: exit 2", async () => {
+  for (const status of [undefined, null, "201", 201.5, 199, 300]) {
+    const api = fakeApi({ routes: { [LIST]: { body: [] } } });
+    const impl = async (url, init) =>
+      init.method === "POST" ? (await api.impl(url, init), { status, json: async () => ({}) }) : api.impl(url, init);
+    assert.equal(await main([join(ROOT, "drift", "expected.json")], reportEnv, impl), 2, String(status));
+    assert.equal(api.posts().length, 1, String(status));
+  }
+});
+
+test("the number of a created issue is reported only when it is a positive integer", async () => {
+  for (const [postBody, number] of [
+    [{ number: 77 }, 77],
+    [{ number: "77" }, null],
+    [{ number: 0 }, null],
+    [{ number: -1 }, null],
+    [null, null],
+  ]) {
+    const api = fakeApi({ routes: { [LIST]: { body: [] } }, postBody });
+    assert.deepEqual(await publish(api), { action: "create", number }, JSON.stringify(postBody));
   }
 });
 

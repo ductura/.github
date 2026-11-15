@@ -58,14 +58,22 @@ export function decide({ scanResult, status, report, runUrl } = {}) {
   return unknown(`nepoznat status skeniranja „${status || ""}”`);
 }
 
-// Every listed issue must belong to the coordination repository, and its number must be a plain positive
-// integer: a foreign or malformed number must never pick the local issue to comment on.
+const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+const isPositiveInt = (v) => Number.isSafeInteger(v) && v > 0;
+
+// Every field that findReportIssue or publishReport reads is checked here, before any decision: a record that
+// fails any check makes the whole list unreadable (no write, exit 2), never a record that silently does not match.
+// The list was asked for with state=open, so any other state means it is not the list that was asked for.
+// The issue must belong to the coordination repository, so a foreign record never picks the issue to comment on.
 const isIssueOf = (repoUrl) => (i) =>
-  i !== null &&
-  typeof i === "object" &&
-  Number.isSafeInteger(i.number) &&
-  i.number > 0 &&
+  isObject(i) &&
+  isPositiveInt(i.number) &&
   typeof i.title === "string" &&
+  i.state === "open" &&
+  isObject(i.user) &&
+  typeof i.user.login === "string" &&
+  i.user.login.length > 0 &&
+  (i.pull_request === undefined || isObject(i.pull_request)) &&
   typeof i.repository_url === "string" &&
   i.repository_url.toLowerCase() === repoUrl.toLowerCase();
 
@@ -137,6 +145,9 @@ export async function publishReport({
     listed.push(...res.body);
     if (res.body.length < PER_PAGE) break;
   }
+  // A number listed twice means the pages shifted while they were read, so an issue may have been skipped.
+  if (new Set(listed.map((i) => i.number)).size !== listed.length)
+    throw new Error("issue list unreadable (an issue is listed twice); nothing posted");
   const number = findReportIssue(listed, title);
   const text = clip(quiet(body));
   const [url, payload] =
@@ -156,7 +167,9 @@ export async function publishReport({
     redirect: "error",
     signal: AbortSignal.timeout(30_000),
   });
-  if (res.status < 200 || res.status > 299) throw new Error(`POST ${url}: HTTP ${res.status}`);
+  // Only a numeric 2xx status counts as written; anything else is a failed delivery.
+  if (!Number.isInteger(res?.status) || res.status < 200 || res.status > 299)
+    throw new Error(`POST ${url}: HTTP ${res?.status}`);
   if (number !== null) return { action: "comment", number };
   let created = null;
   try {
@@ -164,7 +177,7 @@ export async function publishReport({
   } catch {
     // The issue was created; only its number is unknown.
   }
-  return { action: "create", number: Number.isInteger(created?.number) ? created.number : null };
+  return { action: "create", number: isPositiveInt(created?.number) ? created.number : null };
 }
 
 /** Issue title from expected.json; falls back to DEFAULT_TITLE so a broken file can still be reported. */
