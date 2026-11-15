@@ -1,11 +1,13 @@
 # Weekly read-only check that Ductura repositories match drift/expected.json:
 # default branch, branch protection, required ci-ok status and labels.yml.
-# Every job has only contents: read and never changes a repository:
+# scan and report have only contents: read and never change a repository:
 # scripts/drift.mjs sends nothing but GET and scripts/drift-report.mjs sends no
 # request at all. The report job writes the outcome to the job summary and
 # uploads it as the drift-report artifact. Drift and a scan that did not finish
-# fail the run, so an unknown state never looks like "no drift". Delivery to
-# the coordination issue is a separate PR (DAN-749).
+# fail the run, so an unknown state never looks like "no drift". The deliver
+# job is the only one with issue access: one comment on the issue numbered by the
+# repository variable DRIFT_REPORT_ISSUE, and only when DRIFT_DELIVERY is
+# "true" (off by default), in ductura/.github, on main (DAN-749).
 name: drift-check
 on:
   schedule:
@@ -90,3 +92,31 @@ jobs:
           path: ${{ runner.temp }}/drift-report.md
           if-no-files-found: error
           retention-days: 30
+
+  deliver:
+    needs: scan
+    # After any scan outcome (an unfinished scan is delivered as "state unknown"), but only when
+    # delivery is switched on, in this repository, from main, on the schedule or a manual run.
+    if: ${{ always() && vars.DRIFT_DELIVERY == 'true' && github.repository == 'ductura/.github' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Comment drift or an unknown state on the report issue
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DRIFT_DELIVERY: ${{ vars.DRIFT_DELIVERY }}
+          DRIFT_REPORT_ISSUE: ${{ vars.DRIFT_REPORT_ISSUE }}
+          SCAN_RESULT: ${{ needs.scan.result }}
+          SCAN_STATUS: ${{ needs.scan.outputs.status }}
+          REPORT: ${{ needs.scan.outputs.report }}
+        # Exit 0 delivered or nothing to deliver, 2 bad input or delivery failed.
+        run: node scripts/drift-deliver.mjs
