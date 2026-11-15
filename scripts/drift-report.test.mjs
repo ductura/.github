@@ -1,4 +1,4 @@
-import { test } from "node:test";
+import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -8,6 +8,7 @@ import { checkDrift, formatReport } from "./drift.mjs";
 import {
   BOT,
   DEFAULT_TITLE,
+  MAX_LIST_PAGES,
   decide,
   findReportIssue,
   main,
@@ -20,7 +21,9 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const API = "https://api.example.test";
 const REPO = "primjer-org/.github";
 const TITLE = "Razilaženje postavki (drift-check)";
-const LIST = `${API}/repos/primjer-org/.github/issues?state=open&creator=${encodeURIComponent(BOT)}&per_page=100`;
+const PREFIX = "/repos/primjer-org/.github/issues";
+const PAGE = (k) => `${API}${PREFIX}?state=open&creator=${encodeURIComponent(BOT)}&per_page=100&page=${k}`;
+const LIST = PAGE(1);
 const DRIFT =
   "## Razilaženje postavki (primjer-org), 2026-11-16\n\nRazilaženja: 1.\n\n| alfa | razilaženje | višak labele | x |\n";
 const CLEAN = "## Razilaženje postavki (primjer-org), 2026-11-16\n\nNema razilaženja.\n";
@@ -36,10 +39,22 @@ const issue = (number, extra = {}) => ({
   ...extra,
 });
 
+// Every request made by any test in this file; checked after all tests (opcija A, ductura/.github#13).
+const EVERY_CALL = [];
+after(() => {
+  assert.ok(EVERY_CALL.length > 0);
+  for (const c of EVERY_CALL) {
+    assert.equal(new URL(c.url).origin, API, c.url);
+    assert.ok(new URL(c.url).pathname.startsWith(PREFIX), c.url);
+    assert.equal(c.redirect, "error", c.url);
+  }
+});
+
 /** Fake GitHub: routes for GET by URL, every call recorded; POST answers with postStatus. */
 function fakeApi({ routes = {}, postStatus = 201, postBody = { number: 77 } } = {}) {
   const calls = [];
   const impl = async (url, init) => {
+    EVERY_CALL.push({ url, redirect: init.redirect });
     calls.push({
       url,
       method: init.method,
@@ -47,7 +62,7 @@ function fakeApi({ routes = {}, postStatus = 201, postBody = { number: 77 } } = 
       redirect: init.redirect,
     });
     if (init.method === "POST") return { status: postStatus, json: async () => postBody, headers: { get: () => null } };
-    const route = routes[url];
+    const route = typeof routes === "function" ? routes(url) : routes[url];
     if (!route) return { status: 404, json: async () => ({ message: "Not Found" }), headers: { get: () => null } };
     if (route.reject) throw new TypeError("fetch failed");
     const json = route.raw !== undefined ? async () => JSON.parse(route.raw) : async () => route.body;
@@ -142,23 +157,84 @@ test("closed issues, pull requests, other authors and other titles never match: 
   assert.deepEqual(api.posts()[0].body, { title: TITLE, body: DRIFT });
 });
 
+// A full page of issues that never match the report issue.
+const fullPage = (from) => Array.from({ length: 100 }, (_, i) => issue(from + i, { title: "x" }));
+
 test("the issue list is read across pages before deciding", async () => {
-  const page2 = `${LIST}&page=2`;
   const api = fakeApi({
     routes: {
-      [LIST]: { body: [issue(9, { title: "x" })], link: `<${page2}>; rel="next"` },
-      [page2]: { body: [issue(12)] },
+      [LIST]: { body: fullPage(100), link: `<${PAGE(2)}>; rel="next"` },
+      [PAGE(2)]: { body: [issue(12)] },
     },
   });
   assert.deepEqual(await publish(api), { action: "comment", number: 12 });
   assert.deepEqual(
-    api.calls.map((c) => c.method),
-    ["GET", "GET", "POST"],
+    api.calls.map((c) => `${c.method} ${c.url}`),
+    [`GET ${PAGE(1)}`, `GET ${PAGE(2)}`, `POST ${API}${PREFIX}/12/comments`],
   );
 });
 
+test("a list of exactly 100 issues reads the next page before deciding", async () => {
+  const api = fakeApi({ routes: { [PAGE(1)]: { body: fullPage(100) }, [PAGE(2)]: { body: [] } } });
+  assert.deepEqual(await publish(api), { action: "create", number: 77 });
+  assert.deepEqual(
+    api.calls.map((c) => `${c.method} ${c.url}`),
+    [`GET ${PAGE(1)}`, `GET ${PAGE(2)}`, `POST ${API}${PREFIX}`],
+  );
+});
+
+test("a Link header is never followed: only pages of the coordination repository are read", async () => {
+  const foreign = `${API}/repos/primjer-org/drugi/issues?page=2`;
+  for (const [link, foreignPage] of [
+    // QA on 6d2ef2c: a foreign empty page must not end the list early and open a duplicate issue.
+    [`<${foreign}>; rel="next"`, { body: [] }],
+    // QA on 4b3d0f1: a foreign non-empty page must not pick the issue to comment on.
+    [`<${foreign}>; rel="next"`, { body: [issue(3, { repository_url: `${API}/repos/primjer-org/drugi` })] }],
+    [`<https://elsewhere.test/x>; rel="next"`, { body: [] }],
+    [`<${PAGE(7)}>; rel="next"`, { body: [] }],
+  ]) {
+    const api = fakeApi({
+      routes: {
+        [PAGE(1)]: { body: fullPage(100), link },
+        [PAGE(2)]: { body: [issue(12)], link },
+        [foreign]: foreignPage,
+        [PAGE(7)]: foreignPage,
+      },
+    });
+    assert.deepEqual(await publish(api), { action: "comment", number: 12 }, link);
+    assert.deepEqual(
+      api.calls.map((c) => c.url),
+      [PAGE(1), PAGE(2), `${API}${PREFIX}/12/comments`],
+      link,
+    );
+  }
+});
+
+test("a list that reaches the page limit is unreadable: no write, exit 2", async () => {
+  assert.equal(MAX_LIST_PAGES, 50);
+  const endless = () => ({ body: fullPage(1000) });
+  const api = fakeApi({ routes: endless });
+  await assert.rejects(publish(api), /more than 50 pages[\s\S]*nothing posted/);
+  assert.equal(api.posts().length, 0);
+  assert.deepEqual(
+    api.calls.map((c) => c.url),
+    Array.from({ length: 50 }, (_, i) => PAGE(i + 1)),
+  );
+  const viaMain = fakeApi({ routes: endless });
+  const env = {
+    GITHUB_TOKEN: "t",
+    GITHUB_API_URL: API,
+    GITHUB_REPOSITORY: REPO,
+    SCAN_RESULT: "success",
+    SCAN_STATUS: "drift",
+    REPORT: DRIFT,
+  };
+  assert.equal(await main([join(ROOT, "drift", "expected.json")], env, viaMain.impl), 2);
+  assert.equal(viaMain.posts().length, 0);
+});
+
 test("an unreadable issue list posts nothing, so no duplicate issue is opened", async () => {
-  const page2 = `${LIST}&page=2`;
+  const page2 = PAGE(2);
   const bad = [
     { [LIST]: { status: 500, body: {} } },
     { [LIST]: { status: 403, body: { message: "x" } } },
@@ -170,15 +246,20 @@ test("an unreadable issue list posts nothing, so no duplicate issue is opened", 
     { [LIST]: { body: [{ number: 3 }] } },
     { [LIST]: { body: [issue(3, { repository_url: undefined })] } },
     { [LIST]: { body: [issue(3, { repository_url: `${API}/repos/primjer-org/drugi` })] } },
-    // QA finding on 4b3d0f1: a same-host page link into another repository must not pick the issue.
+    { [LIST]: { body: [issue(0)] } },
+    { [LIST]: { body: [issue(-3)] } },
+    { [LIST]: { body: [issue(1e21)] } },
+    { [LIST]: { body: [...fullPage(100), issue(12)] } },
+    // Any page, not only the first: a later page that fails or carries a foreign issue stops the write.
+    { [LIST]: { body: fullPage(100) }, [page2]: { status: 502, body: {} } },
+    { [LIST]: { body: fullPage(100) }, [page2]: { reject: true } },
+    { [LIST]: { body: fullPage(100) }, [page2]: { raw: "[" } },
+    { [LIST]: { body: fullPage(100) }, [page2]: { body: { items: [] } } },
     {
-      [LIST]: { body: [], link: `<${API}/repos/primjer-org/drugi/issues?page=2>; rel="next"` },
-      [`${API}/repos/primjer-org/drugi/issues?page=2`]: {
-        body: [issue(3, { repository_url: `${API}/repos/primjer-org/drugi` })],
-      },
+      [LIST]: { body: fullPage(100) },
+      [page2]: { body: [issue(3, { repository_url: `${API}/repos/primjer-org/drugi` })] },
     },
-    { [LIST]: { body: [issue(1)], link: `<${page2}>; rel="next"` }, [page2]: { status: 502, body: {} } },
-    { [LIST]: { body: [issue(1)], link: `<https://elsewhere.test/x>; rel="next"` } },
+    { [LIST]: { body: fullPage(100) } },
   ];
   for (const routes of bad) {
     const api = fakeApi({ routes });
@@ -204,6 +285,23 @@ test("every request stays inside the configured repository; bad input writes not
     await assert.rejects(
       publishReport({ fetchImpl: bad.impl, base: API, repo, title: TITLE, body: DRIFT }),
       /invalid repository/,
+    );
+    assert.equal(bad.calls.length, 0);
+  }
+  for (const base of [
+    `${API}?x=1`,
+    `${API}#x`,
+    `${API}?`,
+    "https://u:p@api.example.test",
+    "ftp://x",
+    "nije-url",
+    `${API}/a/../repos/primjer-org/drugi`,
+    `${API}/./x`,
+  ]) {
+    const bad = fakeApi();
+    await assert.rejects(
+      publishReport({ fetchImpl: bad.impl, base, repo: REPO, title: TITLE, body: DRIFT }),
+      /invalid API base/,
     );
     assert.equal(bad.calls.length, 0);
   }

@@ -58,12 +58,13 @@ export function decide({ scanResult, status, report, runUrl } = {}) {
   return unknown(`nepoznat status skeniranja „${status || ""}”`);
 }
 
-// Every listed issue must belong to the coordination repository: a pagination link may point at another
-// repository on the same API host, and a foreign issue number must never pick the local issue to comment on.
+// Every listed issue must belong to the coordination repository, and its number must be a plain positive
+// integer: a foreign or malformed number must never pick the local issue to comment on.
 const isIssueOf = (repoUrl) => (i) =>
   i !== null &&
   typeof i === "object" &&
-  Number.isInteger(i.number) &&
+  Number.isSafeInteger(i.number) &&
+  i.number > 0 &&
   typeof i.title === "string" &&
   typeof i.repository_url === "string" &&
   i.repository_url.toLowerCase() === repoUrl.toLowerCase();
@@ -77,8 +78,27 @@ export function findReportIssue(issues, title) {
 // Mentions in label names or repository names must not notify anyone.
 const quiet = (s) => s.replace(/@/g, "@\u200b");
 
+// The issue list is read page by page with URLs built here, never from a Link header: a page link could
+// point at another repository and stand in for a page of this one. A page shorter than PER_PAGE ends the list.
+const PER_PAGE = 100;
+export const MAX_LIST_PAGES = 50;
+
+/** API base: an http(s) origin with an optional path prefix (GHES /api/v3), nothing that could reroute a path. */
+function apiBase(base) {
+  let u = null;
+  try {
+    u = new URL(base);
+  } catch {}
+  const root = base.replace(/\/$/, "");
+  // A base that URL parsing would rewrite (dot segments, ?, #, credentials) is refused rather than normalised.
+  if (!u || !/^https?:$/.test(u.protocol) || u.href.replace(/\/$/, "") !== root || /[?#@]/.test(base))
+    throw new Error(`invalid API base ${JSON.stringify(base)}`);
+  return root;
+}
+
 /**
  * Posts body to the report issue of repo with exactly one write; returns { action, number }.
+ * Requests: GET <base>/repos/<repo>/issues?...&page=k (k = 1..MAX_LIST_PAGES) and one POST under <base>/repos/<repo>/issues.
  * Throws before writing when the issue list cannot be read in full, and on a non-2xx write.
  */
 export async function publishReport({
@@ -92,22 +112,32 @@ export async function publishReport({
   if (!REPO.test(repo ?? "")) throw new Error(`invalid repository ${JSON.stringify(repo)}`);
   if (typeof title !== "string" || title.length === 0 || title.length > 256) throw new Error("invalid issue title");
   if (typeof body !== "string" || body.length === 0) throw new Error("empty report");
+  const root = apiBase(base);
   const [owner, name] = repo.split("/");
   const path = `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`;
-  // Read with the GET-only client: every page, or an error; a partial list could open a duplicate issue.
-  const list = await makeClient({ fetchImpl, token, base }).get(
-    `${path}/issues?state=open&creator=${encodeURIComponent(BOT)}&per_page=100`,
-    { paginate: true },
-  );
-  if (
-    list.status !== 200 ||
-    list.error !== undefined ||
-    !Array.isArray(list.body) ||
-    !list.body.every(isIssueOf(`${base.replace(/\/$/, "")}${path}`))
-  ) {
-    throw new Error(`issue list unreadable (${list.error ?? `HTTP ${list.status}`}); nothing posted`);
+  // Read with the GET-only client, one request per page and no pagination of its own: every page, or an error;
+  // a partial list could open a duplicate issue.
+  const client = makeClient({ fetchImpl, token, base: root });
+  const listed = [];
+  for (let page = 1; ; page++) {
+    if (page > MAX_LIST_PAGES)
+      throw new Error(`issue list unreadable (more than ${MAX_LIST_PAGES} pages); nothing posted`);
+    const res = await client.get(
+      `${path}/issues?state=open&creator=${encodeURIComponent(BOT)}&per_page=${PER_PAGE}&page=${page}`,
+    );
+    if (
+      res.status !== 200 ||
+      res.error !== undefined ||
+      !Array.isArray(res.body) ||
+      res.body.length > PER_PAGE ||
+      !res.body.every(isIssueOf(`${root}${path}`))
+    ) {
+      throw new Error(`issue list unreadable (page ${page}: ${res.error ?? `HTTP ${res.status}`}); nothing posted`);
+    }
+    listed.push(...res.body);
+    if (res.body.length < PER_PAGE) break;
   }
-  const number = findReportIssue(list.body, title);
+  const number = findReportIssue(listed, title);
   const text = clip(quiet(body));
   const [url, payload] =
     number === null ? [`${path}/issues`, { title, body: text }] : [`${path}/issues/${number}/comments`, { body: text }];
@@ -119,7 +149,7 @@ export async function publishReport({
   };
   if (token) headers.authorization = `Bearer ${token}`;
   // One POST, never retried: a retry after a lost answer could post twice.
-  const res = await fetchImpl(`${base.replace(/\/$/, "")}${url}`, {
+  const res = await fetchImpl(`${root}${url}`, {
     method: "POST",
     headers,
     body: JSON.stringify(payload),
