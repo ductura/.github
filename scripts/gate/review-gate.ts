@@ -101,10 +101,8 @@ export async function run(env: Env, fetchImpl: Fetch = fetch): Promise<GateResul
   }
   const api = client(fetchImpl, env);
   const pr = (await api(`/repos/${repository}/pulls/${number}`)) as PullRequest;
-  // F-014: a status belongs to a commit, so a closed PR or a head from another
-  // repository, which may share a SHA with an open PR here, gets none.
-  if (pr.state !== "open" || pr.head.repo?.full_name !== repository || pr.base.repo.full_name !== repository) {
-    console.log(`PR #${number} is closed or its head is outside ${repository}; no status written.`);
+  if (pr.state !== "open") {
+    console.log(`PR #${number} is closed; no status written.`);
     return null;
   }
   if (!/^[0-9a-f]{40}$/.test(pr.head.sha)) throw new Error("Invalid PR head SHA.");
@@ -123,6 +121,14 @@ export async function run(env: Env, fetchImpl: Fetch = fetch): Promise<GateResul
       }),
     });
   };
+  // F-014: a head from another repository is never evaluated and never gets a
+  // green. It may share its SHA with an open PR here, whose green must not
+  // stand for it: then the head gets SHARED_HEAD, without reading any verdict.
+  if (pr.head.repo?.full_name !== repository || pr.base.repo.full_name !== repository) {
+    if (await sharesHead(api, repository, pr)) return await shared(status);
+    console.log(`PR #${number} has its head outside ${repository}; no status written.`);
+    return null;
+  }
   // A run killed after this point (timeout, cancel) leaves this pending, never
   // an older success.
   await status(EVALUATING);

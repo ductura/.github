@@ -105,6 +105,22 @@ test("no status for a closed PR or a head from another repository", async () => 
   }
 });
 
+test("a fork PR on the head of a green PR here takes the green back, without reading verdicts", async () => {
+  const fork = { ...openPr(), number: 8, head: { sha: head, repo: { full_name: "fork/example" } } };
+  const ours = openPr();
+  // The fake API serves the fork PR (number 8) at the event's path.
+  const { calls, env, fetchImpl } = setup({ pull_request: { number: 7 } }, fork, [[passReview]], false, [[ours, fork]]);
+  assert.deepEqual(await run(env, fetchImpl), SHARED_HEAD);
+  assert.deepEqual(
+    posts(calls).map((body) => body.description),
+    [SHARED_HEAD.description],
+  );
+  assert.equal(
+    calls.some((call) => call.url.includes("/comments")),
+    false,
+  );
+});
+
 test("a failed run marks the head pending and fails the job", async () => {
   const { calls, env, fetchImpl } = setup({ pull_request: { number: 7 } }, openPr(), [[]], true);
   await assert.rejects(run(env, fetchImpl), /502/);
