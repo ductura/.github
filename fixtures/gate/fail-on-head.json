@@ -1,0 +1,36 @@
+{
+  "repository": "example-org/example",
+  "pr": {
+    "number": 7,
+    "state": "open",
+    "body": "Agent: claude:w1:platforma\nRisk: standard\nTask: DAN-1\n",
+    "head": { "sha": "cccccccccccccccccccccccccccccccccccccccc", "repo": { "full_name": "example-org/example" } },
+    "base": { "repo": { "full_name": "example-org/example" } }
+  },
+  "openPulls": [{ "number": 7, "head": { "sha": "cccccccccccccccccccccccccccccccccccccccc" } }],
+  "comments": [
+    [
+      {
+        "body": "Agent-Review: claude:r1:reviewer\nReview-Head: cccccccccccccccccccccccccccccccccccccccc\nReview-Verdict: FAIL\n",
+        "user": { "login": "owner-x", "type": "User" },
+        "performed_via_github_app": { "slug": "claude" },
+        "created_at": "2026-01-02T03:04:05Z",
+        "updated_at": "2026-01-02T03:04:05Z"
+      },
+      {
+        "body": "Agent-Review: claude:r1:reviewer\nReview-Head: cccccccccccccccccccccccccccccccccccccccc\nReview-Verdict: PASS\n",
+        "user": { "login": "owner-x", "type": "User" },
+        "performed_via_github_app": { "slug": "claude" },
+        "created_at": "2026-01-02T04:00:00Z",
+        "updated_at": "2026-01-02T04:00:00Z"
+      }
+    ]
+  ],
+  "expect": {
+    "exit": 0,
+    "statuses": [
+      { "state": "pending", "description": "Engineering review gate is evaluating this head." },
+      { "state": "pending", "description": "Independent review fail on current head." }
+    ]
+  }
+}
