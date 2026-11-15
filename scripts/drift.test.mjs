@@ -332,8 +332,10 @@ test("drift-check workflow: weekly, read-only scan and runs the script", () => {
   const scan = wf.slice(wf.indexOf("\n  scan:\n"), wf.indexOf("\n  report:\n"));
   assert.match(scan, /\n {4}permissions:\n {6}contents: read\n {4}outputs:/);
   assert.doesNotMatch(scan, /: write$/m);
-  // No job has a write scope (scripts/drift-report.test.mjs checks the report job).
-  assert.doesNotMatch(wf, /^ +[a-z-]+: write$/m);
+  // No job but deliver has a write scope (scripts/drift-report.test.mjs checks report,
+  // scripts/drift-deliver.test.mjs checks deliver).
+  assert.doesNotMatch(wf.slice(0, wf.indexOf("\n  deliver:\n")), /^ +[a-z-]+: write$/m);
+  assert.ok(wf.indexOf("\n  deliver:\n") > wf.indexOf("\n  report:\n"));
   assert.doesNotMatch(wf, /pull_request_target|secrets\./);
   assert.match(scan, /node scripts\/drift\.mjs drift\/expected\.json --report-file "\$report"\n/);
 });

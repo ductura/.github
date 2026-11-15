@@ -221,20 +221,22 @@ test("main sends no request for any outcome: a fake fetch fails every method exc
   assert.deepEqual(calls, []);
 });
 
-test("drift-check.yml: every job only reads, the report runs after any scan outcome and is uploaded", () => {
+test("drift-check.yml: scan and report only read, the report runs after any scan outcome and is uploaded", () => {
   const yml = readFileSync(WORKFLOW, "utf8");
-  // (a) no write scope anywhere, in any form.
-  assert.doesNotMatch(yml, /\bwrite\b/);
   assert.doesNotMatch(yml, /write-all|read-all/);
   const [top, jobs] = yml.split(/^jobs:\n/m);
   assert.match(top, /^permissions: \{\}$/m);
+  assert.doesNotMatch(top, /\bwrite\b/);
   const scan = jobs.slice(jobs.indexOf("  scan:\n"), jobs.indexOf("\n  report:\n"));
-  const report = jobs.slice(jobs.indexOf("\n  report:\n"));
-  assert.ok(scan.length > 0 && report.length > 0);
+  const report = jobs.slice(jobs.indexOf("\n  report:\n"), jobs.indexOf("\n  deliver:\n"));
+  assert.ok(scan.length > 0 && report.length > 0 && jobs.indexOf("\n  deliver:\n") > jobs.indexOf("\n  report:\n"));
+  // (a) no write scope in scan or report, in any form; the deliver job is checked in drift-deliver.test.mjs.
+  assert.doesNotMatch(scan, /\bwrite\b/);
+  assert.doesNotMatch(report, /\bwrite\b/);
   // Each job grants exactly contents: read.
   assert.match(scan, /\n {4}permissions:\n {6}contents: read\n {4}outputs:/);
   assert.match(report, /\n {4}permissions:\n {6}contents: read\n {4}steps:/);
-  assert.equal(yml.match(/^ +permissions:/gm).length, 2);
+  assert.equal(yml.match(/^ +permissions:/gm).length, 3);
   assert.match(report, /if: \$\{\{ always\(\) \}\}/);
   assert.match(report, /SCAN_RESULT: \$\{\{ needs\.scan\.result \}\}/);
   // The report job has no token at all.
