@@ -13,7 +13,7 @@ Pozivaj ih s punim SHA-om ovog repoa (`@<40 znakova> # <oznaka>`), nikad s grano
 | `dependency-review.yml` | Na pull requestu odbija novu ovisnost s ranjivošću (od `moderate`) ili licencom izvan popisa; izvan PR-a pada |
 | `engineering-gate.yml` | Status „Engineering review gate” na headu PR-a iz verdikata review i QA (runner `scripts/gate`); checkouta samo ovaj repo na `gate-sha`, nikad kod PR-a, bez tajni. Samotest nad `fixtures/gate` u `self-test.yml`. |
 
-`self-test.yml` provjerava ove predloške nad fixtureima, a `scripts/pin-check.mjs` provjerava da je svaka akcija prikvačena na puni SHA.
+`self-test.yml` provjerava ove predloške nad fixtureima, a `scripts/pin-check.mjs` provjerava da je svaka akcija prikvačena na puni SHA. To je jedini workflow ovog repoa koji se pokreće na pull requestu (i `push`): `needs` ne vidi poslove iz drugog workflowa. Obvezni status je običan posao `ci-ok` koji ovisi o svim ostalim poslovima i izvodi točno blok iz `ci-ok.yml`; poziv reusable workflowa dao bi ime provjere `ci-ok / ci-ok`, pa se `ci-ok.yml` samotestira zasebnim poslom `ci-ok-reusable`. Test `scripts/ci-ok.test.mjs` čita workflowe pravim YAML parserom (`yaml`, točna verzija). `package.json` i `package-lock.json` u korijenu služe samo testovima u `scripts/` i iz njih se ništa ne objavljuje.
 
 ## Tjedna provjera razilaženja
 
