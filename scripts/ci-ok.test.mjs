@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
+import { parseDocument } from "yaml";
 import { extractRun } from "./extract-run.mjs";
 
 const workflow = readFileSync(new URL("../.github/workflows/ci-ok.yml", import.meta.url), "utf8");
@@ -52,138 +53,143 @@ test("names the failing job in an error annotation", () => {
   assert.doesNotMatch(r.out, /::error::.*good/);
 });
 
-const lines = (text) => text.split(/\r\n|\r|\n/).map((l) => (/^\s*#/.test(l) ? '' : l.replace(/\s+#.*$/, '').trimEnd()));
+// Workflows are read with a real YAML parser, so quoting, escapes, flow style
+// and anchors cannot hide a job or a trigger (DAN-885).
+const isMap = (v) => typeof v === 'object' && v !== null && !Array.isArray(v);
 
-// Job blocks under a top-level `jobs:`. Fails closed: every job-level line
-// (indented less than four spaces) must be a plain `name:` key, so a quoted
-// key, a tab, another indentation or a merge key can never hide a job.
-function jobBlocks(text) {
-  const all = lines(text);
-  const start = all.indexOf('jobs:');
-  assert.ok(start >= 0, 'workflow has a top-level jobs:');
-  const blocks = new Map();
-  let name;
-  for (const line of all.slice(start + 1)) {
-    if (line === '') continue;
-    if (/^[^\s]/.test(line)) break;
-    if (/^ {4}/.test(line) && name) {
-      blocks.get(name).push(line);
-      continue;
-    }
-    const key = /^ {2}([A-Za-z0-9_-]+):$/.exec(line)?.[1];
-    assert.ok(key, `unreadable job line: ${JSON.stringify(line)}`);
-    assert.ok(!blocks.has(key), `duplicate job ${key}`);
-    blocks.set((name = key), []);
+// Parses one workflow; fails on any YAML error, duplicate key or a document
+// that is not a mapping.
+function workflowOf(text) {
+  const doc = parseDocument(text, { uniqueKeys: true, merge: true });
+  assert.equal(doc.errors.length, 0, doc.errors.map((e) => e.message).join('; '));
+  const value = doc.toJS({ maxAliasCount: 100 });
+  assert.ok(isMap(value), 'workflow is a mapping');
+  return value;
+}
+
+// Event names of a workflow. `on` may also arrive as the key "true" (YAML 1.1
+// reads on as a boolean); exactly one of the two must be present.
+function eventsOf(wf) {
+  const keys = ['on', 'true'].filter((k) => Object.hasOwn(wf, k));
+  assert.equal(keys.length, 1, 'workflow has exactly one on key');
+  const on = wf[keys[0]];
+  if (typeof on === 'string') return [on];
+  if (Array.isArray(on)) {
+    assert.ok(on.length > 0 && on.every((e) => typeof e === 'string'), 'on list holds event names');
+    return on;
   }
-  return new Map([...blocks].map(([k, v]) => [k, v.join('\n')]));
+  assert.ok(isMap(on) && Object.keys(on).length > 0, 'on is a name, a list or a mapping');
+  return Object.keys(on);
 }
 
-// Everything outside the top-level jobs block, without comments: triggers in
-// any spelling (`on:`, `"on":`, after jobs) end up here.
-function outsideJobs(text) {
-  let inJobs = false;
-  return lines(text)
-    .filter((line) => {
-      if (/^[^\s]/.test(line)) inJobs = line === 'jobs:';
-      return !inJobs;
-    })
-    .join('\n');
-}
-const FORBIDDEN = /(?<![\w-])(pull_request(?!_target)\w*|push|merge_group)(?![\w-])/;
-
-// `needs: [a, b]` on one line or `needs:` followed by `- a` lines.
-function needsOf(block) {
-  const inline = /^    needs:\s*\[([^\]]*)\]/m.exec(block);
-  if (inline) return inline[1].split(",").map((s) => s.trim()).filter(Boolean);
-  const list = /^    needs:\s*\n((?:      - .*\n?)+)/m.exec(block);
-  return list ? list[1].split("\n").map((l) => l.replace(/^\s*- /, "").trim()).filter(Boolean) : [];
+// Jobs of a workflow as a name -> job mapping.
+function jobsOf(wf) {
+  assert.ok(isMap(wf.jobs) && Object.keys(wf.jobs).length > 0, 'workflow has jobs');
+  for (const [name, job] of Object.entries(wf.jobs)) assert.ok(isMap(job), `job ${name} is a mapping`);
+  return wf.jobs;
 }
 
-const selfTest = readFileSync(new URL("../.github/workflows/self-test.yml", import.meta.url), "utf8");
+const needsOf = (job) => (typeof job.needs === 'string' ? [job.needs] : job.needs ?? []);
+
+// Events another workflow may have: the engineering gate callers and events
+// that never run on a pull request. Anything else (pull_request, push,
+// merge_group, pull_request_review, ...) would run jobs ci-ok cannot see.
+const ALLOWED = new Set(['workflow_call', 'workflow_dispatch', 'schedule', 'pull_request_target', 'issue_comment']);
+const strayEvents = (text) => eventsOf(workflowOf(text)).filter((e) => !ALLOWED.has(e));
+
+const dir = new URL("../.github/workflows/", import.meta.url);
+const selfTest = workflowOf(readFileSync(new URL("self-test.yml", dir), "utf8"));
 const allowSkipped = "${{ github.event_name != 'pull_request' && 'dependency-review' || '' }}";
 
-test('job parser reads CRLF, comments and multi-line needs', () => {
-  const jobs = jobBlocks('on: push\r\njobs: # all\r\n  a: # first\r\n    runs-on: x\r\n\r\n  b:\r\n    needs:\r\n      - a\r\n      - c\r\n  # c is last\r\n  c:\r\n    needs: [ a , b ]\r\n');
-  assert.deepEqual([...jobs.keys()], ['a', 'b', 'c']);
-  assert.deepEqual(needsOf(jobs.get('b')), ['a', 'c']);
-  assert.deepEqual(needsOf(jobs.get('c')), ['a', 'b']);
-  assert.deepEqual(needsOf(jobs.get('a')), []);
-});
+// Workflows another PR could add: each must be refused by the trigger check.
+const strays = [
+  ['double-quoted on', '"on": pull_request\njobs: { x: { runs-on: u } }\n', ['pull_request']],
+  ['single-quoted on with a list', "'on': [push]\njobs: { x: { runs-on: u } }\n", ['push']],
+  ['escaped event name in a list', 'on: ["\\u0070ull_request"]\njobs: { x: { runs-on: u } }\n', ['pull_request']],
+  ['escaped event name as a string', 'on: "pull\\u005frequest"\njobs: { x: { runs-on: u } }\n', ['pull_request']],
+  ['true key (YAML 1.1 on)', 'true: push\njobs: { x: { runs-on: u } }\n', ['push']],
+  ['mapping after jobs', 'jobs: { x: { runs-on: u } }\non:\n  merge_group: {}\n', ['merge_group']],
+  ['review event', 'on: [pull_request_review]\njobs: { x: { runs-on: u } }\n', ['pull_request_review']],
+  ['anchor and alias', 'x-ev: &ev pull_request\non: [*ev]\njobs: { x: { runs-on: u } }\n', ['pull_request']],
+  ['gate callers stay allowed', 'on: [pull_request_target, issue_comment]\njobs: { x: { runs-on: u } }\n', []],
+  ['reusable and scheduled stay allowed', 'on:\n  workflow_call: { inputs: {} }\n  schedule: [{ cron: "0 5 * * 1" }]\n  workflow_dispatch:\njobs: { x: { runs-on: u } }\n', []],
+];
+for (const [name, text, found] of strays) {
+  test(`trigger check ${found.length ? 'refuses' : 'allows'}: ${name}`, () => {
+    assert.deepEqual(strayEvents(text), found);
+  });
+}
 
 const unreadable = [
-  ['single-quoted key', "  'qa-extra':\n    runs-on: x\n"],
-  ['double-quoted key', '  "qa-extra":\n    runs-on: x\n'],
-  ['tab indentation', '\tqa-extra:\n    runs-on: x\n'],
-  ['NBSP indentation', '\u00a0 qa-extra:\n    runs-on: x\n'],
-  ['three-space job', '   qa-extra:\n    runs-on: x\n'],
-  ['key with a value on the line', '  qa-extra: { runs-on: x }\n'],
-  ['merge key', '  <<: *base\n'],
-  ['duplicate job', '  a:\n    runs-on: x\n  a:\n    runs-on: y\n'],
+  ['no on key', 'jobs: { x: { runs-on: u } }\n'],
+  ['both on and true', 'on: push\ntrue: push\njobs: { x: { runs-on: u } }\n'],
+  ['duplicate on key', 'on: workflow_call\non: push\njobs: { x: { runs-on: u } }\n'],
+  ['on is a number', 'on: 1\njobs: { x: { runs-on: u } }\n'],
+  ['on list with a mapping', 'on: [{ push: {} }]\njobs: { x: { runs-on: u } }\n'],
+  ['empty on mapping', 'on: {}\njobs: { x: { runs-on: u } }\n'],
+  ['invalid YAML', 'on: [push\njobs: {}\n'],
+  ['document is a list', '- on: push\n'],
 ];
-for (const [name, body] of unreadable) {
-  test(`job parser fails closed: ${name}`, () => {
-    assert.throws(() => jobBlocks(`on: push\njobs:\n  a0:\n    runs-on: x\n${body}`));
+for (const [name, text] of unreadable) {
+  test(`trigger check fails closed: ${name}`, () => {
+    assert.throws(() => strayEvents(text));
   });
 }
-test('job parser fails without a plain top-level jobs:', () => {
-  assert.throws(() => jobBlocks('"jobs":\n  a:\n    runs-on: x\n'));
-});
-test('job parser fails when jobs are indented by four spaces', () => {
-  assert.throws(() => jobBlocks('jobs:\n    a:\n      runs-on: x\n'));
-});
 
-const triggers = [
-  ['quoted on', '"on": pull_request\njobs:\n  a:\n    runs-on: x\n', true],
-  ['single-quoted on with a list', "'on': [push]\njobs:\n  a:\n    runs-on: x\n", true],
-  ['on after jobs', 'jobs:\n  a:\n    runs-on: x\non:\n  merge_group:\n', true],
-  ['review event', 'on: pull_request_review\njobs:\n  a:\n    runs-on: x\n', true],
-  ['quoted jobs hides nothing', 'on: schedule\n"jobs":\n  a:\n    run: git push\n', true],
-  ['gate caller', 'on:\n  pull_request_target:\n  issue_comment:\njobs:\n  a:\n    run: git push\n', false],
-  ['trigger only in a comment', '# runs on push elsewhere\non: workflow_call\njobs:\n  a:\n    runs-on: x\n', false],
-];
-for (const [name, text, found] of triggers) {
-  test(`trigger check ${found ? 'finds' : 'allows'}: ${name}`, () => {
-    assert.equal(FORBIDDEN.test(outsideJobs(text)), found);
-  });
-}
+// Jobs that a line-based reader missed are plain jobs to the parser.
+test('jobs are read in any YAML spelling', () => {
+  const wf = workflowOf("on: push\njobs:\n  a: { runs-on: u }\n  'qa-extra':\n    runs-on: u\n  \"b\": { runs-on: u, needs: a }\n  c: &c { runs-on: u }\n  d: *c\n");
+  assert.deepEqual(Object.keys(jobsOf(wf)), ['a', 'qa-extra', 'b', 'c', 'd']);
+  assert.deepEqual(needsOf(jobsOf(wf).b), ['a']);
+  const crlf = workflowOf('on: push\r\njobs: # all\r\n  a: # first\r\n    runs-on: u\r\n  b:\r\n    needs:\r\n      - a\r\n');
+  assert.deepEqual(Object.keys(jobsOf(crlf)), ['a', 'b']);
+  assert.deepEqual(needsOf(jobsOf(crlf).b), ['a']);
+  assert.throws(() => jobsOf(workflowOf('on: push\njobs:\n  a: { runs-on: u }\n  a: { runs-on: v }\n')));
+  assert.throws(() => jobsOf(workflowOf('on: push\njobs:\n\ta: { runs-on: u }\n')));
+  assert.throws(() => jobsOf(workflowOf('on: push\njobs:\n  a: run\n')));
+});
 
 // The required status is the plain job ci-ok: a reusable workflow caller would
 // show up as "ci-ok / ci-ok". It needs every other job, so a new job cannot be
 // added without the aggregate seeing it, and runs the block that ci-ok.yml ships.
 test("self-test ci-ok is a plain job named ci-ok over every other job", () => {
-  const jobs = jobBlocks(selfTest);
-  const ok = jobs.get("ci-ok");
-  assert.ok(ok, "self-test has a ci-ok job");
-  assert.match(ok, /^    name: ci-ok$/m);
-  assert.match(ok, /^    runs-on: /m);
-  assert.doesNotMatch(ok, /^    uses: /m);
-  assert.match(ok, /^    if: \$\{\{ always\(\) \}\}$/m);
-  assert.deepEqual(needsOf(ok).sort(), [...jobs.keys()].filter((j) => j !== "ci-ok").sort());
-  assert.match(ok, /node scripts\/extract-run\.mjs \.github\/workflows\/ci-ok\.yml ci-ok/);
-  assert.match(ok, /RESULTS: \$\{\{ toJSON\(needs\) \}\}/);
+  const jobs = jobsOf(selfTest);
+  const ok = jobs["ci-ok"];
+  assert.ok(isMap(ok), "self-test has a ci-ok job");
+  assert.equal(ok.name, "ci-ok");
+  assert.ok(ok["runs-on"], "ci-ok runs on a runner");
+  assert.equal(ok.uses, undefined, "ci-ok is not a reusable workflow call");
+  assert.equal(ok.if, "${{ always() }}");
+  assert.deepEqual([...needsOf(ok)].sort(), Object.keys(jobs).filter((j) => j !== "ci-ok").sort());
+  const step = ok.steps.find((s) => typeof s.run === "string" && s.run.includes("node scripts/extract-run.mjs .github/workflows/ci-ok.yml ci-ok"));
+  assert.ok(step, "ci-ok runs the block that ci-ok.yml ships");
+  assert.equal(step.env?.RESULTS, "${{ toJSON(needs) }}");
   // On pull requests nothing may be skipped; the empty branch must come last.
-  assert.ok(ok.includes(`ALLOW_SKIPPED: ${allowSkipped}`));
+  assert.equal(step.env?.ALLOW_SKIPPED, allowSkipped);
 });
 
 // The reusable ci-ok.yml stays covered by a real call over the same jobs.
 test("self-test ci-ok-reusable calls ci-ok.yml over every job but ci-ok", () => {
-  const jobs = jobBlocks(selfTest);
-  const reusable = jobs.get("ci-ok-reusable");
-  assert.ok(reusable, "self-test has a ci-ok-reusable job");
-  assert.match(reusable, /^    uses: \.\/\.github\/workflows\/ci-ok\.yml$/m);
-  assert.match(reusable, /^    if: \$\{\{ always\(\) \}\}$/m);
-  assert.deepEqual(needsOf(reusable).sort(), [...jobs.keys()].filter((j) => !j.startsWith("ci-ok")).sort());
-  assert.ok(reusable.includes(`allow-skipped: ${allowSkipped}`));
+  const jobs = jobsOf(selfTest);
+  const reusable = jobs["ci-ok-reusable"];
+  assert.ok(isMap(reusable), "self-test has a ci-ok-reusable job");
+  assert.equal(reusable.uses, "./.github/workflows/ci-ok.yml");
+  assert.equal(reusable.if, "${{ always() }}");
+  assert.deepEqual([...needsOf(reusable)].sort(), Object.keys(jobs).filter((j) => !j.startsWith("ci-ok")).sort());
+  assert.equal(reusable.with?.results, "${{ toJSON(needs) }}");
+  assert.equal(reusable.with?.["allow-skipped"], allowSkipped);
+});
+
+test("self-test.yml itself runs on pull requests", () => {
+  assert.ok(eventsOf(selfTest).includes("pull_request"));
 });
 
 // needs cannot see another workflow, so self-test.yml is the only one that runs
-// on pull_request, push or merge_group. Gate callers (pull_request_target,
-// issue_comment), workflow_call, schedule and workflow_dispatch are allowed.
-test("no other workflow runs on pull_request, push or merge_group", () => {
-  const dir = new URL("../.github/workflows/", import.meta.url);
+// on a pull request, push or merge queue.
+test("no other workflow runs jobs that ci-ok cannot see", () => {
   const others = readdirSync(dir).filter((f) => /\.ya?ml$/i.test(f) && f !== "self-test.yml");
   assert.ok(others.length > 0);
   for (const file of others) {
-    assert.doesNotMatch(outsideJobs(readFileSync(new URL(file, dir), "utf8")), FORBIDDEN, file);
+    assert.deepEqual(strayEvents(readFileSync(new URL(file, dir), "utf8")), [], file);
   }
 });
