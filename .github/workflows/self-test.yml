@@ -169,12 +169,48 @@ jobs:
     if: ${{ github.event_name == 'pull_request' }}
     uses: ./.github/workflows/dependency-review.yml
 
-  ci-ok:
+  # Self-test of @ductura/eslint-config and @ductura/prettier-config over
+  # fixtures/lint-presets (was presets-self-test.yml; needs cannot see
+  # another workflow, so every job of a pull request lives here).
+  lint-presets:
+    permissions: { contents: read, packages: read }
+    uses: ./.github/workflows/ci-node.yml
+    with:
+      working-directory: fixtures/lint-presets
+      scripts: lint format typecheck test
+
+  # The reusable ci-ok.yml called for real, as other repositories call it.
+  ci-ok-reusable:
     if: ${{ always() }}
-    needs: [actionlint, pin-check, gate, engineering-gate, node-ok, node-ok-multiline, presets, secret-scan, secret-scan-negative, dependency-review]
+    needs: [actionlint, pin-check, gate, engineering-gate, node-ok, node-ok-multiline, presets, lint-presets, secret-scan, secret-scan-negative, dependency-review]
     uses: ./.github/workflows/ci-ok.yml
     with:
       results: ${{ toJSON(needs) }}
       # dependency-review runs only on pull requests; there it must not be skipped.
       # '' is falsy in expressions, so `cond && '' || x` would always give x.
       allow-skipped: ${{ github.event_name != 'pull_request' && 'dependency-review' || '' }}
+
+  # The required status: a plain job, because a reusable caller shows up as
+  # "ci-ok / ci-ok" (DAN-885). It runs the exact block that ci-ok.yml ships.
+  ci-ok:
+    name: ci-ok
+    if: ${{ always() }}
+    needs: [actionlint, pin-check, gate, engineering-gate, node-ok, node-ok-multiline, presets, lint-presets, secret-scan, secret-scan-negative, dependency-review, ci-ok-reusable]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Every needed job succeeded
+        shell: bash
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+          ALLOW_SKIPPED: ${{ github.event_name != 'pull_request' && 'dependency-review' || '' }}
+        run: |
+          set -euo pipefail
+          node scripts/extract-run.mjs .github/workflows/ci-ok.yml ci-ok > "$RUNNER_TEMP/ci-ok.sh"
+          bash "$RUNNER_TEMP/ci-ok.sh"

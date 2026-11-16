@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { extractRun } from "./extract-run.mjs";
 
 const workflow = readFileSync(new URL("../.github/workflows/ci-ok.yml", import.meta.url), "utf8");
@@ -52,20 +52,80 @@ test("names the failing job in an error annotation", () => {
   assert.doesNotMatch(r.out, /::error::.*good/);
 });
 
-// Every job of self-test.yml must be in the needs of its ci-ok job, so a new
-// job cannot be added without the aggregate seeing it.
-test("self-test ci-ok needs every other job", () => {
-  const text = readFileSync(new URL("../.github/workflows/self-test.yml", import.meta.url), "utf8");
-  const body = text.split(/\r?\n/);
-  const start = body.indexOf("jobs:");
-  const jobs = body.slice(start + 1).map((l) => /^  ([A-Za-z0-9_-]+):/.exec(l)?.[1]).filter(Boolean);
-  assert.ok(jobs.includes("ci-ok"), "self-test has a ci-ok job");
-  const okStart = body.indexOf("  ci-ok:");
-  const okEnd = body.findIndex((l, i) => i > okStart && /^  [A-Za-z0-9_-]+:/.test(l));
-  const okBlock = body.slice(okStart, okEnd === -1 ? undefined : okEnd).join("\n");
-  const listed = /needs:\s*\[([^\]]*)\]/.exec(okBlock)?.[1].split(",").map((s) => s.trim()) ?? [];
-  assert.deepEqual([...listed].sort(), jobs.filter((j) => j !== "ci-ok").sort());
-  assert.match(okBlock, /if:\s*\$\{\{\s*always\(\)\s*\}\}/);
+// Job blocks of a workflow: keys indented by exactly two spaces under `jobs:`.
+function jobBlocks(text) {
+  const lines = text.split(/\r\n|\r|\n/).map((l) => l.replace(/\s+#.*$/, ""));
+  const start = lines.indexOf("jobs:");
+  assert.ok(start >= 0, "workflow has jobs:");
+  const blocks = new Map();
+  let name;
+  for (const line of lines.slice(start + 1)) {
+    const key = /^  ([A-Za-z0-9_-]+):\s*$/.exec(line)?.[1];
+    if (key) blocks.set((name = key), []);
+    else if (/^\S/.test(line)) break;
+    else if (name) blocks.get(name).push(line);
+  }
+  return new Map([...blocks].map(([k, v]) => [k, v.join("\n")]));
+}
+
+// `needs: [a, b]` on one line or `needs:` followed by `- a` lines.
+function needsOf(block) {
+  const inline = /^    needs:\s*\[([^\]]*)\]/m.exec(block);
+  if (inline) return inline[1].split(",").map((s) => s.trim()).filter(Boolean);
+  const list = /^    needs:\s*\n((?:      - .*\n?)+)/m.exec(block);
+  return list ? list[1].split("\n").map((l) => l.replace(/^\s*- /, "").trim()).filter(Boolean) : [];
+}
+
+const selfTest = readFileSync(new URL("../.github/workflows/self-test.yml", import.meta.url), "utf8");
+const allowSkipped = "${{ github.event_name != 'pull_request' && 'dependency-review' || '' }}";
+
+test("job parser reads CRLF, comments and multi-line needs", () => {
+  const jobs = jobBlocks("on: push\r\njobs:\r\n  a: # first\r\n    runs-on: x\r\n  b:\r\n    needs:\r\n      - a\r\n      - c\r\n  c:\r\n    needs: [ a , b ]\r\n");
+  assert.deepEqual([...jobs.keys()], ["a", "b", "c"]);
+  assert.deepEqual(needsOf(jobs.get("b")), ["a", "c"]);
+  assert.deepEqual(needsOf(jobs.get("c")), ["a", "b"]);
+  assert.deepEqual(needsOf(jobs.get("a")), []);
+});
+
+// The required status is the plain job ci-ok: a reusable workflow caller would
+// show up as "ci-ok / ci-ok". It needs every other job, so a new job cannot be
+// added without the aggregate seeing it, and runs the block that ci-ok.yml ships.
+test("self-test ci-ok is a plain job named ci-ok over every other job", () => {
+  const jobs = jobBlocks(selfTest);
+  const ok = jobs.get("ci-ok");
+  assert.ok(ok, "self-test has a ci-ok job");
+  assert.match(ok, /^    name: ci-ok$/m);
+  assert.match(ok, /^    runs-on: /m);
+  assert.doesNotMatch(ok, /^    uses: /m);
+  assert.match(ok, /^    if: \$\{\{ always\(\) \}\}$/m);
+  assert.deepEqual(needsOf(ok).sort(), [...jobs.keys()].filter((j) => j !== "ci-ok").sort());
+  assert.match(ok, /node scripts\/extract-run\.mjs \.github\/workflows\/ci-ok\.yml ci-ok/);
+  assert.match(ok, /RESULTS: \$\{\{ toJSON\(needs\) \}\}/);
   // On pull requests nothing may be skipped; the empty branch must come last.
-  assert.match(okBlock, /allow-skipped: \$\{\{ github\.event_name != 'pull_request' && 'dependency-review' \|\| '' \}\}/);
+  assert.ok(ok.includes(`ALLOW_SKIPPED: ${allowSkipped}`));
+});
+
+// The reusable ci-ok.yml stays covered by a real call over the same jobs.
+test("self-test ci-ok-reusable calls ci-ok.yml over every job but ci-ok", () => {
+  const jobs = jobBlocks(selfTest);
+  const reusable = jobs.get("ci-ok-reusable");
+  assert.ok(reusable, "self-test has a ci-ok-reusable job");
+  assert.match(reusable, /^    uses: \.\/\.github\/workflows\/ci-ok\.yml$/m);
+  assert.match(reusable, /^    if: \$\{\{ always\(\) \}\}$/m);
+  assert.deepEqual(needsOf(reusable).sort(), [...jobs.keys()].filter((j) => !j.startsWith("ci-ok")).sort());
+  assert.ok(reusable.includes(`allow-skipped: ${allowSkipped}`));
+});
+
+// needs cannot see another workflow, so self-test.yml is the only one that runs
+// on pull_request, push or merge_group. Gate callers (pull_request_target,
+// issue_comment), workflow_call, schedule and workflow_dispatch are allowed.
+test("no other workflow runs on pull_request, push or merge_group", () => {
+  const dir = new URL("../.github/workflows/", import.meta.url);
+  const others = readdirSync(dir).filter((f) => /\.ya?ml$/.test(f) && f !== "self-test.yml");
+  assert.ok(others.length > 0);
+  for (const file of others) {
+    const text = readFileSync(new URL(file, dir), "utf8");
+    const on = /^on:([\s\S]*?)^(?=\S)/m.exec(text + "\nend:")?.[1] ?? "";
+    assert.doesNotMatch(on, /\b(pull_request|push|merge_group)\b(?!_)/, file);
+  }
 });
