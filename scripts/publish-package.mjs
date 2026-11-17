@@ -5,7 +5,7 @@
 // Prints file= and sha256= (also to $GITHUB_OUTPUT); any mismatch exits 1.
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { gunzipSync } from "node:zlib";
@@ -43,8 +43,10 @@ function field(block, start, length) {
 }
 
 function octal(block, start, length) {
-  const text = field(block, start, length).trim();
-  if (!/^[0-7]+$/.test(text)) throw new Error(`tar: not an octal number: ${JSON.stringify(text)}`);
+  // Raw bytes, no trim(): only octal digits and spaces, so NBSP and other
+  // whitespace cannot make a field that node-tar reads differently.
+  const text = field(block, start, length);
+  if (!/^ *[0-7]+ *$/.test(text)) throw new Error(`tar: not an octal number: ${JSON.stringify(text)}`);
   return parseInt(text, 8);
 }
 
@@ -89,8 +91,9 @@ export function checkTarball(gz, fileName, files, { pkg, version }) {
   for (const { path, data } of entries) {
     const rel = path.startsWith("package/") ? path.slice("package/".length) : "";
     if (!rel.split("/").every((s) => SEGMENT.test(s))) problems.push(`path not allowed: ${JSON.stringify(path)}`);
-    else if (seen.has(rel)) problems.push(`duplicate entry: ${JSON.stringify(path)}`);
-    seen.add(rel);
+    // Case-insensitive: on such a file system a.js and A.js overwrite each other.
+    else if (seen.has(rel.toLowerCase())) problems.push(`duplicate entry: ${JSON.stringify(path)}`);
+    seen.add(rel.toLowerCase());
     if (rel === "package.json") manifest = data;
     const matching = patterns.filter((p) => p.regex.test(rel));
     matching.forEach((p) => (p.used = true));
@@ -145,4 +148,6 @@ export function main(args, env = process.env) {
   return 1;
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) process.exitCode = main(process.argv.slice(2));
+// realpath: started through a symlink, the script still runs instead of exiting 0.
+const started = process.argv[1] ? pathToFileURL(realpathSync(process.argv[1])).href : "";
+if (import.meta.url === started) process.exitCode = main(process.argv.slice(2));

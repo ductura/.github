@@ -13,7 +13,7 @@ function header(path, size, { type = "0", prefix = "", sizeText } = {}) {
   const h = Buffer.alloc(512);
   Buffer.from(path, "utf8").copy(h, 0, 0, 100);
   h.write("0000644\0", 100);
-  h.write(sizeText ?? `${size.toString(8).padStart(11, "0")}\0`, 124);
+  h.write(sizeText ?? `${size.toString(8).padStart(11, "0")}\0`, 124, "latin1"); // one byte per char: raw 0xA0
   h.write(type, 156);
   h.write("ustar\u000000", 257);
   Buffer.from(prefix).copy(h, 345, 0, 155);
@@ -26,7 +26,7 @@ function tarball(entries, { end = Buffer.alloc(1024), badSum = false, cut = 0 } 
   const parts = entries.map(([path, text = "x", opts]) => {
     const data = Buffer.from(text);
     const h = header(path, data.length, opts);
-    if (badSum) h[0] ^= 1;
+    if (badSum) h[136] ^= 1; // mtime: only the checksum is wrong
     return Buffer.concat([h, data, Buffer.alloc((512 - (data.length % 512)) % 512)]);
   });
   const tar = Buffer.concat([...parts, end]);
@@ -64,12 +64,17 @@ const rejected = [
   ["backslash", [...GOOD, ["package/rules\\a.js"]]],
   ...["\r\n", "\n", "\t", " ", "\u007f", " "].map((c) => [`${JSON.stringify(c)} in a path`, [...GOOD, [`package/rules/a${c}.js`]]]),
   ["duplicate", [...GOOD, ["package/index.js"]]],
+  ["regex dot", [...GOOD, ["package/indexXjs"]]],
+  ["longer name", [...GOOD, ["package/rules/a.js.map"]]],
+  ["file in a subfolder", [...GOOD, ["package/sub/index.js"]]],
+  ["same path in another case", [...GOOD, ["package/rules/A.js"]]],
   ["symlink", [...GOOD, ["package/rules/l.js", "", { type: "2" }]]],
   ["hard link", [...GOOD, ["package/rules/h.js", "", { type: "1" }]]],
-  ["directory", [...GOOD, ["package/rules/", "", { type: "5" }]]],
-  ["pax header", [["package/x", "30 path=package/rules/b.js\n", { type: "x" }], ...GOOD]],
+  // An allowed path, so only the type rejects these.
+  ...["5", "x", "g", "L", "\0"].map((type) => [`type ${JSON.stringify(type)}`, [...GOOD, ["package/rules/b.js", "x", { type }]]]),
   ["ustar prefix", [...GOOD, ["package/rules/b.js", "x", { prefix: "x" }]]],
-  ["non-octal size", [...GOOD, ["package/rules/b.js", "x", { sizeText: "00000000009\0" }]]],
+  ["NBSP in the size", [...GOOD, ["package/rules/b.js", "x", { sizeText: "\u00a000000000001" }]]],
+  ["non-octal size", [...GOOD, ["package/rules/b.js", "x", { sizeText: "00000000019\0" }]]],
   ["files entry with no match", GOOD.filter(([p]) => p !== "package/index.d.ts")],
   ["no package.json", GOOD.slice(1)],
   ["package.json not JSON", [["package/package.json", "{"], ...GOOD.slice(1)]],
@@ -102,7 +107,7 @@ test("rejects: tarball name that is not ductura-<pkg>-<version>.tgz", () => {
 });
 
 for (const files of [
-  ["!index.js", ...FILES], ["rules/**/*.js"], ["{index}.js"], ["[i]ndex.js"], ["rules\\*.js"],
+  ["!index.js", ...FILES], ["rules/**/*.js"], ["rules/**"], ["{index}.js"], ["[i]ndex.js"], ["rules\\*.js"],
   ["./index.js"], ["/index.js"], ["rules/"], ["../index.js"], ["rules/./a.js"], ["*/a.js"], [""], [1], [], "index.js", null, { 0: "index.js", length: 1 },
 ]) {
   test(`rejects files pattern ${JSON.stringify(files)}`, () => assert.notDeepEqual(check(GOOD, {}, files), []));
