@@ -1,0 +1,52 @@
+# Reusable dependency scan: osv-scanner over every lockfile under `path` of the
+# caller's repository. The image is pinned to a digest; it needs api.osv.dev.
+# Fails closed: vulnerabilities, no lockfile and any scanner error are red.
+# Results change as advisories appear, so prefer push to main plus a schedule
+# over a required check on every pull request (dependency-review covers PRs).
+# Caller: jobs.<id>.uses: ductura/.github/.github/workflows/osv-scan.yml@<40-char SHA> # <tag>
+name: osv-scan
+on:
+  workflow_call:
+    inputs:
+      path:
+        description: Directory inside the repository to scan recursively
+        type: string
+        default: "."
+permissions:
+  contents: read
+jobs:
+  osv-scanner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: osv-scanner (lockfiles)
+        shell: bash
+        env:
+          SCAN_PATH: ${{ inputs.path }}
+        run: |
+          # osv-scan:begin
+          set -euo pipefail
+          if [[ ! "$SCAN_PATH" =~ ^[A-Za-z0-9._/-]+$ || "$SCAN_PATH" == /* || "/$SCAN_PATH/" == */../* ]]; then
+            echo "::error::path must be relative, inside the repository, of letters, digits and . _ / -"
+            exit 1
+          fi
+          workspace="$(realpath -e "$GITHUB_WORKSPACE")"
+          dir="$(realpath -e "$workspace/$SCAN_PATH")" || { echo "::error::path does not exist"; exit 1; }
+          if [[ "$dir" != "$workspace" && "$dir" != "$workspace"/* ]]; then
+            echo "::error::path resolves outside the repository"
+            exit 1
+          fi
+          status=0
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$dir:/src:ro" \
+            ghcr.io/google/osv-scanner:v2.7.0@sha256:4f3b7e2c64b9d38a5febc5a7e4a3dfef1d1362f726dea7a2ef4762b46469fcd0 \
+            scan source -r /src || status=$?
+          case "$status" in
+            0) ;;
+            1) echo "::error::osv-scanner found known vulnerabilities"; exit 1 ;;
+            128) echo "::error::osv-scanner found no lockfile to scan"; exit 1 ;;
+            *) echo "::error::osv-scanner did not complete (exit $status)"; exit 1 ;;
+          esac
+          # osv-scan:end

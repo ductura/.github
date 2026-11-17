@@ -18,7 +18,7 @@ Repo ne postoji. U Ductusu postoje izvori koje izdvaja: `.github/workflows/{ci,e
 
 ```
 profile/README.md                 javni profil organizacije (hr)
-.github/workflows/                reusable: ci-node.yml, ci-ok.yml, secret-scan.yml, dependency-review.yml,
+.github/workflows/                reusable: ci-node.yml, ci-ok.yml, secret-scan.yml, dependency-review.yml, osv-scan.yml,
                                   engineering-gate.yml, publish-package.yml, ci-dotnet.yml i ci-swift.yml (faza E)
                                   vlastiti: self-test.yml, drift-check.yml (tjedno, samo čitanje)
 PULL_REQUEST_TEMPLATE.md, ISSUE_TEMPLATE/   zadani predlošci za sve repoe organizacije
@@ -66,7 +66,7 @@ Promjena ponašanja gatea (risk floor, broj aplikacija za `critical`, popis obve
 |---|---|
 | **Pomoćne funkcije** | risk-floor: putanja → razina za svaku tablicu repoa; najviša razina pobjeđuje; nepoznata putanja dobiva zadanu razinu; provjera verdikata: redak na krivom headu, krivi format `runtime:slot:role`, isti autor i reviewer, nedostaje QA za `critical`, Owner Override bez SHA. Preneseni testovi Ductusa s istim tvrdnjama. |
 | **Statička provjera workflowa** | actionlint na svakom workflowu; svaka akcija prikvačena na SHA (test pada na `@v4`); najmanje dozvole (`permissions`) po poslu; nema `pull_request_target` s checkoutom tuđeg koda; PRIJEDLOG zizmor (besplatan) za sigurnost workflowa. |
-| **Samotest (integracija)** | `self-test.yml` poziva svaki reusable workflow nad fixtureom: zeleni Node projekt daje zeleni `ci-ok`; projekt s namjerno palim testom daje crveni `ci-ok`; posao koji se preskoči ne daje lažno zeleni `ci-ok`; tajna u fixtureu ruši `secret-scan`. |
+| **Samotest (integracija)** | `self-test.yml` poziva svaki reusable workflow nad fixtureom: zeleni Node projekt daje zeleni `ci-ok`; projekt s namjerno palim testom daje crveni `ci-ok`; posao koji se preskoči ne daje lažno zeleni `ci-ok`; tajna u fixtureu ruši `secret-scan`; lockfile s poznatom ranjivošću ruši `osv-scan` (DAN-921). |
 | **Preseti** | fixture koji mora pasti (implicitni `any`, dubok uvoz kad su granice uključene, krivi format) i koji mora proći. |
 | **Generator** | novi repo dobiva README, adaptere pravila, CODEOWNERS, PR predložak, risk tablicu i labele; drugi prolaz ne mijenja ništa. |
 | **Provjera razilaženja** | lažni API odgovori: repo bez zaštite grane, bez obveznog `ci-ok`, s viškom labele → nalaz u koordinacijskom issueu; ništa se ne mijenja (samo čitanje). |
@@ -76,7 +76,7 @@ Vizualni, pristupačnost i performanse se ne primjenjuju. **Matrica:** `ubuntu-l
 
 ## 7. CI i gate
 
-- Poslovi: `actionlint`, `pin-check`, `permissions-check` (DAN-970), `unit` (skripte gatea), `self-test`, `node-fail`, `node-skipped` i `red-aggregate` (crveni `ci-ok`, DAN-971), `presets`, `lint-presets`, `secret-scan`, `ci-ok-reusable` i obvezni `ci-ok` (običan posao nad svim ostalima, DAN-885), svi u `self-test.yml`. Tjedno `drift-check`.
+- Poslovi: `actionlint`, `pin-check`, `permissions-check` (DAN-970), `unit` (skripte gatea), `self-test`, `node-fail`, `node-skipped` i `red-aggregate` (crveni `ci-ok`, DAN-971), `presets`, `lint-presets`, `secret-scan`, `osv-scan` i `osv-scan-negative` (DAN-921), `ci-ok-reusable` i obvezni `ci-ok` (običan posao nad svim ostalima, DAN-885), svi u `self-test.yml`. Tjedno `drift-check`.
 - Risk: cijeli repo `critical` osim `profile/**` i `ISSUE_TEMPLATE/**` (`low`), jer upravlja gateom svih repoa.
 - Vlasničke radnje: stvaranje repoa (V-1 opseg), V-2 i V-3 za ovaj repo; potvrda U11.
 
