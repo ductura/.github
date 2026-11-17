@@ -14,6 +14,10 @@ updates:
     cooldown:
       default-days: 7
     groups:
+      # Its bump turns scripts/dependency-review.test.mjs red on purpose until the
+      # licence matcher versions there are re-checked; alone, it blocks no other action.
+      dependency-review:
+        patterns: ["actions/dependency-review-action"]
       actions:
         patterns: ["*"]
     commit-message:
@@ -31,5 +35,11 @@ updates:
     groups:
       minor-and-patch:
         update-types: [minor, patch]
+    # Pinned to dependency-review-action's own versions (DAN-1033); they move with it.
+    ignore:
+      - dependency-name: spdx-satisfies
+      - dependency-name: spdx-expression-parse
+      - dependency-name: spdx-license-ids
+      - dependency-name: spdx-exceptions
     commit-message:
       prefix: chore
