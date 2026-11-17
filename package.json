@@ -3,6 +3,7 @@
   "private": true,
   "description": "Dev dependencies of the tests in scripts/ (the YAML parser of scripts/ci-ok.test.mjs); nothing is published from here",
   "devDependencies": {
+    "ajv": "8.20.0",
     "yaml": "2.9.1"
   }
 }
