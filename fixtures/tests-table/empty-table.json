@@ -1,0 +1,21 @@
+{
+  "repository": "example-org/example",
+  "pr": {
+    "number": 7,
+    "head": {
+      "sha": "cccccccccccccccccccccccccccccccccccccccc"
+    },
+    "body": "Opis\n\n## Testovi prihvata\n\n| Kriterij | Test | Pada bez promjene |\n|---|---|---|\n| <…> | <…> | da |\n",
+    "changed_files": 1
+  },
+  "files": [
+    {
+      "filename": "src/sum.ts",
+      "status": "modified"
+    }
+  ],
+  "expect": {
+    "exit": 1,
+    "output": "::error::Redak 1 tablice testova je još predložak"
+  }
+}

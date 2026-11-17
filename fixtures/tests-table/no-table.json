@@ -1,0 +1,21 @@
+{
+  "repository": "example-org/example",
+  "pr": {
+    "number": 7,
+    "head": {
+      "sha": "cccccccccccccccccccccccccccccccccccccccc"
+    },
+    "body": "Opis bez tablice\n",
+    "changed_files": 1
+  },
+  "files": [
+    {
+      "filename": "src/sum.ts",
+      "status": "modified"
+    }
+  ],
+  "expect": {
+    "exit": 1,
+    "output": "::error::Odjeljak „## Testovi prihvata” mora postojati točno jednom"
+  }
+}

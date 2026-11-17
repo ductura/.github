@@ -12,6 +12,8 @@
 #       uses: ductura/.github/.github/workflows/tests-table.yml@<40-char SHA> # <tag>
 #       with:
 #         tool-sha: <the same 40-char SHA>
+# `self-test` is for this repository's self-test.yml only: the runner then
+# talks to a local fake API over fixtures/tests-table/<case>.json, never to GitHub.
 name: tests-table
 on:
   workflow_call:
@@ -20,6 +22,10 @@ on:
         description: The full SHA of this repository the caller pins in `uses:`
         type: string
         required: true
+      self-test:
+        description: Fixture case under fixtures/tests-table; only in ductura/.github, never with a real token
+        type: string
+        default: ""
 permissions: {}
 jobs:
   tests-table:
@@ -27,8 +33,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # One evaluation per PR at a time; a newer event replaces an older run.
+    # Self-test cases run side by side: each has its own group.
     concurrency:
-      group: tests-table-${{ github.repository }}-${{ github.event.pull_request.number || github.run_id }}
+      group: tests-table-${{ github.repository }}-${{ inputs.self-test != '' && format('self-test-{0}-{1}', inputs.self-test, github.run_id) || github.event.pull_request.number || github.run_id }}
       cancel-in-progress: true
     permissions:
       contents: read
@@ -38,11 +45,23 @@ jobs:
         shell: bash
         env:
           TOOL_SHA: ${{ inputs.tool-sha }}
+          SELF_TEST: ${{ inputs.self-test }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
           if ! [[ "$TOOL_SHA" =~ ^[0-9a-f]{40}$ ]]; then
             echo "::error::tool-sha must be a full 40-character commit SHA"
             exit 1
+          fi
+          if [ -n "$SELF_TEST" ]; then
+            if [ "$REPOSITORY" != "ductura/.github" ]; then
+              echo "::error::self-test runs only in ductura/.github"
+              exit 1
+            fi
+            if ! [[ "$SELF_TEST" =~ ^[a-z0-9-]+$ ]]; then
+              echo "::error::self-test must name a case in fixtures/tests-table"
+              exit 1
+            fi
           fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -53,6 +72,12 @@ jobs:
         with:
           node-version-file: .nvmrc
       - name: Code PR has a filled tests table
+        if: ${{ inputs.self-test == '' }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/tests-table.mjs
+      - name: Self-test the runner over a fixture (local fake API, no token)
+        if: ${{ inputs.self-test != '' }}
+        env:
+          SELF_TEST: ${{ inputs.self-test }}
+        run: node scripts/tests-table-self-test.mjs "fixtures/tests-table/$SELF_TEST.json"

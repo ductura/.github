@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { compare, runFixture } from "./tests-table-self-test.mjs";
 import { parse } from "yaml";
 import { checkTestsTable, isDocsOnly, listFiles, run } from "./tests-table.mjs";
 
@@ -23,6 +24,20 @@ const failing = [
   ["tab-only cell", body("| a |\t| da |")],
   ["NBSP-only cell", body("| a | | da |")],
   ["zero-width-only cell", body("| a |​| da |")],
+  ["U+034F-only cell", body("| a |\u034f| da |")],
+  ["U+3164 Hangul filler cell", body("| a |\u3164| da |")],
+  ["U+2800 braille blank cells", body("| \u2800 | \u2800 | da |")],
+  ["U+FEFF and U+00AD only", body("| a |\ufeff\u00ad| da |")],
+  ["punctuation-only cell", body("| a | —.- | da |")],
+  ["emoji-only cell", body("| a | \u2705 | da |")],
+  ["&nbsp; cell", body("| a | &nbsp; | da |")],
+  ["<br> cell", body("| a | <br> | da |")],
+  ["Cyrillic da", body("| a | b | \u0434\u0430 |")],
+  ["da with a dot", body("| a | b | da. |")],
+  ["table after an unclosed comment", "<!--\n" + body("| a | b | da |")],
+  ["table only in a tilde fence", "~~~\n" + body("| a | b | da |") + "~~~\n"],
+  ["indented heading", body("| a | b | da |", "  ## Testovi prihvata")],
+  ["template row next to a real row", body("| a | b | da |\n| <…> | <…> | da |")],
   ["third cell ne", body("| a | b | ne |")],
   ["third cell empty", body("| a | b | |")],
   ["third cell bold", body("| a | b | **da** |")],
@@ -68,6 +83,8 @@ const passing = [
   ["issue reference before the table", body("| a | b | da |").replace("## Testovi prihvata\n", "## Testovi prihvata\n#1836\n")],
   ["lone CR body", GOOD.replace(/\n/g, "\r")],
   ["text before the table", body("| a | b | da |").replace("## Testovi prihvata\n", "## Testovi prihvata\nUvod.\n")],
+  ["digit-only cells", body("| 1 | 2 | da |")],
+  ["a letter among invisibles", body("| a |\u200bb\u3164| da |")],
   ["Da with spaces and tabs", body("|  a \t| b |  Da  |")],
   ["several rows", body("| a | b | da |\n| c | d | DA |")],
   ["escaped pipe inside a cell", body("| a \\| b | c | da |")],
@@ -230,5 +247,36 @@ test("workflow shape: callable only, read-only, own repo at tool-sha, no express
   assert.deepEqual(checkout[0].with, { repository: "ductura/.github", ref: "${{ inputs.tool-sha }}", "persist-credentials": false });
   for (const s of steps.filter((s) => s.run)) assert.doesNotMatch(s.run, /\$\{\{/);
   assert.ok(steps.some((s) => s.run?.includes("^[0-9a-f]{40}$") && s.env?.TOOL_SHA === "${{ inputs.tool-sha }}"));
-  assert.ok(steps.some((s) => s.run === "node scripts/tests-table.mjs"));
+  const real = steps.find((s) => s.run === "node scripts/tests-table.mjs");
+  assert.equal(real?.if, "${{ inputs.self-test == '' }}");
+  assert.equal(real?.env?.GITHUB_TOKEN, "${{ github.token }}");
+  const self = steps.find((s) => s.run?.startsWith("node scripts/tests-table-self-test.mjs"));
+  assert.equal(self?.if, "${{ inputs.self-test != '' }}");
+  assert.equal(JSON.stringify(self?.env ?? {}).includes("token"), false, "the self-test gets no token");
+});
+
+// The self-test over fixtures/tests-table: each fixture gives its expected
+// outcome, and a fixture with the opposite expectation is reported, so the
+// self-test job cannot stay green when the runner's verdict flips.
+const FIXTURES = new URL("../fixtures/tests-table/", import.meta.url);
+for (const name of readdirSync(FIXTURES).filter((f) => f.endsWith(".json"))) {
+  test(`self-test fixture ${name}: runner matches, flipped expectation is caught`, async () => {
+    const fixture = JSON.parse(readFileSync(new URL(name, FIXTURES), "utf8"));
+    const outcome = await runFixture(fixture);
+    assert.deepEqual(compare(fixture, outcome), []);
+    const flipped = { ...fixture, expect: { ...fixture.expect, exit: 1 - fixture.expect.exit } };
+    assert.notDeepEqual(compare(flipped, outcome), []);
+  });
+}
+
+test("self-test.yml runs tests-table.yml over every fixture, at least one passing and one failing", () => {
+  const wf = parse(readFileSync(new URL("../.github/workflows/self-test.yml", import.meta.url), "utf8"));
+  const job = wf.jobs["tests-table"];
+  assert.equal(job.uses, "./.github/workflows/tests-table.yml");
+  assert.equal(job.with["self-test"], "${{ matrix.case }}");
+  const cases = job.strategy.matrix.case;
+  const files = readdirSync(FIXTURES).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5));
+  assert.deepEqual([...cases].sort(), files.sort());
+  const exits = files.map((f) => JSON.parse(readFileSync(new URL(`${f}.json`, FIXTURES), "utf8")).expect.exit);
+  assert.ok(exits.includes(0) && exits.includes(1));
 });

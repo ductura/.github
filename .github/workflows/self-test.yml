@@ -93,6 +93,20 @@ jobs:
       trusted-logins: ${{ matrix.trusted || '' }}
       self-test: ${{ matrix.case }}
 
+  # The reusable tests-table.yml itself over fixtures/tests-table (DAN-948):
+  # a filled table and a docs-only PR pass, a template row and no table fail.
+  # Local fake API only; no token reaches the runner.
+  tests-table:
+    strategy:
+      fail-fast: false
+      matrix:
+        case: [filled-table, docs-only, empty-table, no-table]
+    permissions: { contents: read, pull-requests: read }
+    uses: ./.github/workflows/tests-table.yml
+    with:
+      tool-sha: ${{ github.event.pull_request.head.sha || github.sha }}
+      self-test: ${{ matrix.case }}
+
   node-ok:
     permissions: { contents: read, packages: read }
     uses: ./.github/workflows/ci-node.yml
@@ -314,7 +328,7 @@ jobs:
   # The reusable ci-ok.yml called for real, as other repositories call it.
   ci-ok-reusable:
     if: ${{ always() }}
-    needs: [actionlint, pin-check, permissions-check, gate, engineering-gate, node-ok, node-ok-multiline, node-fail, red-aggregate, presets, lint-presets, secret-scan, secret-scan-negative, osv-scan, osv-scan-negative, dependency-review]
+    needs: [actionlint, pin-check, permissions-check, gate, engineering-gate, tests-table, node-ok, node-ok-multiline, node-fail, red-aggregate, presets, lint-presets, secret-scan, secret-scan-negative, osv-scan, osv-scan-negative, dependency-review]
     uses: ./.github/workflows/ci-ok.yml
     with:
       results: ${{ toJSON(needs) }}
@@ -327,7 +341,7 @@ jobs:
   ci-ok:
     name: ci-ok
     if: ${{ always() }}
-    needs: [actionlint, pin-check, permissions-check, gate, engineering-gate, node-ok, node-ok-multiline, node-fail, red-aggregate, presets, lint-presets, secret-scan, secret-scan-negative, osv-scan, osv-scan-negative, dependency-review, ci-ok-reusable]
+    needs: [actionlint, pin-check, permissions-check, gate, engineering-gate, tests-table, node-ok, node-ok-multiline, node-fail, red-aggregate, presets, lint-presets, secret-scan, secret-scan-negative, osv-scan, osv-scan-negative, dependency-review, ci-ok-reusable]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

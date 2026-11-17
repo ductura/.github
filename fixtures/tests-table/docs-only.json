@@ -1,0 +1,21 @@
+{
+  "repository": "example-org/example",
+  "pr": {
+    "number": 7,
+    "head": {
+      "sha": "cccccccccccccccccccccccccccccccccccccccc"
+    },
+    "body": "Samo dokumentacija\n",
+    "changed_files": 1
+  },
+  "files": [
+    {
+      "filename": "docs/PLAN.md",
+      "status": "modified"
+    }
+  ],
+  "expect": {
+    "exit": 0,
+    "output": "Samo dokumentacija: tablica testova nije potrebna."
+  }
+}

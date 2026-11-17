@@ -73,7 +73,7 @@ function cells(line) {
   if (/^(?: {4}|\t)/.test(line)) return null;
   const t = line.trim();
   if (!t.startsWith("|") || !/(?:^|[^\\])\|$/.test(t) || t.length < 2) return null;
-  return t.slice(1, -1).split(/(?<!\\)\|/).map((c) => c.replace(/\p{Cf}/gu, "").replace(/\\\|/g, "|").trim());
+  return t.slice(1, -1).split(/(?<!\\)\|/).map((c) => c.replace(/[\p{Cf}\p{Default_Ignorable_Code_Point}]/gu, "").replace(/\\\|/g, "|").trim());
 }
 
 // Only these messages are printed; any other error gets a fixed text, because
@@ -107,9 +107,11 @@ export function checkTestsTable(body, files) {
     if (row === null) return fail(`Redak ${rows} tablice testova nije ispravan redak | … | … | … |.`);
     const where = `Redak ${rows} tablice testova`;
     if (row.length !== 3) return fail(`${where} nema točno tri ćelije.`);
-    if (row.some((c) => c === "")) return fail(`${where} ima praznu ćeliju.`);
-    if (row.some((c) => /<[a-z/!]|&#?\w+;/i.test(c))) return fail(`${where} sadrži HTML ili entitet.`);
     if (row.some((c) => /^<[^>]*>$/.test(c))) return fail(`${where} je još predložak <…>; zamijeni ga.`);
+    if (row.some((c) => /<[a-z/!]|&#?\w+;/i.test(c))) return fail(`${where} sadrži HTML ili entitet.`);
+    // Filled means at least one letter or digit: blanks of any kind (U+2800,
+    // fillers, combining marks, punctuation alone) count as empty, as a class.
+    if (row.some((c) => !/[\p{L}\p{N}]/u.test(c))) return fail(`${where} ima praznu ćeliju.`);
     if (row[2].toLowerCase() !== "da") return fail(`${where}: „Pada bez promjene” mora biti „da”.`);
   }
   if (rows === 0) return fail("Tablica testova nema nijedan redak; PR koji mijenja kod treba barem jedan.");
