@@ -86,6 +86,9 @@ const prtCheckout = [
   ["INPUT_REF in the file env", prt("{ uses: actions/checkout@abc }", "pull_request_target", "env: { INPUT_REF: refs/pull/1/head }\n"), ["-: prt-checkout"]],
   ["input_ref in the job env", "on: pull_request_target\npermissions: {}\njobs:\n  a: { runs-on: u, env: { input_ref: x }, steps: [{ uses: actions/checkout@abc }] }\n", ["a: prt-checkout"]],
   ["INPUT_REPOSITORY in the step env", prt("{ uses: actions/checkout@abc, env: { INPUT_REPOSITORY: x } }"), ["a: prt-checkout"]],
+  ["INPUT_REF in the container env", "on: pull_request_target\npermissions: {}\njobs:\n  a: { runs-on: u, container: { image: node:24, env: { INPUT_REF: refs/pull/1/head } }, steps: [{ uses: actions/checkout@abc }] }\n", ["a: prt-checkout"]],
+  ["INPUT_REF in a service env", "on: pull_request_target\npermissions: {}\njobs:\n  a: { runs-on: u, services: { db: { image: x, env: { INPUT_REF: x } } }, steps: [{ uses: actions/checkout@abc }] }\n", ["a: prt-checkout"]],
+  ["Env in other case", "on: pull_request_target\npermissions: {}\njobs:\n  a: { runs-on: u, container: { image: x, ENV: { INPUT_REF: x } }, steps: [{ uses: actions/checkout@abc }] }\n", ["a: prt-checkout"]],
 ];
 const prtSafe = [
   ["checkout without with", prt("{ uses: actions/checkout@abc }")],

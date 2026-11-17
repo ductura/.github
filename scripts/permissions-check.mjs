@@ -48,21 +48,30 @@ function eventsOf(wf) {
 const CHECKOUT = /^actions\/checkout(\/[^@]*)?@/i;
 // An expression cannot be shown not to name the PR head, so it fails closed.
 const UNSAFE_REF = /\$\{\{|refs\/pull\//i;
-const inputEnv = (node) => (isPlainMap(node.env) ? Object.keys(node.env).filter((k) => /^input_/i.test(k)) : []);
+// INPUT_* keys in every env mapping at any depth (job, step, container,
+// services, ...): checkout reads its inputs from INPUT_* (review of #22).
+function inputEnv(node) {
+  if (Array.isArray(node)) return node.flatMap(inputEnv);
+  if (!isPlainMap(node)) return [];
+  return Object.entries(node).flatMap(([k, v]) => [
+    ...(k.toLowerCase() === "env" && isPlainMap(v) ? Object.keys(v).filter((e) => /^input_/i.test(e)) : []),
+    ...inputEnv(v),
+  ]);
+}
 
 // Checkouts that can fetch PR code in a pull_request_target workflow
 // (DAN-970, criterion 3): { reason } when the shape cannot be read.
 function prtFindings(wf) {
   const found = [];
   const add = (job, detail) => found.push({ job, detail });
-  if (inputEnv(wf).length) add(undefined, `env ${inputEnv(wf).join(", ")}`);
+  const fileEnv = inputEnv({ env: wf.env });
+  if (fileEnv.length) add(undefined, `env ${fileEnv.join(", ")}`);
   for (const [job, node] of Object.entries(wf.jobs)) {
     if (inputEnv(node).length) add(job, `env ${inputEnv(node).join(", ")}`);
     if (!Object.hasOwn(node, "steps")) continue;
     if (!Array.isArray(node.steps)) return { reason: `steps of job ${job} is not a list` };
     for (const step of node.steps) {
       if (!isPlainMap(step)) return { reason: `a step of job ${job} is not a mapping` };
-      if (inputEnv(step).length) add(job, `env ${inputEnv(step).join(", ")}`);
       if (typeof step.uses !== "string" || !CHECKOUT.test(step.uses) || step.with == null) continue;
       if (!isPlainMap(step.with)) return { reason: `with of a checkout in job ${job} is not a mapping` };
       for (const [key, value] of Object.entries(step.with)) {
