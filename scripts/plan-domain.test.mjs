@@ -36,7 +36,8 @@ export const foreignDomains = (text) =>
 export const rejectedTldMentions = (text) => {
   const t = normalize(text);
   const word = new RegExp(`\\b${REJECTED[0]}\\b`, "gi");
-  const span = new RegExp(`\`\\.(?:${REJECTED.join("|")})\``, "gi");
+  // A code span of any backtick run, with spaces, tabs or NBSP inside (CommonMark).
+  const span = new RegExp(`(\`+)\\s*\\.(?:${REJECTED.join("|")})\\s*\\1`, "gi");
   return [...t.matchAll(word), ...t.matchAll(span)].map((m) => m[0]);
 };
 
@@ -105,7 +106,7 @@ test("byte checker skips no file: NUL, UTF-16LE/BE and non-ASCII TLDs", () => {
 });
 
 test("checker reports rejected TLDs in plan text", () => {
-  for (const s of ["`.<t>`", "`.<T>`", "<c>", "<C> ili", "`.<c>`"].map(spell)) assert.ok(rejectedTldMentions(s).length > 0, s);
+  for (const s of ["`.<t>`", "`.<T>`", "<c>", "<C> ili", "`.<c>`", "` .<t> `", "`` .<t> ``", "``.<t>``", "`\t.<t>\t`", "`\u00A0.<t>\u00A0`", "`.<T> `", "``` .<c> ```"].map(spell)) assert.ok(rejectedTldMentions(s).length > 0, s);
 });
 
 test("checker accepts ductura.org, package names, repo paths and prose", () => {
