@@ -6,13 +6,13 @@ Stanje: 14. 11. 2026. · **Samo plan.** Novi repo po vlasnikovoj odluci 14. 11. 
 
 ## 1. Svrha i granica
 
-**Svrha.** Jedno mjesto za ono što svih pet repozitorija (server, preloader, web, desktop-windows, desktop-macos) dijele: reusable workflowe, preseti za TypeScript, lint i format, predloške PR-a i issuea, labele, Mergify osnovu, generator novog repoa i tjednu provjeru razilaženja postavki. Svaki repo poziva workflow s punim SHA-om ovog repoa (`@<40 znakova> # <oznaka>`, npr. `# ci-v1`, `# gate-v1`; oznaka je samo komentar, nikad sam poziv) i daje samo svoje: tablicu putanja za risk, popis poslova i matricu.
+**Svrha.** Jedno mjesto za ono što svih pet repozitorija (server, preloader, web, desktop-windows, desktop-macos) dijele: reusable workflowe, preseti za TypeScript, lint i format, predloške PR-a i issuea, labele, generator novog repoa i tjednu provjeru razilaženja postavki. Svaki repo poziva workflow s punim SHA-om ovog repoa (`@<40 znakova> # <oznaka>`, npr. `# ci-v1`, `# gate-v1`; oznaka je samo komentar, nikad sam poziv) i daje samo svoje: tablicu putanja za risk, popis poslova i matricu.
 
 **Granica (nikad ne ulazi):** kod aplikacije; tajne (workflowi ih primaju kao `secrets: inherit` ili ulaz, nikad ne sadrže vrijednost); pojedinosti sigurnosnih nalaza (repo je javan); odluke o prioritetu i statusu zadatka (Linear); vlastiti pisani retci verdikta (`Agent-Review:` i ostali ostaju u PR-u ciljnog repoa).
 
 ## 2. Zatečeno stanje
 
-Repo ne postoji. U Ductusu postoje izvori koje izdvaja: `.github/workflows/{ci,engineering-gate,engineering-gate-review-signal,dependency-review,secret-scan-push}.yml`, `.github/{mergify.yml,pull_request_template.md,CODEOWNERS,dependabot.yml,ISSUE_TEMPLATE/}`, `scripts/engineering/review-gate*.mjs`, `protected-paths.mjs`, `eslint.config.mjs`, `tsconfig.json`, `lefthook.yml`. Napomena: `scripts/engineering/risk-floor.test.mjs` postoji, a `risk-floor.mjs` ne; logika praga je drugdje (S-0.10-a mora to razjasniti prije prijenosa).
+Repo ne postoji. U Ductusu postoje izvori koje izdvaja: `.github/workflows/{ci,engineering-gate,engineering-gate-review-signal,dependency-review,secret-scan-push}.yml`, `.github/{pull_request_template.md,CODEOWNERS,dependabot.yml,ISSUE_TEMPLATE/}`, `scripts/engineering/review-gate*.mjs`, `protected-paths.mjs`, `eslint.config.mjs`, `tsconfig.json`, `lefthook.yml`. Napomena: `scripts/engineering/risk-floor.test.mjs` postoji, a `risk-floor.mjs` ne; logika praga je drugdje (S-0.10-a mora to razjasniti prije prijenosa).
 
 ## 3. Sadržaj (PRIJEDLOG)
 
@@ -23,7 +23,6 @@ profile/README.md                 javni profil organizacije (hr)
                                   vlastiti: self-test.yml, drift-check.yml (tjedno, samo čitanje)
 PULL_REQUEST_TEMPLATE.md, ISSUE_TEMPLATE/   zadani predlošci za sve repoe organizacije
 labels.yml                        zajednički popis labela
-mergify/base.yml                  osnova za `extends` u repoima
 packages/tsconfig/                @ductura/tsconfig (strict)
 packages/eslint-config/           @ductura/eslint-config (uključuje pravila granica kao opciju)
 packages/prettier-config/         @ductura/prettier-config
@@ -39,7 +38,6 @@ fixtures/                         mali Node, .NET i Swift projekt za samotest wo
 | `scripts/engineering/review-gate*.mjs`, `protected-paths.mjs` | 20-ak `review-gate-*.test.mjs`, `risk-floor.test.mjs` | `scripts/gate/*.ts` (prevedeno, iste tvrdnje) |
 | `.github/workflows/{engineering-gate,engineering-gate-review-signal}.yml` | samotest nad fixtureom | `.github/workflows/engineering-gate.yml` (reusable) |
 | `.github/workflows/{ci,dependency-review,secret-scan-push}.yml` | samotest | `ci-node.yml`, `dependency-review.yml`, `secret-scan.yml` |
-| `.github/mergify.yml` | test da osnova + repo daju isto ponašanje kao danas | `mergify/base.yml` |
 | `.github/pull_request_template.md`, `ISSUE_TEMPLATE/` | `tests/unit/pr-metadata-precheck.test.ts` | zadani predlošci |
 | `eslint.config.mjs`, `tsconfig.json`, `lefthook.yml` | fixture koji mora pasti i proći | `packages/*-config` |
 
@@ -53,7 +51,7 @@ Ne prenose se: skripte orkestratora (ostaju u Ductusu, T-0.6), `CODEOWNERS` (Git
 | T-0.1 | Profil, predlošci issuea i PR-a, labele | U2 | standard |
 | T-0.2 | Reusable workflowi: CI osnova s `ci-ok`, tajne, ovisnosti, gate | U2, S-0.9; S-0.10-a/b se pišu **ovdje**, ne u serveru, i nema izdvajanja iz servera | critical |
 | — (novo, PRIJEDLOG ID) | Preseti `@ductura/tsconfig`, `eslint-config`, `prettier-config` na GitHub Packages | U2 | standard |
-| T-0.3 | Mergify osnova i `extends` | S-0.20 | critical |
+| T-0.3 | **Ukinuto 17. 11.** (spajanje po pravilu iz `docs/plan/PLAN-MIGRACIJE.md` §7) | — | — |
 | T-0.4 | Generator novog repoa | S-0.6, T-0.2 | standard |
 | T-0.7 | Tjedna provjera razilaženja postavki (samo čitanje) | T-0.2 | standard |
 | U11 (server plan; PRIJEDLOG ID) | **Gate prema riziku uz ugovorne testove**: npr. PR koji mijenja `server/contracts/**` je najmanje `critical` i traži zelene ugovorne testove preloadera i weba nad novom verzijom; PR koji ne dira ugovor, a prolazi ugovorne testove, zadržava risk iz tablice putanja | zadnje: nakon ugovora (U4 … U10) i S-1H.8 | critical; **zaseban PR pravila, vlasnik potvrđuje** (pravilo gatea mijenja `docs/ENGINEERING_SYSTEM.md`) |

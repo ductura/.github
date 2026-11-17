@@ -23,7 +23,7 @@ Vlasnik je 14. 11. odobrio sljedeće ispravke (Ductus#87, c.6879745570 i c.68793
 3. **Tri odvojena izlaza po ruti** (§1b): shema postoji, ugovorna integracija prolazi, stvarni sistemski tok prolazi. Sama shema ne otključava web 2.c3 i 2.c4.
 4. **Kriterij prihvata VS-1** (§4a): sintetički student se prijavi kroz lažni OIDC, spremi rečenicu i nakon osvježavanja je vidi. Ovisi o DAN-758, DAN-759 i DAN-760.
 5. **Izdavatelji paketa** (§2c): koji repozitorij objavljuje koji paket `@ductura/*`.
-6. **Redoslijed V-2** (§7): prvo dokaz prolaza i očekivanog pada u serveru (S-0.9, S-0.10-b), zatim V-2 dopisuje točna imena statusa, zatim Mergify.
+6. **Redoslijed V-2** (§7): prvo dokaz prolaza i očekivanog pada u serveru (S-0.9, S-0.10-b), zatim V-2 dopisuje točna imena statusa. Spajanje ide po pravilu iz §7 (17. 11.).
 7. **U11** (§7) traži vlasnikovu potvrdu teksta pravila.
 8. **Nazivi repozitorija:** `web-chrome` je preimenovan u `web` (u §2d je to već zamijenjeno). `web-mobile` i `web-other` su arhivirani, pa se u ostatku dokumenta tri web repozitorija čitaju kao jedan repozitorij `web`.
 9. **Odluka vlasnika O-1, O-2, O-3 (14. 11., Ductus#87 c.6880835493, dopuna c.6880861260):** pilot na jednom sustavu (§4d), VS-1 u dva koraka s novom stavkom VS-1b i tvrdnjom VS-1.13 (§4a-1), uski rez servera iza S-0.19 (§4c), novi odjeljak „Rizici” R-1 do R-10 (§8a). Gdje se ostatak dokumenta s tim razilazi, vrijedi ta odluka. Točke 4 i 5 odluke (niža revizija na poslužitelju, pravila rada za ductura/*) nisu dio ovog plana; točka 4 je odlučena (varijanta A, Ductus#87 c.6880906459) i zapisana u §8a kao R-8.
@@ -136,7 +136,7 @@ Zašto ovako:
 1. **Počinje u Ductusu** (E-0.1, E-0.2). Ondje kod već radi i ima testove. U Ductusu se izdvaja u mapu `packages/editor-core` s jasnom granicom: bez Next.js-a, bez poziva na rute Ductusa, transport sinkronizacije kao ulazni parametar. Isti testovi prolaze prije i poslije.
 2. Objavljuje se iz Ductusa kao verzija 0.x. Web-chrome ga koristi od prvog dana, bez kopije.
 3. **Seli se u web** (`packages/editor-core`) kad su ispunjena sva četiri uvjeta izlaza:
-   - web ima potpun gate (CI, review, QA, Mergify) i prošao je vertikalni presjek (§4);
+   - web ima potpun gate (CI, review, QA; spajanje po pravilu iz §7) i prošao je vertikalni presjek (§4);
    - svi testovi paketa (unit, property, ekvivalencijski, odjavni) prolaze u webu s istim brojem i ishodom kao u Ductusu;
    - zadnja objava iz Ductusa i prva iz weba daju istu izgradnju (isti testni vektori sinkronizacije i evidencije);
    - Ductus je zamrznut ili se ondje paket više ne mijenja.
@@ -178,7 +178,7 @@ Pravilo za svaki prijenos: PR navodi izvorni SHA Ductusa, isti testovi prolaze p
 
 | Faza | Što | Ulaz | Izlaz | Tvoje radnje |
 |---|---|---|---|---|
-| **A** priprema, val 0 | Repo servera s CI-jem, gateom, botovima i Mergifyjem; prijenos temelja (S-0.1 … S-0.21) | V-0, V-1 | Jedan pravi PR prošao cijeli gate u `Ductura/server`; ledger migracija jednak Ductusovu; skripte orkestratora vide repo | V-0 domena i e-pošta; V-1 organizacija i repozitoriji; V-2 zaštita grane; V-3 botovi, Mergify i Codex; V-4 tajne |
+| **A** priprema, val 0 | Repo servera s CI-jem, gateom i botovima; prijenos temelja (S-0.1 … S-0.21) | V-0, V-1 | Jedan pravi PR prošao cijeli gate u `Ductura/server`; ledger migracija jednak Ductusovu; skripte orkestratora vide repo | V-0 domena i e-pošta; V-1 organizacija i repozitoriji; V-2 zaštita grane; V-3 botovi i Codex; V-4 tajne |
 | **B** server, valovi 1–10 | Sve od S-1A do S-1I | Faza A gotova | Testni server objavljen kao Docker slika; S-1H.8 prolazi; `@ductura/contracts` objavljen u verziji 0.x | V-5 zahtjev Srcu; V-7 račun admina aplikacije |
 | **C** preloader i web-chrome | Preloader (2.0), info stranica (2.1), web-chrome od komponenata; izdvajanje standarda (T-0); selidba `editor-core` u web-chrome po uvjetima iz §2d | VS-1 prošao; S-1M, S-1N, S-1H.7 i `@ductura/contracts` dostupni | Prvi cijeli prolaz „domena → preloader → web-chrome → server” na sistemskom stogu; glavni tok u web-chromeu (otvori, piši, spremi, osvježi, bez veze, predaj) | V-1b (web i preloader, odobreno 14. 11., ne čeka fazu C); V-3 u njima; odluka o zamrzavanju Ductusa (ne prije 20. 12. 2026., §4d) |
 | **D** web-mobile i web-other | Ista funkcija, druga sučelja | `@ductura/ui` i `@ductura/editor-core` u verziji 1.0; skup scenarija pariteta | Paritet zelen u sva tri weba; matrica preloadera zelena; domena prebačena na novi stog | V-1b za ta dva repoa; potvrda prebacivanja produkcije |
@@ -267,7 +267,7 @@ Isti za svih sedam. Razlike su samo u putanjama i vrstama testova.
 | CI | Lint, typecheck, **funkcionalni testovi** i **testovi pomoćnih funkcija** kao odvojeni poslovi; skeniranje tajni; pregled ovisnosti; `ci-ok` pada ako padne bilo koji potreban posao. Akcije prikvačene na SHA. |
 | Funkcionalni test | Onaj iz tvoje tablice, npr. server „vlastiti dokument da, tuđi ne” (S-1H.3), preloader „Chrome na Macu otvara Chrome i nudi macOS paket”. |
 | Test pomoćnih funkcija | Unit testovi uz kod, npr. server „prazan i neispravan ID”, mobile „izračun prostora uz tipkovnicu”. |
-| Gate | Isti kao Ductus: risk razine po putanjama, `Agent-Review:` i `QA-Agent:` na aktualnom headu, Codex review na točnom headu, dvije različite aplikacije za `critical`, Mergify red. |
+| Gate | Isti kao Ductus: risk razine po putanjama, `Agent-Review:` i `QA-Agent:` na aktualnom headu, Codex review na točnom headu, dvije različite aplikacije za `critical`; spajanje po pravilu iz §7. |
 | CODEOWNERS | Pokriva sve `critical` putanje. |
 | `CLAUDE.md`, `AGENTS.md`, `.claude/rules/` | Tanki adapteri. Nijedno novo pravilo. Upućuju na kanonske dokumente. |
 | README | Na hrvatskom: što repo radi, kako se pokreće, kako se testira, što nikad ne sadrži. |
@@ -299,11 +299,11 @@ Pravi uređaji (iPhone, iPad, Android) za fazu D: Playwright emulacija ne zamjen
 
 **Gate.** Workflow gatea i skripte (`risk-floor`, provjera verdikata) pišu se u `.github` (S-0.10-a/b, T-0.2), ne u serveru. Svaki repo ih poziva punim SHA-om `.github` repoa (`@<40 znakova> # gate-v1`; oznaka je samo komentar, nikad sam poziv, kako traži `README.md` tog repoa) i daje samo svoju tablicu putanja za risk. Retci verdikta ostaju isti (`Agent-Review:`, `Review-Head:`, `Review-Verdict:`, `QA-*`), a format agenta ostaje `runtime:slot:role`.
 
-**Redoslijed V-2 i obveznih statusa (ispravak 14. 11.):** S-0.9 (u serveru) i S-0.10-b (u `.github`, pozvan iz servera) prvo dokažu prolaz i očekivani pad svakog posla; zatim V-2 dopisuje točna emitirana imena u obvezne statuse; tek onda Mergify (S-0.20, koji čeka i S-0.11 te V-3). Postojeća zaštita (`test`) ostaje dok se u serveru ne dokaže prolaz i očekivani pad.
+**Redoslijed V-2 i obveznih statusa (ispravak 14. 11.):** S-0.9 (u serveru) i S-0.10-b (u `.github`, pozvan iz servera) prvo dokažu prolaz i očekivani pad svakog posla; zatim V-2 dopisuje točna emitirana imena u obvezne statuse. Postojeća zaštita (`test`) ostaje dok se u serveru ne dokaže prolaz i očekivani pad.
 
 **U11, gate prema riziku uz ugovorne testove (ispravak 14. 11.):** zadnji korak, nakon U10 i S-1H.8. Ide kao zaseban PR pravila, a vlasnik mora potvrditi tekst pravila prije spajanja.
 
-**Mergify.** Aplikacija se instalira na organizaciju. Svaki repo ima kratki `.mergify.yml` koji nasljeđuje zajednička pravila (`extends`). D-97 PR i dalje čeka tvoju naredbu.
+**Spajanje (odluka 17. 11.):** nadzor (glavni orkestrator, §7a) spaja PR nakon punog gatea (`--squash --match-head-commit`), u svakom repou jedan po krugu; dok je CI na mainu crven ili nečitljiv, u tom repou ne spaja. PR-ove koji po D-97 traže tvoju naredbu i dalje spaja samo tvoja naredba; ostale odluke ostaju iste. Mergify je ukinut 17. 11. (Daniel, „Da za oboje”), a s njim T-0.3 i S-0.20. Uvjet povratka: Mergify se vraća ako dva PR-a zaredom slome main ili ako spajanje mora raditi bez ovog računala.
 
 **Botovi (`ductus-botovi[bot]`).** Danas je aplikacija instalirana samo na Ductus, a pravilo u `CLAUDE.md` to i kaže. Aplikacija u vlasništvu osobnog računa ne može se instalirati na tuđu organizaciju dok je privatna. Prijedlog: prenesi aplikaciju u organizaciju `Ductura` (GitHub to dopušta) i instaliraj je na odabrane repozitorije. Pravilo o „samo ovom repou” mijenja se D-zapisom, kao promjena pravila. Grok strani treba popis repozitorija koje čita.
 
@@ -357,7 +357,7 @@ Najviše **tri** orkestratora u isto vrijeme.
 
 ## 8. Rizici i moji prijedlozi
 
-1. **Sedam repozitorija, jedan vlasnik: više održavanja.** Prijedlog: jedan pomoćni repo `Ductura/.github`, koji nije razvojni dio i nema koda aplikacije. U njemu su zajednički workflowi, zajednička Mergify pravila, predlošci issuea i PR-a, popis labela i profil organizacije. GitHub taj repo posebno prepoznaje. Ako ne želiš ni njega, sve to ide u `Ductura/server` (odluka 3).
+1. **Sedam repozitorija, jedan vlasnik: više održavanja.** Prijedlog: jedan pomoćni repo `Ductura/.github`, koji nije razvojni dio i nema koda aplikacije. U njemu su zajednički workflowi, predlošci issuea i PR-a, popis labela i profil organizacije. GitHub taj repo posebno prepoznaje. Ako ne želiš ni njega, sve to ide u `Ductura/server` (odluka 3).
 2. **Razilaženje postavki među repozitorijima.** Prijedlog: tjedna provjera (T-0.7) koja samo čita: zaštita grane, obvezni statusi, instalirane aplikacije, labele. Nalaz ide u koordinacijski issue.
 3. **Novi repo bez standarda.** Prijedlog: generator početnih datoteka (T-0.4). Novi repo dobiva README, adaptere pravila, CODEOWNERS, predložak PR-a, risk tablicu i labele u jednom PR-u.
 4. **Ductus i novi repozitoriji paralelno.** Rizik: dvostruke promjene i dvije istine. Prijedlog u tri koraka:
@@ -443,7 +443,8 @@ Pretpostavka: početak u ponedjeljak 17. 11., nakon prezentacije. Dokumenti i sp
 |---|---|
 | S-0.1 | D-zapis navodi `preloader` kao sedmi repo umjesto `shared-core`. Dodaje odluke iz §9 koje potvrdiš (usmjeravanje, paketi, pomoćni repo, botovi). |
 | S-0.6 | Adapteri pravila nastaju tako da ih T-0.4 kasnije može kopirati u druge repozitorije. Sadržaj isti. |
-| S-0.9, S-0.20 | Grade se u serveru kao danas. Pišu se tako da ih T-0.2 i T-0.3 kasnije izdvoje bez promjene ponašanja. |
+| S-0.9 | Gradi se u serveru kao danas. Piše se tako da ga T-0.2 kasnije izdvoji bez promjene ponašanja. |
+| S-0.20 | **Ukinuto 17. 11.** Spajanje ide po pravilu iz §7. |
 | S-0.10-a, S-0.10-b | Pišu se u `.github` (kao T-0.2), ne u serveru; server ih poziva punim SHA-om. |
 | S-0.11 | Ovisi i o prijenosu aplikacije botova u organizaciju (V-3). Labele dolaze iz zajedničkog popisa kad postoji T-0.1. |
 | S-0.19 | Briše se „Otvoreno: prelazi u shared-core”. `server/domain` ostaje u serveru i objavljuje se u `@ductura/contracts`. Time je pitanje shared-corea zatvoreno (zamijenjeno paketima, KARTA §4). |
@@ -459,7 +460,7 @@ Pretpostavka: početak u ponedjeljak 17. 11., nakon prezentacije. Dokumenti i sp
 |---|---|---|---|---|
 | T-0.1 | Pomoćni repo: profil organizacije, predlošci issuea i PR-a, zajednički popis labela | `.github` (ili server) | V-1, odluka 3 | standard |
 | T-0.2 | Zajednički workflowi: CI osnova s `ci-ok`, gate, tajne, ovisnosti; S-0.10-a/b se pišu ovdje, ne u serveru | `.github` | U2, S-0.9 | critical |
-| T-0.3 | Zajednička Mergify pravila i nasljeđivanje | `.github` | S-0.20 | critical |
+| T-0.3 | **Ukinuto 17. 11.** (bila su zajednička pravila spajanja; spajanje ide po pravilu iz §7) | `.github` | — | — |
 | T-0.4 | Generator početnih datoteka novog repoa | `.github` | S-0.6, T-0.2 (uključuje S-0.10-a) | standard |
 | T-0.5 | Objava paketa: verzije, zapisi promjena, objava iz Actionsa | server | S-1H.1-b, odluka 2 | critical |
 | T-0.6 | Skripte orkestratora za sedam repozitorija, preklapanje preko repozitorija | Ductus | S-0.21 | critical |
@@ -493,13 +494,13 @@ Pretpostavka: početak u ponedjeljak 17. 11., nakon prezentacije. Dokumenti i sp
 - Nakon V-1: S-0.4, zatim S-0.5, S-0.7 i S-0.16 usporedno.
 
 **Tjedan 2 (24.–28. 11.)**
-- Ti: V-2 zaštita grane, V-3 prijenos i instalacija aplikacije botova, Mergify i Codex, V-4 tajne.
-- Server: S-0.6, S-0.8, S-0.12, zatim S-0.9, S-0.11, S-0.13, S-0.14, a nakon S-0.11 i V-3 S-0.20 (Mergify).
+- Ti: V-2 zaštita grane, V-3 prijenos i instalacija aplikacije botova i Codex, V-4 tajne.
+- Server: S-0.6, S-0.8, S-0.12, zatim S-0.9, S-0.11, S-0.13, S-0.14.
 - `.github`: T-0.2 (u sklopu kojeg se pišu S-0.10-a i S-0.10-b, nakon S-0.9). Redoslijed V-2 (§7): S-0.9 i S-0.10-b dokažu prolaz i očekivani pad prije nego V-2 dopiše statuse.
 - T-0.6 i M-0.1 u Ductusu, nakon S-0.21. Mjere počinju s prvim PR-om u serveru.
 - E-0.1 u Ductusu (granica paketa editora), nakon prezentacije i uz pisca koji poznaje `src/editor`.
 - Ako je pisac slobodan: P-0.1 i P-0.2 (bez servera).
 
-**Izlaz iz dva tjedna:** `Ductura/server` ima CI s `ci-ok`, gate, botove i Mergify, a jedan pravi PR prošao je cijeli gate. Migracije su prenesene s istim ledgerom. Orkestrator prati server iz svojih skripti. Odluke 1–6, 11 i 14–16 su zapisane na #87.
+**Izlaz iz dva tjedna:** `Ductura/server` ima CI s `ci-ok`, gate i botove, a jedan pravi PR prošao je cijeli gate. Migracije su prenesene s istim ledgerom. Orkestrator prati server iz svojih skripti. Odluke 1–6, 11 i 14–16 su zapisane na #87.
 
-Ostatak vala 0 (S-0.15, S-0.17, S-0.18, S-0.19) i T-0.1, T-0.3, T-0.4 i T-0.7 ide u treći tjedan. **Uski rez servera (O-3, §4c) počinje odmah iza S-0.19**, dakle u trećem tjednu, kao zasebni `critical` PR-ovi redom, usporedno s valovima 1 do 5. Uvjeti početka: S-0.19 spojen, plan napada za svaki dio, ne više od tri kodna PR-a po repou. VS-1 i VS-1b slijede iza reza (§4a-1), a kontrolna točka 20. 12. 2026. traži VS-1b i izbor sustava za pilot (§4d). T-0.2 (s S-0.10-a/b) je u drugom tjednu jer je preduvjet za T-0.4, T-0.7 i za V-2.
+Ostatak vala 0 (S-0.15, S-0.17, S-0.18, S-0.19) i T-0.1, T-0.4 i T-0.7 ide u treći tjedan. **Uski rez servera (O-3, §4c) počinje odmah iza S-0.19**, dakle u trećem tjednu, kao zasebni `critical` PR-ovi redom, usporedno s valovima 1 do 5. Uvjeti početka: S-0.19 spojen, plan napada za svaki dio, ne više od tri kodna PR-a po repou. VS-1 i VS-1b slijede iza reza (§4a-1), a kontrolna točka 20. 12. 2026. traži VS-1b i izbor sustava za pilot (§4d). T-0.2 (s S-0.10-a/b) je u drugom tjednu jer je preduvjet za T-0.4, T-0.7 i za V-2.

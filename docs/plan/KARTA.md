@@ -55,7 +55,7 @@ Koraci U1–U11 su nazivi iz [plan servera](https://github.com/ductura/server/bl
 | zajednički paket lažnih zamjena | U9 | server | test-fakes | nov (B4) |
 | objava paketa | T-0.5 (= U10) | server | contracts, test-fakes | GitHub Packages (B1) |
 | 1I završni CI | S-1I | server | — | |
-| val 0 temelj repoa | S-0.4, S-0.6, S-0.9, S-0.10-a, S-0.10-b, S-0.11, S-0.13, S-0.14, S-0.15, S-0.16, S-0.17, S-0.18, S-0.19, S-0.20 | server | S-0.16 → test-fakes; S-0.10-a/b skripte u `.github` | |
+| val 0 temelj repoa | S-0.4, S-0.6, S-0.9, S-0.10-a, S-0.10-b, S-0.11, S-0.13, S-0.14, S-0.15, S-0.16, S-0.17, S-0.18, S-0.19 (S-0.20 ukinut 17. 11.) | server | S-0.16 → test-fakes; S-0.10-a/b skripte u `.github` | |
 | val 0 u Ductusu | S-0.2, S-0.3, S-0.21 | Ductus | — | S-0.2 ulaz u U4; S-0.3 odlučuje PGlite u test-fakes |
 | 2.0 i 3c preloader | P-0.1 … P-0.11 | preloader | contracts, test-fakes, ui | A3: ovise o shemi, ne o serveru (osim P-0.10) |
 | 2.1 i 3e info stranica | P-0.9 | preloader | ui | |
@@ -75,7 +75,7 @@ Koraci U1–U11 su nazivi iz [plan servera](https://github.com/ductura/server/bl
 
 | ID | Repo | Napomena |
 |---|---|---|
-| T-0.1, T-0.2, T-0.3, T-0.4, T-0.7 | `.github` | B2: T-0.1, T-0.2, T-0.4 odmah nakon kostura (U2); preseti nov zadatak |
+| T-0.1, T-0.2, T-0.4, T-0.7 | `.github` | T-0.3 ukinut 17. 11.; B2: T-0.1, T-0.2, T-0.4 odmah nakon kostura (U2); preseti nov zadatak |
 | T-0.5 | server | = U10 |
 | T-0.6 | Ductus | skripte orkestratora za više repoa (popis: 5 + `.github` + Ductus) |
 | P-0.1 … P-0.11 | preloader | |
@@ -95,7 +95,7 @@ Koraci U1–U11 su nazivi iz [plan servera](https://github.com/ductura/server/bl
 | V-1 | organizacija `Ductura` i repo `server` (gotovo 14. 11.) | server; B2 dodaje `.github` |
 | V-1b | aktivacija repoa po fazama (migracija) | preloader i web (odobreno 14. 11., ne čeka fazu C); desktop je zasebna radnja „Faza E · aktivacija desktop razvoja”; arhiviranje `web-mobile`, `web-other` nakon potvrde |
 | V-2 | zaštita grane, `ci-ok`, statusi gatea | svaki repo |
-| V-3 | aplikacija botova i Mergify | svaki repo |
+| V-3 | aplikacija botova | svaki repo |
 | V-4 | tajne i CI runneri | server |
 | V-5 | zahtjev Srcu (registracija, ne-preglednički klijent); tek nakon konačnog V-0 (R-4) | server (S-1E-b, S-1E-e) |
 | V-6 | backup u produkciji | server (nakon S-1G-e) |
