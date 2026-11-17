@@ -1,7 +1,8 @@
 // Fails when a workflow job has no permissions of its own and the file has none
-// either (DAN-970). Workflows are read with a real YAML parser; anything it
-// cannot read the way GitHub does (YAML errors, several documents, merge keys,
-// missing jobs) is a finding, never a pass.
+// either, or when the file or a job grants more than a list or read-all
+// (DAN-970). Workflows are read with a real YAML parser; anything it cannot
+// read the way GitHub does (YAML errors, several documents, merge keys, missing
+// jobs) is a finding, never a pass.
 // Usage: node scripts/permissions-check.mjs <dir-or-file>...
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -12,6 +13,12 @@ const isMap = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
 // Own, non-null key only: an inherited name or `permissions:` without a value
 // grants nothing to read here.
 const hasPermissions = (node) => Object.hasOwn(node, "permissions") && node.permissions != null;
+// Anything but a plain mapping (a list of scopes) or exactly read-all is broad:
+// write-all, a bare write, other spellings, and tagged values such as
+// !!binary, !!set or a date that the parser turns into other objects.
+const isPlainMap = (v) => isMap(v) && Object.getPrototypeOf(v) === Object.prototype;
+const isBroad = (node) => hasPermissions(node) && !isPlainMap(node.permissions) && node.permissions !== "read-all";
+const shown = (v) => (Array.isArray(v) ? "list" : typeof v === "object" ? v.constructor?.name ?? "object" : JSON.stringify(v));
 
 // The yaml parser breaks lines only on LF and CRLF. A lone CR, NEL, LS or PS
 // can end a comment for another YAML reader and reveal a job this parser
@@ -41,10 +48,14 @@ export function checkText(text, file) {
     read = { reason: error.message };
   }
   if (read.reason) return [{ file, kind: "unreadable", message: `unreadable workflow: ${read.reason}` }];
-  if (hasPermissions(read.wf)) return [];
-  return Object.entries(read.wf.jobs)
-    .filter(([, job]) => !hasPermissions(job))
-    .map(([job]) => ({ file, job, kind: "missing", message: `job ${job}: no permissions in the job or the file` }));
+  const { wf } = read;
+  const problems = [];
+  if (isBroad(wf)) problems.push({ file, kind: "broad", message: `permissions of the file: broad (${shown(wf.permissions)})` });
+  for (const [job, node] of Object.entries(wf.jobs)) {
+    if (isBroad(node)) problems.push({ file, job, kind: "broad", message: `job ${job}: broad permissions (${shown(node.permissions)})` });
+    else if (!hasPermissions(wf) && !hasPermissions(node)) problems.push({ file, job, kind: "missing", message: `job ${job}: no permissions in the job or the file` });
+  }
+  return problems;
 }
 
 function workflowFiles(path) {
