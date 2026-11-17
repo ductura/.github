@@ -28,6 +28,18 @@ test("unknown path gets the default of the table", () => {
   }
 });
 
+test("the default applies per path, also in a mixed list", () => {
+  const template = parseRiskTable(TEMPLATE);
+  const lowered = parseRiskTable(table([rule("docs/**", "low")], { default: "critical" }));
+  for (const [t, path, expected] of [
+    [template, "src/unknown.ts", "standard"],
+    [lowered, "src/x.ts", "critical"],
+  ] as const) {
+    assert.equal(minimumRisk(t, ["docs/a.md", path]), expected);
+    assert.equal(minimumRisk(t, [path, "docs/a.md"]), expected);
+  }
+});
+
 test("the highest matching level wins whatever the order", () => {
   const rules = [rule("docs/**", "low"), rule("docs/gate/**", "critical")];
   for (const list of [rules, [...rules].reverse()])
