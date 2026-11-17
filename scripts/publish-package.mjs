@@ -36,17 +36,20 @@ function filePatterns(files) {
   });
 }
 
+// A text field ends at its first NUL; node-tar may still read bytes after it,
+// so every byte after that NUL must be NUL too.
 function field(block, start, length) {
   const bytes = block.subarray(start, start + length);
   const end = bytes.indexOf(0);
+  if (end !== -1 && !bytes.subarray(end).every((b) => b === 0)) throw new Error("tar: bytes after NUL in a header field");
   return bytes.subarray(0, end === -1 ? length : end).toString("latin1");
 }
 
 function octal(block, start, length) {
-  // Raw bytes, no trim(): only octal digits and spaces, so NBSP and other
-  // whitespace cannot make a field that node-tar reads differently.
-  const text = field(block, start, length);
-  if (!/^ *[0-7]+ *$/.test(text)) throw new Error(`tar: not an octal number: ${JSON.stringify(text)}`);
+  // The whole raw field, no trim(): octal digits, then only spaces or NULs, so
+  // NBSP or bytes after a NUL cannot make a field that node-tar reads differently.
+  const text = block.subarray(start, start + length).toString("latin1");
+  if (!/^ *[0-7]+[ \0]*$/.test(text)) throw new Error(`tar: not an octal number: ${JSON.stringify(text)}`);
   return parseInt(text, 8);
 }
 
@@ -135,8 +138,13 @@ export function main(args, env = process.env) {
     if (problems.length === 0) {
       const sha256 = createHash("sha256").update(gz).digest("hex");
       const lines = `file=${packed[0]}\nsha256=${sha256}\n`;
-      process.stdout.write(lines);
       if (env.GITHUB_OUTPUT) appendFileSync(env.GITHUB_OUTPUT, lines);
+      // GITHUB_OUTPUT may alias the tarball (same path, link) or sit in the folder:
+      // only the checked file, byte for byte, may be left for the release.
+      const after = readdirSync(out);
+      const same = after.length === 1 && createHash("sha256").update(readFileSync(join(out, after[0]))).digest("hex") === sha256;
+      if (!same) throw new Error("GITHUB_OUTPUT changed the output folder");
+      process.stdout.write(lines);
       return 0;
     }
   } catch (error) {

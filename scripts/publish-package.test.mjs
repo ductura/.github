@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
@@ -73,6 +73,10 @@ const rejected = [
   // An allowed path, so only the type rejects these.
   ...["5", "x", "g", "L", "\0"].map((type) => [`type ${JSON.stringify(type)}`, [...GOOD, ["package/rules/b.js", "x", { type }]]]),
   ["ustar prefix", [...GOOD, ["package/rules/b.js", "x", { prefix: "x" }]]],
+  // node-tar may read bytes after the first NUL of a field: they must be NUL too.
+  ["byte after NUL in the name", [...GOOD, ["package/rules/b.js\0\nx"]]],
+  ["byte after NUL in the prefix", [...GOOD, ["package/rules/b.js", "x", { prefix: "\0x" }]]],
+  ["byte after NUL in the size", [...GOOD, ["package/rules/b.js", "x", { sizeText: "0000000001\0x" }]]],
   ["NBSP in the size", [...GOOD, ["package/rules/b.js", "x", { sizeText: "\u00a000000000001" }]]],
   ["non-octal size", [...GOOD, ["package/rules/b.js", "x", { sizeText: "00000000019\0" }]]],
   ["files entry with no match", GOOD.filter(([p]) => p !== "package/index.d.ts")],
@@ -168,4 +172,20 @@ test("CLI: a bad tag or a non-empty output folder fails with 1, wrong usage with
   assert.equal(cli(["refs/tags/tsconfig-v0.1.0", full]).status, 1);
   assert.deepEqual(readdirSync(full), ["old.tgz"]);
   assert.equal(cli(["refs/tags/tsconfig-v0.1.0"]).status, 2);
+});
+
+test("CLI: GITHUB_OUTPUT inside the output folder fails with 1 and leaves it empty", () => {
+  for (const name of ["ductura-tsconfig-0.1.0.tgz", "github-output"]) {
+    const out = temp();
+    const run = cli(["refs/tags/tsconfig-v0.1.0", out], { GITHUB_OUTPUT: join(out, name) });
+    assert.equal(run.status, 1, name);
+    assert.equal(run.stdout, "", name);
+    assert.deepEqual(readdirSync(out), [], name);
+  }
+  // A link elsewhere that points at the tarball npm pack is about to write.
+  const out = temp();
+  const link = join(temp(), "github-output");
+  symlinkSync(join(out, "ductura-tsconfig-0.1.0.tgz"), link);
+  assert.equal(cli(["refs/tags/tsconfig-v0.1.0", out], { GITHUB_OUTPUT: link }).status, 1);
+  assert.deepEqual(readdirSync(out), []);
 });
