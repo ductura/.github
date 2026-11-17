@@ -91,7 +91,7 @@ Koraci U1–U11 su nazivi iz [plan servera](https://github.com/ductura/server/bl
 
 | ID | Što (sažeto) | Repo |
 |---|---|---|
-| V-0 | domena (`ductura.cfd` ili `.top`) i adresa e-pošte; konačan prije zahtjeva Srcu (R-4) | sve (preloader proxy) |
+| V-0 | domena `ductura.org` (odlučeno 17. 11., Ductus#2012 c.6934113245) i adresa e-pošte (otvoreno); konačan prije zahtjeva Srcu (R-4) | sve (preloader proxy) |
 | V-1 | organizacija `Ductura` i repo `server` (gotovo 14. 11.) | server; B2 dodaje `.github` |
 | V-1b | aktivacija repoa po fazama (migracija) | preloader i web (odobreno 14. 11., ne čeka fazu C); desktop je zasebna radnja „Faza E · aktivacija desktop razvoja”; arhiviranje `web-mobile`, `web-other` nakon potvrde |
 | V-2 | zaštita grane, `ci-ok`, statusi gatea | svaki repo |
@@ -105,7 +105,7 @@ Koraci U1–U11 su nazivi iz [plan servera](https://github.com/ductura/server/bl
 
 | Stavka | Repo | Napomena |
 |---|---|---|
-| §1 koraci 1–3 (domena, preusmjeravanje, dijelovi) | preloader (proxy), V-0 | domena **otvoreno** |
+| §1 koraci 1–3 (domena, preusmjeravanje, dijelovi) | preloader (proxy), V-0 | domena `ductura.org` (17. 11.) |
 | §2 sedam dijelova u jednom `main` | zamijenjeno: 5 repoa + `.github` | shared-core → paketi u serveru i webu |
 | §2 shared-core | `@ductura/contracts`, `@ductura/test-fakes`, `@ductura/ui`, `@ductura/editor-core`, `@ductura/parity` | |
 | §3 redak Win Chrome | preloader | A1: web, prikaz računalo, gumb Windows |
@@ -132,7 +132,7 @@ Koraci U1–U11 su nazivi iz [plan servera](https://github.com/ductura/server/bl
 4. **Sinkronizacija u editor-coreu**: migracija §2c traži „osam stanja” u paketu i navodi `src/lib/sync`, a stroj je u `src/domain/sync` i `src/domain/serverSync`, koje §3 šalje kopijom. Preporuka: oba u `@ductura/editor-core` s testovima.
 5. **VS-1** je preko tri repoa. Preporuka: nositelj web, PR-ovi po repou povezani jednim issueom; sistemski e2e u preloaderu.
 6. **`@ductura/parity`** nedostaje u tablici paketa migracije §2c. Preporuka: dodati (web).
-7. **Domena i hosting proxyja**: nijedan izvor ne odlučuje gdje radi proxy i server u produkciji ni trošak. **Otvoreno** (V-0, trošak).
+7. **Hosting proxyja** (domena odlučena: `ductura.org`): nijedan izvor ne odlučuje gdje radi proxy i server u produkciji ni trošak. **Otvoreno** (V-0, trošak).
 8. **Putanja weba**: nakon A1 nema `/c/`, `/m/`, `/o/`. Preporuka: jedna putanja (npr. `/app/`), uz odluku 1.
 9. **GitHub Packages i token**: npm registar GitHub Packagesa traži token i za javne pakete. Preporuka: u CI-ju `GITHUB_TOKEN` s `packages: read` i dodijeljenim pristupom repou; za lokalni rad osobni token. Ako to smeta vanjskim suradnicima, javni npm opseg je besplatna zamjena (nova vlasnička odluka).
 10. **Testovi bez Dockera (B4) i pravi PostgreSQL**: ovlasti i RLS traže pravi PostgreSQL. Preporuka: nativni PostgreSQL na runneru (kao Ductus `native-db.mjs`); Docker slika S-1H.7 samo kao izdanje.

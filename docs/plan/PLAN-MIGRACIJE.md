@@ -27,6 +27,7 @@ Vlasnik je 14. 11. odobrio sljedeće ispravke (Ductus#87, c.6879745570 i c.68793
 7. **U11** (§7) traži vlasnikovu potvrdu teksta pravila.
 8. **Nazivi repozitorija:** `web-chrome` je preimenovan u `web` (u §2d je to već zamijenjeno). `web-mobile` i `web-other` su arhivirani, pa se u ostatku dokumenta tri web repozitorija čitaju kao jedan repozitorij `web`.
 9. **Odluka vlasnika O-1, O-2, O-3 (14. 11., Ductus#87 c.6880835493, dopuna c.6880861260):** pilot na jednom sustavu (§4d), VS-1 u dva koraka s novom stavkom VS-1b i tvrdnjom VS-1.13 (§4a-1), uski rez servera iza S-0.19 (§4c), novi odjeljak „Rizici” R-1 do R-10 (§8a). Gdje se ostatak dokumenta s tim razilazi, vrijedi ta odluka. Točke 4 i 5 odluke (niža revizija na poslužitelju, pravila rada za ductura/*) nisu dio ovog plana; točka 4 je odlučena (varijanta A, Ductus#87 c.6880906459) i zapisana u §8a kao R-8.
+10. **Domena je `ductura.org`** (odluka vlasnika 17. 11. 2026., Ductus#2012 c.6934113245): zamjenjuje prijašnji primjer i izbor između dvije domene (§1c, KARTA §3 i §4). V-0 ostaje otvoren zbog adrese e-pošte, pa R-4 i V-5 i dalje čekaju njegov konačan oblik.
 
 ---
 
@@ -69,7 +70,7 @@ Vlasnik je 14. 11. odobrio sljedeće ispravke (Ductus#87, c.6879745570 i c.68793
 
 ### 1c. Jedna domena: prijedlog usmjeravanja
 
-**Preporuka: jedna adresa i podputanje.** Primjer na `ductura.cfd`:
+**Preporuka: jedna adresa i podputanje.** Primjer na `ductura.org` (domena odlučena 17. 11., ispravak 10):
 
 | Putanja | Tko je poslužuje |
 |---|---|
@@ -80,7 +81,7 @@ Vlasnik je 14. 11. odobrio sljedeće ispravke (Ductus#87, c.6879745570 i c.68793
 | `/api/v1/` | server |
 | `/preuzimanje/` | paketi, preko manifesta servera (S-1H.5) |
 
-Zašto podputanje, a ne poddomene (`c.ductura.cfd` …):
+Zašto podputanje, a ne poddomene (`c.ductura.org` …):
 1. Kolačić sesije ostaje `__Host-` kolačić. On radi samo na jednoj adresi. S poddomenama bismo morali širiti kolačić na cijelu domenu, a to je slabija zaštita.
 2. Nema CORS-a. Sučelje i API su na istom porijeklu, pa postojeća zaštita od zahtjeva s drugog porijekla radi bez promjene.
 3. Srce dobiva jednu adresu preusmjeravanja za web (V-5).
@@ -487,7 +488,7 @@ Pretpostavka: početak u ponedjeljak 17. 11., nakon prezentacije. Dokumenti i sp
 ### 10c. Raspored
 
 **Tjedan 1 (17.–21. 11.)**
-- Ti: V-0 domena i e-pošta. V-1 organizacija i repozitoriji. Odgovori na odluke 1–6, 11 i 14–16.
+- Ti: V-0 e-pošta (domena odlučena 17. 11.: `ductura.org`). V-1 organizacija i repozitoriji. Odgovori na odluke 1–6, 11 i 14–16.
 - U Ductusu odmah: S-0.1 (s izmjenom iz 10a), S-0.2, S-0.3, S-0.21.
 - Nakon V-1: S-0.4, zatim S-0.5, S-0.7 i S-0.16 usporedno.
 
