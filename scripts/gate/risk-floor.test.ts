@@ -150,3 +150,24 @@ test("matching stays polynomial for patterns that make a RegExp backtrack", () =
   assert.equal(minimumRisk(t, [path]), "standard");
   assert.ok(performance.now() - start < 1000, "glob matching must not backtrack");
 });
+
+test("ASCII case folding does not join a Unicode letter to an ASCII rule", () => {
+  // KELVIN SIGN (U+212A) lower-cases to "k" with toLowerCase(); foldAscii must not.
+  const t = parseRiskTable(table([rule("k.md", "critical")]));
+  assert.equal(minimumRisk(t, ["K.md"]), "standard");
+  assert.equal(minimumRisk(t, ["K.md"]), "critical");
+});
+
+test("many rules matching one path give the highest level, without a RangeError", () => {
+  // 150 000 distinct patterns over 18 segments, each segment `s` or `*`:
+  // all match the same path. Spreading them into Math.max threw a RangeError.
+  const depth = 18;
+  const path = Array<string>(depth).fill("s").join("/");
+  const patterns = Array.from({ length: 150_000 }, (_, mask) =>
+    Array.from({ length: depth }, (_, bit) => ((mask >> bit) & 1 ? "*" : "s")).join("/"),
+  );
+  const rules = patterns.map((pattern) => rule(pattern, "low"));
+  assert.equal(minimumRisk(parseRiskTable(table(rules)), [path]), "low");
+  rules[rules.length - 1] = rule(patterns[patterns.length - 1] ?? "", "critical");
+  assert.equal(minimumRisk(parseRiskTable(table(rules)), [path]), "critical");
+});

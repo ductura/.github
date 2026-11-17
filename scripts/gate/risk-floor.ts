@@ -145,8 +145,14 @@ export function minimumRisk(table: RiskTable, paths: readonly string[]): Risk {
       throw new Error(`risk floor: bad path ${JSON.stringify(path)}`);
     for (const { read, rules } of readings) {
       const segments = read(path).split("/");
-      const matched = rules.filter((rule) => matchGlob(rule.segments, segments));
-      floor = Math.max(floor, ...matched.map((rule) => rule.rank), matched.length > 0 ? 0 : base);
+      // A loop, not a spread: any number of matching rules is a valid table.
+      let matched = false;
+      for (const rule of rules) {
+        if (!matchGlob(rule.segments, segments)) continue;
+        matched = true;
+        floor = Math.max(floor, rule.rank);
+      }
+      if (!matched) floor = Math.max(floor, base);
     }
   }
   return RISKS[floor] ?? "critical";
