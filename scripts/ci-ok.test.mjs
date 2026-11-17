@@ -99,6 +99,8 @@ const strayEvents = (text) => eventsOf(workflowOf(text)).filter((e) => !ALLOWED.
 
 const dir = new URL("../.github/workflows/", import.meta.url);
 const selfTest = workflowOf(readFileSync(new URL("self-test.yml", dir), "utf8"));
+// The one job that is skipped on purpose: only red-aggregate may need it (DAN-971).
+const SKIPPED = "node-skipped";
 const allowSkipped = "${{ github.event_name != 'pull_request' && 'dependency-review' || '' }}";
 
 // Workflows another PR could add: each must be refused by the trigger check.
@@ -160,7 +162,7 @@ test("self-test ci-ok is a plain job named ci-ok over every other job", () => {
   assert.ok(ok["runs-on"], "ci-ok runs on a runner");
   assert.equal(ok.uses, undefined, "ci-ok is not a reusable workflow call");
   assert.equal(ok.if, "${{ always() }}");
-  assert.deepEqual([...needsOf(ok)].sort(), Object.keys(jobs).filter((j) => j !== "ci-ok").sort());
+  assert.deepEqual([...needsOf(ok)].sort(), Object.keys(jobs).filter((j) => j !== "ci-ok" && j !== SKIPPED).sort());
   const step = ok.steps.find((s) => typeof s.run === "string" && s.run.includes("node scripts/extract-run.mjs .github/workflows/ci-ok.yml ci-ok"));
   assert.ok(step, "ci-ok runs the block that ci-ok.yml ships");
   assert.equal(step.env?.RESULTS, "${{ toJSON(needs) }}");
@@ -175,7 +177,7 @@ test("self-test ci-ok-reusable calls ci-ok.yml over every job but ci-ok", () => 
   assert.ok(isMap(reusable), "self-test has a ci-ok-reusable job");
   assert.equal(reusable.uses, "./.github/workflows/ci-ok.yml");
   assert.equal(reusable.if, "${{ always() }}");
-  assert.deepEqual([...needsOf(reusable)].sort(), Object.keys(jobs).filter((j) => !j.startsWith("ci-ok")).sort());
+  assert.deepEqual([...needsOf(reusable)].sort(), Object.keys(jobs).filter((j) => !j.startsWith("ci-ok") && j !== SKIPPED).sort());
   assert.equal(reusable.with?.results, "${{ toJSON(needs) }}");
   assert.equal(reusable.with?.["allow-skipped"], allowSkipped);
 });
@@ -192,4 +194,46 @@ test("no other workflow runs jobs that ci-ok cannot see", () => {
   for (const file of others) {
     assert.deepEqual(strayEvents(readFileSync(new URL(file, dir), "utf8")), [], file);
   }
+});
+
+// Jobs that pass expect-failure to a reusable workflow, as "file:job".
+function expectFailureCallers(files) {
+  return Object.entries(files).flatMap(([file, text]) =>
+    Object.entries(jobsOf(workflowOf(text)))
+      .filter(([, job]) => isMap(job.with) && Object.hasOwn(job.with, "expect-failure"))
+      .map(([name]) => `${file}:${name}`));
+}
+
+const callerCases = [
+  ["another workflow", { "a.yml": "on: push\njobs:\n  x: { uses: ./c.yml, with: { expect-failure: false } }\n" }, ["a.yml:x"]],
+  ["quoted key", { "a.yml": 'on: push\njobs:\n  x: { uses: ./c.yml, with: { "expect-failure": true } }\n' }, ["a.yml:x"]],
+  ["merge key", { "a.yml": "on: push\nw: &w { expect-failure: true }\njobs:\n  x: { uses: ./c.yml, with: { <<: *w } }\n" }, ["a.yml:x"]],
+  ["NBSP in the key is another input", { "a.yml": "on: push\njobs:\n  x: { uses: ./c.yml, with: { expect-failure\u00a0: true } }\n" }, []],
+  ["no with", { "a.yml": "on: push\njobs:\n  x: { uses: ./c.yml }\n" }, []],
+];
+for (const [name, files, found] of callerCases) {
+  test(`expect-failure caller check: ${name}`, () => assert.deepEqual(expectFailureCallers(files), found));
+}
+
+// expect-failure exists only for the self-test; no real caller may set it.
+test("only self-test.yml node-fail sets expect-failure", () => {
+  const files = Object.fromEntries(readdirSync(dir).filter((f) => /\.ya?ml$/i.test(f)).map((f) => [f, readFileSync(new URL(f, dir), "utf8")]));
+  assert.deepEqual(expectFailureCallers(files), ["self-test.yml:node-fail"]);
+});
+
+test("self-test runs ci-ok over a failed fixture and a skipped job", () => {
+  const jobs = jobsOf(selfTest);
+  assert.deepEqual(jobs["node-fail"].with, { "working-directory": "fixtures/node-fail", scripts: "test", "expect-failure": true });
+  assert.equal(jobs["node-fail"].uses, "./.github/workflows/ci-node.yml");
+  assert.equal(jobs[SKIPPED].if, "${{ false }}");
+  const red = jobs["red-aggregate"];
+  assert.deepEqual(needsOf(red), ["node-fail", SKIPPED]);
+  assert.equal(red.if, "${{ always() }}");
+  assert.deepEqual(Object.keys(jobs).filter((j) => needsOf(jobs[j]).includes(SKIPPED)), ["red-aggregate"]);
+  for (const j of ["ci-ok", "ci-ok-reusable"]) assert.ok(needsOf(jobs[j]).includes("red-aggregate"), j);
+  const step = red.steps.find((s) => typeof s.run === "string" && s.run.includes("# red-aggregate:begin"));
+  assert.ok(step, "red-aggregate runs its tested block");
+  assert.doesNotMatch(step.run, /\$\{\{/, "values reach the block only through env");
+  assert.match(step.run, /extract-run\.mjs \.github\/workflows\/ci-ok\.yml ci-ok/);
+  assert.deepEqual(step.env, { RESULTS: "${{ toJSON(needs) }}", SCRIPTS_RESULT: "${{ needs.node-fail.outputs.scripts-result }}" });
 });

@@ -16,6 +16,14 @@ on:
         description: Package scripts to run in order, separated by spaces or newlines
         type: string
         default: "typecheck test"
+      expect-failure:
+        description: Self-test only (DAN-971). Green only if a package script failed; the install must still pass
+        type: boolean
+        default: false
+    outputs:
+      scripts-result:
+        description: success, or failure if a package script failed
+        value: ${{ jobs.node.outputs.scripts-result }}
 permissions:
   contents: read
   packages: read
@@ -23,6 +31,8 @@ jobs:
   node:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      scripts-result: ${{ steps.scripts.outputs.scripts-result }}
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
@@ -44,17 +54,34 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ github.token }}
       - name: Package scripts
+        id: scripts
         env:
           SCRIPTS: ${{ inputs.scripts }}
+          EXPECT_FAILURE: ${{ inputs.expect-failure }}
         run: |
-          set -euo pipefail
-          read -ra names <<< "${SCRIPTS//$'\n'/ }"
+          # ci-node-scripts:begin
+          set -uo pipefail
+          read -ra names <<< "${SCRIPTS//[$'\r\n']/ }"
           if [ "${#names[@]}" -eq 0 ]; then
             echo "::error::input 'scripts' is empty"
             exit 1
           fi
+          result=success
           for name in "${names[@]}"; do
             echo "::group::pnpm run $name"
-            pnpm run "$name"
+            pnpm run "$name" || result=failure
             echo "::endgroup::"
+            [ "$result" = success ] || break
           done
+          echo "scripts-result=$result" >> "$GITHUB_OUTPUT"
+          if [ "$EXPECT_FAILURE" = true ]; then
+            if [ "$result" = success ]; then
+              echo "::error::expect-failure is set, but every script passed"
+              exit 1
+            fi
+            echo "pnpm run $name failed, as expect-failure requires"
+          elif [ "$result" = failure ]; then
+            echo "::error::pnpm run $name failed"
+            exit 1
+          fi
+          # ci-node-scripts:end

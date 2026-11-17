@@ -76,7 +76,7 @@ Vizualni, pristupačnost i performanse se ne primjenjuju. **Matrica:** `ubuntu-l
 
 ## 7. CI i gate
 
-- Poslovi: `actionlint`, `pin-check`, `permissions-check` (DAN-970), `unit` (skripte gatea), `self-test`, `presets`, `lint-presets`, `secret-scan`, `ci-ok-reusable` i obvezni `ci-ok` (običan posao nad svim ostalima, DAN-885), svi u `self-test.yml`. Tjedno `drift-check`.
+- Poslovi: `actionlint`, `pin-check`, `permissions-check` (DAN-970), `unit` (skripte gatea), `self-test`, `node-fail`, `node-skipped` i `red-aggregate` (crveni `ci-ok`, DAN-971), `presets`, `lint-presets`, `secret-scan`, `ci-ok-reusable` i obvezni `ci-ok` (običan posao nad svim ostalima, DAN-885), svi u `self-test.yml`. Tjedno `drift-check`.
 - Risk: cijeli repo `critical` osim `profile/**` i `ISSUE_TEMPLATE/**` (`low`), jer upravlja gateom svih repoa.
 - Vlasničke radnje: stvaranje repoa (V-1 opseg), V-2 i V-3 za ovaj repo; potvrda U11.
 
