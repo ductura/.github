@@ -16,14 +16,21 @@ const REJECTED = ["c" + "fd", "to" + "p"]; // spelled apart so this file never n
 const normalize = (text) =>
   text
     .normalize("NFKC")
-    .replace(/[​-‍⁠﻿]/g, "")
+    .replace(/[\u200B-\u200D\u2060\uFEFF]/g, "")
+    .replace(/[\u3002\uFF0E\uFF61]/g, ".")
     .replace(/\\\./g, ".")
     .replace(/\[\.\]/g, ".")
     .replace(/[ \t]+\./g, ".");
 
-/** Every ductura.<tld> whose TLD is not org, in any tracked text. */
+/**
+ * Every ductura domain except ductura.org itself: the whole label chain after
+ * "ductura" must be ".org", so Unicode TLDs, punycode and longer
+ * label chains that continue after .org are all findings.
+ */
 export const foreignDomains = (text) =>
-  [...normalize(text).matchAll(/\bductura\.([a-z0-9-]+)/gi)].filter((m) => m[1].toLowerCase() !== "org").map((m) => m[0]);
+  [...normalize(text).matchAll(/(?<![\p{L}\p{N}_-])ductura((?:\.[\p{L}\p{N}\p{M}-]+)+)/giu)]
+    .filter((m) => m[1].toLowerCase() !== ".org")
+    .map((m) => m[0]);
 
 /** Rejected TLDs in a plan document: a whole word cfd, or `.top` as a code span. */
 export const rejectedTldMentions = (text) => {
@@ -54,6 +61,13 @@ test("checker reports every disguised foreign domain", () => {
     "ductura\u200B.<c>",
     "ductura\uFF0E<c>",
     "ductura.<t>",
+    "ductura.\u0440\u0444",
+    "ductura.\u4F8B\u3048",
+    "ductura\u002Exn--p1ai",
+    "ductura\u3002<c>",
+    "ductura\uFF61<c>",
+    "ductura.org.<c>",
+    "c.ductura.ORG\u002Eexample",
   ].map(spell);
   for (const s of bad) assert.equal(foreignDomains(`Primjer na \`${s}\`.`).length, 1, s);
 });
@@ -66,11 +80,12 @@ test("checker accepts ductura.org, package names, repo paths and prose", () => {
   const good = [
     "ductura.org",
     "c.ductura.org",
+    "Domena je ductura.org.",
     "https://ductura.org/api/auth/callback",
     "@ductura/contracts",
     "ductura/.github",
     "Ductura/server",
-    "Repozitorij organizacije Ductura. Zajednički plan",
+    "Repozitorij organizacije Ductura. Zajedni\u010Dki plan",
     "https://github.com/ductura/server",
     "topologija, window.top, .top { }",
   ];
