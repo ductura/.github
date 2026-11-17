@@ -8,19 +8,12 @@ import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { normalize } from "./plan-text.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const PLAN_DOCS = ["docs/plan/PLAN-MIGRACIJE.md", "docs/plan/KARTA.md"];
 const REJECTED = ["c" + "fd", "to" + "p"]; // spelled apart so this file never names them
 
-const normalize = (text) =>
-  text
-    .normalize("NFKC")
-    .replace(/[\u200B-\u200D\u2060\uFEFF]/g, "")
-    .replace(/[\u3002\uFF0E\uFF61]/g, ".")
-    .replace(/\\\./g, ".")
-    .replace(/\[\.\]/g, ".")
-    .replace(/[ \t]+\./g, ".");
 
 /**
  * Every ductura domain except ductura.org itself: the whole label chain after
