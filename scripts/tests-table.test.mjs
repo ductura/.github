@@ -1,6 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
 import { compare, runFixture } from "./tests-table-self-test.mjs";
 import { checkRenderedTable, isDocsOnly, listFiles, run } from "./tests-table.mjs";
@@ -313,4 +317,84 @@ test("self-test.yml runs tests-table.yml over every fixture, at least one passin
   assert.deepEqual([...cases].sort(), files.sort());
   const exits = files.map((f) => JSON.parse(readFileSync(new URL(`${f}.json`, FIXTURES), "utf8")).expect.exit);
   assert.ok(exits.includes(0) && exits.includes(1));
+});
+
+// A broken check must turn the self-test step red (DAN-948-2). Each mutant
+// copies the runner and the self-test into a temp dir (the self-test finds
+// the runner next to itself), replaces one exported function of the copy
+// and runs the self-test script over every captured fixture as the
+// workflow step does. The exported name must occur exactly once, so a
+// mutant is never the unchanged check.
+const SCRIPTS = new URL("./", import.meta.url);
+const fixtureCases = fixtureNames.map((f) => {
+  const fx = JSON.parse(readFileSync(new URL(f, FIXTURES), "utf8"));
+  return { path: fileURLToPath(new URL(f, FIXTURES)), fixture: fx, code: !isDocsOnly(fx.files) };
+});
+function copy(mutate = {}, selfTest = (s) => s) {
+  const dir = mkdtempSync(join(tmpdir(), "tests-table-mutant-"));
+  let runner = readFileSync(new URL("tests-table.mjs", SCRIPTS), "utf8");
+  for (const [name, body] of Object.entries(mutate)) {
+    const signature = `export function ${name}(`;
+    assert.equal(runner.split(signature).length, 2, `${signature} occurs exactly once`);
+    runner = runner.replace(signature, `function original_${name}(`) + `\nexport function ${name}() { ${body} }\n`;
+  }
+  writeFileSync(join(dir, "tests-table.mjs"), runner);
+  writeFileSync(join(dir, "tests-table-self-test.mjs"), selfTest(readFileSync(new URL("tests-table-self-test.mjs", SCRIPTS), "utf8")));
+  return dir;
+}
+const selfTestExit = (dir, path) => {
+  const r = spawnSync(process.execPath, [join(dir, "tests-table-self-test.mjs"), path], { encoding: "utf8", timeout: 20_000 });
+  assert.equal(r.error, undefined, "the self-test finished in time");
+  return { exit: r.status, output: r.stdout };
+};
+const MUTANTS = [
+  ["always passes", { checkRenderedTable: 'return { ok: true, message: "ok" };' }, (c) => c.fixture.expect.exit === 1],
+  ["always fails", { checkRenderedTable: 'return { ok: false, message: "x" };' }, (c) => c.fixture.expect.exit === 0],
+  ["throws", { checkRenderedTable: 'throw new Error("mutant");' }, () => true],
+  ["treats every PR as docs", { isDocsOnly: "return true;" }, (c) => c.code && c.fixture.expect.exit === 1],
+];
+
+test("unbroken copy passes the self-test step over every fixture", () => {
+  const dir = copy();
+  for (const c of fixtureCases) assert.equal(selfTestExit(dir, c.path).exit, 0, c.path);
+  rmSync(dir, { recursive: true });
+});
+for (const [name, mutate, caught] of MUTANTS) {
+  test(`broken check fails the self-test step: ${name}`, () => {
+    const dir = copy(mutate);
+    const hit = fixtureCases.filter(caught);
+    assert.ok(hit.length > 0);
+    for (const c of hit) {
+      const { exit, output } = selfTestExit(dir, c.path);
+      assert.equal(exit, 1, c.path);
+      // A failing fixture exits 1 either way; the output comparison catches it.
+      if (name === "throws") assert.equal(output.includes(`> ${c.fixture.expect.output}`), false, c.path);
+    }
+    rmSync(dir, { recursive: true });
+  });
+}
+// The tests above can fail: a self-test that compares nothing lets every mutant through.
+test("a self-test that compares nothing lets every mutant through", () => {
+  const blind = (s) => {
+    const signature = "export function compare(fixture, outcome) {";
+    assert.equal(s.split(signature).length, 2);
+    return s.replace(signature, `${signature}\n  return [];`);
+  };
+  for (const [name, mutate] of MUTANTS) {
+    const dir = copy(mutate, blind);
+    for (const c of fixtureCases) assert.equal(selfTestExit(dir, c.path).exit, 0, `${name}: ${c.path}`);
+    rmSync(dir, { recursive: true });
+  }
+});
+// A red self-test step reaches ci-ok: needs and always() are in ci-ok.test.mjs.
+test("tests-table failure is never softened: no continue-on-error, fail-fast off, not allowed to skip", () => {
+  const read = (f) => parse(readFileSync(new URL(`../.github/workflows/${f}`, import.meta.url), "utf8"));
+  const reusable = read("tests-table.yml");
+  const selfTest = read("self-test.yml");
+  const job = selfTest.jobs["tests-table"];
+  for (const j of [...Object.values(reusable.jobs), job]) assert.equal(j["continue-on-error"], undefined);
+  for (const s of Object.values(reusable.jobs).flatMap((j) => j.steps)) assert.equal(s["continue-on-error"], undefined);
+  assert.equal(job.strategy["fail-fast"], false);
+  const skips = [selfTest.jobs["ci-ok-reusable"].with["allow-skipped"], ...selfTest.jobs["ci-ok"].steps.map((s) => s.env?.ALLOW_SKIPPED)];
+  for (const v of skips.filter((v) => v !== undefined)) assert.doesNotMatch(String(v), /tests-table/);
 });
