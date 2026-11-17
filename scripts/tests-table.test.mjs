@@ -5,7 +5,8 @@ import { parse } from "yaml";
 import { checkTestsTable, isDocsOnly, listFiles, run } from "./tests-table.mjs";
 
 const HEAD = "| Kriterij | Test | Pada bez promjene |\n|---|---|---|\n";
-const body = (rows, heading = "## Testovi prihvata") => `Opis\n\n${heading}\n\n${HEAD}${rows}\nOstalo\n`;
+// GFM renders a line right below a table as one more row, so a blank line ends it.
+const body = (rows, heading = "## Testovi prihvata") => `Opis\n\n${heading}\n\n${HEAD}${rows}\n\nOstalo\n`;
 const GOOD = body("| Prazan unos pada | scripts/a.test.mjs „prazan” | da |");
 const CODE = [{ filename: "src/a.ts", status: "modified" }];
 const DOCS = [{ filename: "docs/PLAN.md", status: "modified" }];
@@ -43,6 +44,13 @@ const failing = [
   ["table in an indented code block", "## Testovi prihvata\n\n    " + (HEAD + "| a | b | da |").split("\n").join("\n    ") + "\n"],
   ["table in a tab-indented code block", "## Testovi prihvata\n\n\t" + (HEAD + "| a | b | da |").split("\n").join("\n\t") + "\n"],
   ["table after an indented heading", "## Testovi prihvata\n\n   ## Dokaz\n\n" + HEAD + "| a | b | da |\n"],
+  ["whole section inside <pre>", "<pre>\n" + body("| a | b | da |") + "</pre>\n"],
+  ["table inside <pre>", "## Testovi prihvata\n\n<pre>\n" + HEAD + "| a | b | da |\n</pre>\n"],
+  ["table inside <PRE class>", "## Testovi prihvata\n\n<PRE class=\"x\">\n" + HEAD + "| a | b | da |\n</PRE>\n"],
+  ["table after an unclosed <pre>", "## Testovi prihvata\n\n<pre>\n\n" + HEAD + "| a | b | da |\n"],
+  ["table directly after <div>", "## Testovi prihvata\n\n<div>\n" + HEAD + "| a | b | da |\n"],
+  ["continuation row without pipes", body("| a | b | da |\ndrugi kriterij | | ne")],
+  ["continuation row without the closing pipe", body("| a | b | da |\n| c | | ne")],
   ["HTML table", "## Testovi prihvata\n\n<table><tr><td>a</td><td>b</td><td>da</td></tr></table>\n"],
 ];
 for (const [name, text] of failing) {
@@ -56,6 +64,7 @@ for (const [name, text] of failing) {
 const passing = [
   ["filled table", GOOD],
   ["CRLF body", GOOD.replace(/\n/g, "\r\n")],
+  ["HTML block, blank line, then the table", body("| a | b | da |").replace("## Testovi prihvata\n", "## Testovi prihvata\n<div>x</div>\n")],
   ["issue reference before the table", body("| a | b | da |").replace("## Testovi prihvata\n", "## Testovi prihvata\n#1836\n")],
   ["lone CR body", GOOD.replace(/\n/g, "\r")],
   ["text before the table", body("| a | b | da |").replace("## Testovi prihvata\n", "## Testovi prihvata\nUvod.\n")],

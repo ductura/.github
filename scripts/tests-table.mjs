@@ -42,7 +42,29 @@ function activeLines(body) {
     if (open) fence = open;
     else kept.push(line);
   }
-  return kept.join("\n").replace(/<!--[\s\S]*?(?:-->|$)/g, "").split("\n");
+  return htmlFree(kept.join("\n").replace(/<!--[\s\S]*?(?:-->|$)/g, "").split("\n"));
+}
+
+// Drops raw HTML blocks, which render without Markdown inside: <pre>, <script>,
+// <style> and <textarea> up to their closing tag; any other line that opens
+// with a tag up to the next blank line (fails closed: hiding more only fails).
+function htmlFree(lines) {
+  const kept = [];
+  let until = null;
+  for (const line of lines) {
+    if (until) {
+      if (until === "blank" ? line.trim() === "" : until.test(line)) until = null;
+      if (until === null && line.trim() === "") kept.push(line);
+      continue;
+    }
+    const raw = /^ {0,3}<(pre|script|style|textarea)(?:[\s>]|$)/i.exec(line)?.[1];
+    if (raw) {
+      const close = new RegExp(`</${raw}>`, "i");
+      if (!close.test(line)) until = close;
+    } else if (/^ {0,3}<\/?[a-z]/i.test(line)) until = "blank";
+    else kept.push(line);
+  }
+  return kept;
 }
 
 // Cells of a row that starts and ends with an unescaped pipe, or null.
@@ -78,9 +100,11 @@ export function checkTestsTable(body, files) {
   if (!sep || sep.length !== 3 || !sep.every((c) => /^:?-+:?$/.test(c)))
     return fail("Ispod zaglavlja tablice testova nedostaje red razdjelnika |---|---|---|.");
   let rows = 0;
-  for (let j = i + 2; j < stop && cells(lines[j]) !== null; j += 1) {
+  // The table runs to the first blank line; every line until then is a row.
+  for (let j = i + 2; j < stop && lines[j].trim() !== ""; j += 1) {
     rows += 1;
     const row = cells(lines[j]);
+    if (row === null) return fail(`Redak ${rows} tablice testova nije ispravan redak | … | … | … |.`);
     const where = `Redak ${rows} tablice testova`;
     if (row.length !== 3) return fail(`${where} nema točno tri ćelije.`);
     if (row.some((c) => c === "")) return fail(`${where} ima praznu ćeliju.`);
