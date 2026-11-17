@@ -1,0 +1,9 @@
+# Must fail scripts/permissions-check.mjs: no permissions in the file or the job.
+# Not a workflow of this repository; it is never run.
+name: missing-permissions
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo build
