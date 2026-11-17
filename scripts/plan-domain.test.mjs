@@ -40,6 +40,18 @@ export const rejectedTldMentions = (text) => {
   return [...t.matchAll(word), ...t.matchAll(span)].map((m) => m[0]);
 };
 
+/**
+ * Findings in raw file bytes, with no file skipped: the bytes are read as
+ * UTF-8 with NUL removed (ASCII text in a 16-bit encoding) and with NUL as a
+ * space (text next to binary data), and as UTF-16LE and UTF-16BE (non-ASCII TLDs in those encodings).
+ */
+export const foreignDomainsInBytes = (bytes) => {
+  const be = Buffer.from(bytes.subarray(0, bytes.length - (bytes.length % 2))).swap16();
+  const utf8 = bytes.toString("utf8");
+  const views = [utf8.replace(/\0/g, ""), utf8.replace(/\0/g, " "), bytes.toString("utf16le"), be.toString("utf16le")];
+  return [...new Set(views.flatMap(foreignDomains))];
+};
+
 const tracked = () =>
   execFileSync("git", ["ls-files", "-z"], { cwd: ROOT, encoding: "utf8" }).split("\0").filter(Boolean);
 
@@ -72,6 +84,26 @@ test("checker reports every disguised foreign domain", () => {
   for (const s of bad) assert.equal(foreignDomains(`Primjer na \`${s}\`.`).length, 1, s);
 });
 
+test("byte checker skips no file: NUL, UTF-16LE/BE and non-ASCII TLDs", () => {
+  const ascii = spell("https://ductura.<c>/x");
+  const cyr = "ductura.\u0440\u0444";
+  const be = (t) => Buffer.from(t, "utf16le").swap16();
+  const cases = [
+    Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0, 0, 0]), Buffer.from(ascii), Buffer.from([0, 0xff])]),
+    Buffer.from(`\uFEFF${ascii}`, "utf16le"),
+    Buffer.from(ascii, "utf16le"),
+    be(`\uFEFF${ascii}`),
+    be(ascii),
+    Buffer.from(cyr, "utf16le"),
+    be(cyr),
+    Buffer.from(`x\0${cyr}`, "utf8"),
+  ];
+  for (const [i, bytes] of cases.entries()) assert.ok(foreignDomainsInBytes(bytes).length > 0, `case ${i}`);
+  for (const ok of ["ductura.org", "c.ductura.org\0", "@ductura/contracts"]) {
+    for (const bytes of [Buffer.from(ok), Buffer.from(ok, "utf16le"), be(ok)]) assert.deepEqual(foreignDomainsInBytes(bytes), [], ok);
+  }
+});
+
 test("checker reports rejected TLDs in plan text", () => {
   for (const s of ["`.<t>`", "`.<T>`", "<c>", "<C> ili", "`.<c>`"].map(spell)) assert.ok(rejectedTldMentions(s).length > 0, s);
 });
@@ -98,9 +130,7 @@ test("checker accepts ductura.org, package names, repo paths and prose", () => {
 test("no tracked file names a ductura domain other than ductura.org", () => {
   const findings = [];
   for (const file of tracked()) {
-    const text = readFileSync(join(ROOT, file), "utf8");
-    if (text.includes("\0")) continue; // binary
-    for (const d of foreignDomains(text)) findings.push(`${file}: ${d}`);
+    for (const d of foreignDomainsInBytes(readFileSync(join(ROOT, file)))) findings.push(`${file}: ${d}`);
   }
   assert.deepEqual(findings, []);
 });
