@@ -246,6 +246,52 @@ jobs:
           expect_fail leak 'leaks found: [1-9]'
           expect_fail plain 'scanned no commits'
 
+  osv-scan:
+    uses: ./.github/workflows/osv-scan.yml
+    with:
+      path: fixtures/osv/clean
+
+  # Runs the block osv-scan.yml ships: a lockfile with a known vulnerability
+  # (built here, never committed) and a folder without one fail (DAN-921).
+  osv-scan-negative:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: A vulnerable lockfile and a folder without one fail, a clean one passes
+        shell: bash
+        run: |
+          set -euo pipefail
+          scan="$RUNNER_TEMP/osv.sh"
+          node scripts/extract-run.mjs .github/workflows/osv-scan.yml osv-scan > "$scan"
+          root="$(mktemp -d "$RUNNER_TEMP/osv.XXXXXX")"
+          mkdir "$root/vulnerable" "$root/empty"
+          cp -r fixtures/osv/clean "$root/clean"
+          # minimist 1.2.5: GHSA-xvch-5gv4-984h (prototype pollution), fixed in 1.2.6.
+          printf '%s\n' "lockfileVersion: '9.0'" "importers:" "  .:" "    dependencies:" \
+            "      minimist: {specifier: 1.2.5, version: 1.2.5}" "packages:" \
+            "  minimist@1.2.5:" "    resolution: {integrity: sha512-FM9nNUYrRBAELZQT3xeZQ7fmMOBg6nWNmJKTcgsJeaLstP/UODVpGsr5OhXhhXg6f+qtJ8uiZ+PUxkDWcgIXLw==}" \
+            "snapshots:" "  minimist@1.2.5: {}" > "$root/vulnerable/pnpm-lock.yaml"
+          GITHUB_WORKSPACE="$root" SCAN_PATH=clean bash "$scan"
+          expect_fail() {
+            local out
+            if out="$(GITHUB_WORKSPACE="$root" SCAN_PATH="$1" bash "$scan" 2>&1)"; then
+              echo "$out"; echo "::error::scan passed the $1 case"; exit 1
+            fi
+            echo "$out"
+            for want in "${@:2}"; do
+              grep -qF -- "$want" <<< "$out" || { echo "::error::$1 failed without: $want"; exit 1; }
+            done
+          }
+          expect_fail vulnerable "::error::osv-scanner found known vulnerabilities" GHSA-xvch-5gv4-984h
+          expect_fail empty "::error::osv-scanner found no lockfile to scan"
+          expect_fail ../x "::error::path must be relative"
+
   dependency-review:
     if: ${{ github.event_name == 'pull_request' }}
     uses: ./.github/workflows/dependency-review.yml
@@ -263,7 +309,7 @@ jobs:
   # The reusable ci-ok.yml called for real, as other repositories call it.
   ci-ok-reusable:
     if: ${{ always() }}
-    needs: [actionlint, pin-check, permissions-check, gate, engineering-gate, node-ok, node-ok-multiline, node-fail, red-aggregate, presets, lint-presets, secret-scan, secret-scan-negative, dependency-review]
+    needs: [actionlint, pin-check, permissions-check, gate, engineering-gate, node-ok, node-ok-multiline, node-fail, red-aggregate, presets, lint-presets, secret-scan, secret-scan-negative, osv-scan, osv-scan-negative, dependency-review]
     uses: ./.github/workflows/ci-ok.yml
     with:
       results: ${{ toJSON(needs) }}
@@ -276,7 +322,7 @@ jobs:
   ci-ok:
     name: ci-ok
     if: ${{ always() }}
-    needs: [actionlint, pin-check, permissions-check, gate, engineering-gate, node-ok, node-ok-multiline, node-fail, red-aggregate, presets, lint-presets, secret-scan, secret-scan-negative, dependency-review, ci-ok-reusable]
+    needs: [actionlint, pin-check, permissions-check, gate, engineering-gate, node-ok, node-ok-multiline, node-fail, red-aggregate, presets, lint-presets, secret-scan, secret-scan-negative, osv-scan, osv-scan-negative, dependency-review, ci-ok-reusable]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
