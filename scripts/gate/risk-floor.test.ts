@@ -16,6 +16,7 @@ const table = (rules: unknown[], extra: Record<string, unknown> = {}) =>
 test("template table: docs and workflows are critical, docs alone low", () => {
   const t = parseRiskTable(TEMPLATE);
   assert.equal(minimumRisk(t, ["docs/a.md", ".github/x.yml"]), "critical");
+  assert.equal(minimumRisk(t, [".github/x.yml", "docs/a.md"]), "critical");
   assert.equal(minimumRisk(t, ["docs/a.md"]), "low");
   assert.equal(minimumRisk(t, ["src/unknown.ts"]), "standard");
 });
@@ -46,6 +47,11 @@ test("globs: ** is whole segments (also none), * stays in one segment", () => {
     ["docs/**", "docs-x/a.md", false],
     ["a.md", "aXmd", false],
     ["docs/**", "docs/a\u00a0b.md", true],
+    ["docs/**", "docs/a\u2028b.md", true],
+    ["db/**/migrations/**", "db/x/migrations/1.sql", true],
+    ["a+b", "aab", false],
+    ["a+b", "a+b", true],
+    ["@x/*", "@x/a", true],
   ];
   for (const [pattern, path, match] of cases) {
     const t = parseRiskTable(table([rule(pattern, "critical")]));
@@ -68,7 +74,7 @@ const BAD_LEVELS: unknown[] = [
 const BAD_PATTERNS: unknown[] = [
   ...["", " a", "a ", "a\r", "a\nb", "a\tb", "a\u00a0b", "a\u007f", "a\\b", "\u010d/**"],
   ...["a?b", "a[b]", "{a,b}", "!a", "/a", "a/", "./a", "a//b", "a/./b", "a/../b", ".."],
-  ...["docs**", "**.md", "***", "a/**b", 1],
+  ...["docs**", "**.md", "***", "a/**b", "**/**/a", "a/**/b/**/c/**", "*a*b*", 1],
 ];
 const BAD_PATHS = [
   ...["docs\\a.md", "/a", "a/", "./a", "a//b", "a/./b", "docs/../.github/x"],

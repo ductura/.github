@@ -43,9 +43,16 @@ function checkRisk(value: unknown, where: string): Risk {
 function checkPattern(value: unknown, seen: Set<string>): string {
   if (typeof value !== "string" || !PATTERN_RE.test(value) || !canonicalSegments(value))
     tableError(`bad pattern ${JSON.stringify(value)}`);
-  // `**` only as a whole segment: `docs**` would cross a slash.
-  if (value.split("/").some((segment) => segment.includes("**") && segment !== "**"))
+  // `**` only as a whole segment: `docs**` would cross a slash. At most two
+  // `**`, never adjacent, and two `*` per segment bound the regex backtracking.
+  const segments = value.split("/");
+  const globstars = segments.filter((segment) => segment === "**").length;
+  if (segments.some((segment) => segment.includes("**") && segment !== "**"))
     tableError(`** must be a whole segment in ${value}`);
+  if (globstars > 2 || value.includes("**/**"))
+    tableError(`too many ** in ${value}`);
+  if (segments.some((segment) => segment !== "**" && segment.split("*").length > 3))
+    tableError(`too many * in ${value}`);
   if (seen.has(value)) tableError(`duplicate pattern ${value}`);
   seen.add(value);
   return value;
@@ -98,7 +105,7 @@ function globToRegExp(glob: string, flags: string): RegExp {
       source += char.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
     }
   }
-  // "s": a file name may contain a newline and must not slip past `.*`.
+  // "s": U+2028 and U+2029 are no control characters, and `.*` must not stop at them.
   return new RegExp(`^${source}$`, flags);
 }
 
