@@ -1,0 +1,10 @@
+# Must fail scripts/permissions-check.mjs: write-all instead of a list (DAN-970).
+# Not a workflow of this repository; it is never run.
+name: write-all-permissions
+on: push
+permissions: write-all
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo build

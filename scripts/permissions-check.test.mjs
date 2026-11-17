@@ -31,6 +31,34 @@ const present = [
   ["anchor and alias", "on: push\nx: &p { contents: read }\njobs:\n  a: { runs-on: u, permissions: *p }\n"],
   ["CRLF with a key", "on: push\r\npermissions: {}\r\njobs:\r\n  a:\r\n    runs-on: u\r\n"],
 ];
+// Broad permissions (DAN-970, criterion 2): only a plain mapping or exactly
+// read-all; every occurrence on the file and on each job is a finding.
+const broadValues = [
+  ["write-all", "write-all"], ["write", "write"], ["read", "read"],
+  ["READ-ALL", "READ-ALL"], ["Read-All", "Read-All"], ["quoted read-all with a space", '"read-all "'],
+  ["read-all with NBSP", "read-all\u00a0"], ["empty string", '""'], ["true", "true"], ["number", "1"],
+  ["list", "[contents]"], ["binary (Buffer)", "!!binary aGk="],
+];
+const yaml11 = [["set", "!!set { write-all }"], ["omap", "!!omap [ { contents: read } ]"], ["date", "2001-12-14"]];
+const broad = [
+  ...broadValues.map(([name, v]) => [`file ${name}`, `on: push\npermissions: ${v}\n` + JOB, ["-: broad"]]),
+  ...broadValues.map(([name, v]) => [`job ${name}`, `on: push\npermissions: {}\njobs:\n  a:\n    runs-on: u\n    permissions: ${v}\n`, ["a: broad"]]),
+  ...yaml11.map(([name, v]) => [`YAML 1.1 ${name}`, `%YAML 1.1\n---\non: push\npermissions: ${v}\n` + JOB, ["-: broad"]]),
+  ["alias to write-all", "on: push\nx: &w write-all\njobs:\n  a: { runs-on: u, permissions: *w }\n", ["a: broad"]],
+  ["file write-all although every job has a list", "on: push\npermissions: write-all\njobs:\n  a: { runs-on: u, permissions: {} }\n", ["-: broad"]],
+  ["one job of two", "on: push\njobs:\n  a: { runs-on: u, permissions: {} }\n  b: { runs-on: u, permissions: write-all }\n", ["b: broad"]],
+  ["reusable caller", "on: push\npermissions: {}\njobs:\n  a: { uses: ./.github/workflows/x.yml, permissions: write-all }\n", ["a: broad"]],
+  ["file and job", "on: push\npermissions: write-all\njobs:\n  a: { runs-on: u, permissions: write }\n", ["-: broad", "a: broad"]],
+  ["write-all job without file permissions", "on: push\njobs:\n  a: { runs-on: u, permissions: write-all }\n  b: { runs-on: u }\n", ["a: broad", "b: missing"]],
+];
+const notBroad = [
+  ["read-all", "on: push\npermissions: read-all\n" + JOB],
+  ["read-all with a comment", "on: push\npermissions: read-all   # c\n" + JOB],
+  ["write for one scope is a list", "on: push\npermissions: { contents: write }\n" + JOB],
+  ["alias to a mapping", "on: push\nx: &p { contents: write }\npermissions: *p\n" + JOB],
+  ["CRLF with read-all", "on: push\r\npermissions: read-all\r\njobs:\r\n  a:\r\n    runs-on: u\r\n"],
+];
+
 // Anything the parser cannot read the way GitHub does fails closed.
 const unreadable = [
   ["lone CR", "on: push\rpermissions: {}\rjobs:\r  a:\r    runs-on: u\r"],
@@ -62,6 +90,12 @@ for (const [name, text, expected] of missing) {
 for (const [name, text] of present) {
   test(`permissions present pass: ${name}`, () => assert.deepEqual(found(text), []));
 }
+for (const [name, text, expected] of broad) {
+  test(`broad permissions fail: ${name}`, () => assert.deepEqual(found(text), expected));
+}
+for (const [name, text] of notBroad) {
+  test(`not broad: ${name}`, () => assert.deepEqual(found(text), []));
+}
 for (const [name, text] of unreadable) {
   test(`unreadable fails closed: ${name}`, () => assert.deepEqual(found(text), ["-: unreadable"]));
 }
@@ -80,6 +114,9 @@ test("CLI: the fixture fails, the workflows pass", () => {
   const bad = run(new URL("../fixtures/permissions/missing.yml", import.meta.url).pathname);
   assert.equal(bad.status, 1, bad.stdout + bad.stderr);
   assert.match(bad.stderr, /missing\.yml: job build: no permissions in the job or the file/);
+  const wide = run(new URL("../fixtures/permissions/write-all.yml", import.meta.url).pathname);
+  assert.equal(wide.status, 1, wide.stdout + wide.stderr);
+  assert.match(wide.stderr, /write-all\.yml: permissions of the file: broad \("write-all"\)/);
   const good = run(workflows.pathname);
   assert.equal(good.status, 0, good.stdout + good.stderr);
 });
