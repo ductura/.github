@@ -19,7 +19,7 @@ Repo ne postoji. U Ductusu postoje izvori koje izdvaja: `.github/workflows/{ci,e
 ```
 profile/README.md                 javni profil organizacije (hr)
 .github/workflows/                reusable: ci-node.yml, ci-ok.yml, secret-scan.yml, dependency-review.yml, osv-scan.yml,
-                                  engineering-gate.yml, publish-package.yml, ci-dotnet.yml i ci-swift.yml (faza E)
+                                  engineering-gate.yml, tests-table.yml, publish-package.yml, ci-dotnet.yml i ci-swift.yml (faza E)
                                   vlastiti: self-test.yml, drift-check.yml (tjedno, samo čitanje)
 PULL_REQUEST_TEMPLATE.md, ISSUE_TEMPLATE/   zadani predlošci za sve repoe organizacije
 labels.yml                        zajednički popis labela

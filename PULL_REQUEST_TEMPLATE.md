@@ -31,6 +31,14 @@ Invarijanta: <što mora vrijediti; obvezno za critical>
 Poznate granice: <granica jamstva i izvor odobrenja ako je ugovor sužen>
 Što bi ovaj PR moglo oboriti na QA-i?: <konkretan scenarij>
 
+## Testovi prihvata
+
+<!-- Obvezno kad PR mijenja kod (DAN-948): redak po kriteriju prihvata. Zamijeni redak-predložak; „Pada bez promjene” je „da”. -->
+
+| Kriterij | Test | Pada bez promjene |
+|---|---|---|
+| <…> | <…> | da |
+
 ## Dokaz
 
 - [ ] testovi su zeleni na punom testiranom SHA (lokalno i u CI-ju)
