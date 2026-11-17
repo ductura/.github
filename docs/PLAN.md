@@ -12,7 +12,7 @@ Stanje: 14. 11. 2026. · **Samo plan.** Novi repo po vlasnikovoj odluci 14. 11. 
 
 ## 2. Zatečeno stanje
 
-Repo ne postoji. U Ductusu postoje izvori koje izdvaja: `.github/workflows/{ci,engineering-gate,engineering-gate-review-signal,dependency-review,secret-scan-push}.yml`, `.github/{pull_request_template.md,CODEOWNERS,dependabot.yml,ISSUE_TEMPLATE/}`, `scripts/engineering/review-gate*.mjs`, `protected-paths.mjs`, `eslint.config.mjs`, `tsconfig.json`, `lefthook.yml`. Napomena: `scripts/engineering/risk-floor.test.mjs` postoji, a `risk-floor.mjs` ne; logika praga je drugdje (S-0.10-a mora to razjasniti prije prijenosa).
+Repo ne postoji. U Ductusu postoje izvori koje izdvaja: `.github/workflows/{ci,engineering-gate,engineering-gate-review-signal,dependency-review,secret-scan-push}.yml`, `.github/{pull_request_template.md,CODEOWNERS,dependabot.yml,ISSUE_TEMPLATE/}`, `scripts/engineering/review-gate*.mjs`, `protected-paths.mjs`, `eslint.config.mjs`, `tsconfig.json`, `lefthook.yml`. Napomena: `scripts/engineering/risk-floor.test.mjs` postoji, a `risk-floor.mjs` ne; logika praga je drugdje (S-0.10-a: prag se čita iz tablice `risk-paths.json` repoa u `scripts/gate/risk-floor.ts`, a glob je prenesen iz servera, DAN-1004).
 
 ## 3. Sadržaj (PRIJEDLOG)
 
@@ -35,7 +35,7 @@ fixtures/                         mali Node, .NET i Swift projekt za samotest wo
 
 | Izvor (Ductus) | Testovi koji idu s njim | Cilj |
 |---|---|---|
-| `scripts/engineering/review-gate*.mjs`, `protected-paths.mjs` | 20-ak `review-gate-*.test.mjs`, `risk-floor.test.mjs` | `scripts/gate/*.ts` (prevedeno, iste tvrdnje) |
+| `scripts/engineering/review-gate*.mjs`, `protected-paths.mjs` | 20-ak `review-gate-*.test.mjs`, `risk-floor.test.mjs` (tvrdnje praga provjeravaju se nad tablicom, DAN-1004) | `scripts/gate/*.ts` (prevedeno, iste tvrdnje) |
 | `.github/workflows/{engineering-gate,engineering-gate-review-signal}.yml` | samotest nad fixtureom | `.github/workflows/engineering-gate.yml` (reusable) |
 | `.github/workflows/{ci,dependency-review,secret-scan-push}.yml` | samotest | `ci-node.yml`, `dependency-review.yml`, `secret-scan.yml` |
 | `.github/pull_request_template.md`, `ISSUE_TEMPLATE/` | `tests/unit/pr-metadata-precheck.test.ts` | zadani predlošci |
