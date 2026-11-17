@@ -3,6 +3,8 @@
 // serves one fixture, and compares its exit code and its one output line
 // with the fixture's expectation. No request leaves 127.0.0.1 and the runner
 // gets a fixture token, never a real one.
+// The PR is served with the fixture's captured body_html, as GitHub serves
+// it for Accept: application/vnd.github.html+json.
 // Usage: node scripts/tests-table-self-test.mjs fixtures/tests-table/<case>.json
 import { spawn } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
@@ -27,7 +29,10 @@ export async function runFixture(fixture) {
     };
     if (req.headers.authorization !== `Bearer ${FIXTURE_TOKEN}`) unexpected.push(`token on ${url}`);
     if (req.method !== "GET") return unexpected.push(`${req.method} ${url}`), send(405);
-    if (url === base) return send(200, pr);
+    if (url === base) {
+      if (req.headers.accept !== "application/vnd.github.html+json") unexpected.push(`accept on ${url}`);
+      return send(200, pr);
+    }
     const page = new RegExp(`^${base}/files\\?per_page=100&page=(\\d+)$`).exec(url)?.[1];
     if (page) return send(200, Number(page) === 1 ? files : []);
     unexpected.push(`GET ${url}`);
