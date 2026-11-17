@@ -1,0 +1,23 @@
+{
+  "source": "Hand-made: a docs-only PR passes before body_html is read, so body_html is null here.",
+  "markdown": null,
+  "repository": "example-org/example",
+  "pr": {
+    "number": 7,
+    "head": {
+      "sha": "cccccccccccccccccccccccccccccccccccccccc"
+    },
+    "changed_files": 1,
+    "body_html": null
+  },
+  "files": [
+    {
+      "filename": "docs/PLAN.md",
+      "status": "modified"
+    }
+  ],
+  "expect": {
+    "exit": 0,
+    "output": "Samo dokumentacija: tablica testova nije potrebna."
+  }
+}
