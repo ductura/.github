@@ -34,6 +34,9 @@ jobs:
         run: node --test scripts/*.test.mjs
       - name: Every action pinned to a full SHA
         run: node scripts/pin-check.mjs .github/workflows
+      # DAN-922: the vendored, sha256-pinned SchemaStore schema; no network.
+      - name: Dependabot config matches the schema
+        run: node scripts/dependabot-check.mjs .github/dependabot.yml
 
   # Every job of every workflow has permissions of its own or from its file (DAN-970).
   permissions-check:
