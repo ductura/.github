@@ -110,25 +110,29 @@ function globToRegExp(glob: string, flags: string): RegExp {
 }
 
 /**
- * Floor of the changed paths. A rule above the default matches in any letter
- * case (ASCII only, flag `i` without `u`), a rule at or below it only exactly,
- * so letter case never lowers the floor. Paths must be canonical repository
- * paths as GitHub lists them; anything else throws.
+ * Floor of the changed paths. Each path gets the higher of two readings, exact
+ * and ignoring letter case (ASCII only, flag `i` without `u`), so a case
+ * variant can neither escape a higher rule nor gain a lower one. Paths must be
+ * canonical repository paths as GitHub lists them; anything else throws.
  */
 export function minimumRisk(table: RiskTable, paths: readonly string[]): Risk {
   if (!Array.isArray(paths) || paths.length === 0) throw new Error("risk floor: no paths");
   const base = RISK_RANK.get(table.default) ?? 2;
-  const rules = table.rules.map((rule) => {
-    const rank = RISK_RANK.get(rule.risk) ?? 2;
-    return { rank, re: globToRegExp(rule.pattern, rank > base ? "si" : "s") };
-  });
+  const readings = ["s", "si"].map((flags) =>
+    table.rules.map((rule) => ({
+      rank: RISK_RANK.get(rule.risk) ?? 2,
+      re: globToRegExp(rule.pattern, flags),
+    })),
+  );
   let floor = 0;
   for (const path of paths) {
     const bad = typeof path !== "string" || path.includes("\\") || CONTROL_RE.test(path);
     if (bad || !canonicalSegments(path))
       throw new Error(`risk floor: bad path ${JSON.stringify(path)}`);
-    const matched = rules.filter((rule) => rule.re.test(path)).map((rule) => rule.rank);
-    floor = Math.max(floor, matched.length > 0 ? Math.max(...matched) : base);
+    for (const rules of readings) {
+      const matched = rules.filter((rule) => rule.re.test(path)).map((rule) => rule.rank);
+      floor = Math.max(floor, matched.length > 0 ? Math.max(...matched) : base);
+    }
   }
   return RISKS[floor] ?? "critical";
 }

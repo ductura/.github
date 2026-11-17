@@ -65,6 +65,14 @@ test("letter case never lowers the floor", () => {
   assert.equal(minimumRisk(t, ["Claude.MD"]), "critical");
   assert.equal(minimumRisk(t, ["Docs/a.md"]), "standard");
   assert.equal(minimumRisk(t, ["readme.md"]), "standard");
+  // A case variant must not escape a higher rule and fall to a lower one.
+  for (const level of ["low", "standard", "critical"]) {
+    const rules = [rule("docs/**", "low"), rule("docs/protected/**", "critical")];
+    const nested = parseRiskTable(table(rules, { default: level }));
+    for (const path of ["docs/protected/a.md", "docs/Protected/a.md", "DOCS/PROTECTED/a.md"])
+      assert.equal(minimumRisk(nested, [path]), "critical", `${level}: ${path}`);
+    assert.equal(minimumRisk(nested, ["docs/a.md"]), "low");
+  }
 });
 
 const BAD_LEVELS: unknown[] = [
