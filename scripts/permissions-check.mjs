@@ -13,7 +13,13 @@ const isMap = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
 // grants nothing to read here.
 const hasPermissions = (node) => Object.hasOwn(node, "permissions") && node.permissions != null;
 
+// The yaml parser breaks lines only on LF and CRLF. A lone CR, NEL, LS or PS
+// can end a comment for another YAML reader and reveal a job this parser
+// never sees, so any of them makes the file unreadable (review of #19).
+const FOREIGN_BREAK = /\r(?!\n)|[\u0085\u2028\u2029]/;
+
 function readWorkflow(text) {
+  if (FOREIGN_BREAK.test(text)) return { reason: "line break other than LF or CRLF" };
   const doc = parseDocument(text, { uniqueKeys: true, merge: false });
   if (doc.errors.length > 0) return { reason: doc.errors.map((e) => e.code).join(", ") };
   const wf = doc.toJS({ maxAliasCount: 100 });

@@ -34,6 +34,12 @@ const present = [
 // Anything the parser cannot read the way GitHub does fails closed.
 const unreadable = [
   ["lone CR", "on: push\rpermissions: {}\rjobs:\r  a:\r    runs-on: u\r"],
+  // A job hidden after a comment for a reader that breaks lines there.
+  ...[["lone CR", "\r"], ["NEL", "\u0085"], ["LS", "\u2028"], ["PS", "\u2029"]].map(([name, br]) => [
+    `${name} ends a comment in an LF file`,
+    `on: push\njobs:\n  safe: { permissions: {}, runs-on: u }\n# note${br}  hidden: { runs-on: u }\n`,
+  ]),
+  ["lone CR inside a quoted value", 'on: push\npermissions: {}\njobs:\n  a: { runs-on: "u\rv" }\n'],
   ["tab indentation", "on: push\npermissions: {}\njobs:\n\ta: { runs-on: u }\n"],
   ["invalid YAML", "on: [push\npermissions: {}\n" + JOB],
   ["duplicate permissions", "on: push\npermissions: {}\npermissions: {}\n" + JOB],
