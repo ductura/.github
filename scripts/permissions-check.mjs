@@ -105,12 +105,39 @@ function prtFindings(wf) {
   return { found };
 }
 
+// GitHub reads workflow keys in any case (review of #22): keys of the file,
+// each job, step, container and service are compared in lower case. Two keys
+// that differ only in case are unreadable. Job ids and env names stay as they
+// are; fromEntries keeps __proto__ an own key.
+function lowerKeys(node, where) {
+  if (!isPlainMap(node)) return node;
+  const keys = Object.keys(node);
+  const lower = keys.map((k) => k.toLowerCase());
+  if (new Set(lower).size !== keys.length) throw new Error(`keys that differ only in case in ${where}`);
+  return Object.fromEntries(keys.map((k, i) => [lower[i], node[k]]));
+}
+
+function normalize(wf) {
+  const out = lowerKeys(wf, "the file");
+  if (!isPlainMap(out.jobs)) return out;
+  out.jobs = Object.fromEntries(Object.entries(out.jobs).map(([id, raw]) => {
+    const job = lowerKeys(raw, `job ${id}`);
+    if (!isPlainMap(job)) return [id, job];
+    if (Array.isArray(job.steps)) job.steps = job.steps.map((s) => lowerKeys(s, `a step of job ${id}`));
+    job.container = lowerKeys(job.container, `the container of job ${id}`);
+    if (isPlainMap(job.services)) job.services = Object.fromEntries(Object.entries(job.services).map(([s, v]) => [s, lowerKeys(v, `service ${s}`)]));
+    return [id, job];
+  }));
+  return out;
+}
+
 function readWorkflow(text) {
   if (FOREIGN_BREAK.test(text)) return { reason: "line break other than LF or CRLF" };
   const doc = parseDocument(text, { uniqueKeys: true, merge: false });
   if (doc.errors.length > 0) return { reason: doc.errors.map((e) => e.code).join(", ") };
-  const wf = doc.toJS({ maxAliasCount: 100 });
-  if (!isMap(wf)) return { reason: "the document is not a mapping" };
+  const parsed = doc.toJS({ maxAliasCount: 100 });
+  if (!isMap(parsed)) return { reason: "the document is not a mapping" };
+  const wf = normalize(parsed);
   if (hasMergeKey(wf)) return { reason: "merge key <<" };
   const events = eventsOf(wf);
   if (!events) return { reason: "on is not an event name, a list of names or a mapping" };

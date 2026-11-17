@@ -41,6 +41,8 @@ const broadValues = [
 ];
 const yaml11 = [["set", "!!set { write-all }"], ["omap", "!!omap [ { contents: read } ]"], ["date", "2001-12-14"]];
 const broad = [
+  ["file key Permissions", "on: push\nPermissions: write-all\n" + JOB, ["-: broad"]],
+  ["job key PERMISSIONS", "on: push\npermissions: {}\njobs:\n  a: { runs-on: u, PERMISSIONS: write-all }\n", ["a: broad"]],
   ...broadValues.map(([name, v]) => [`file ${name}`, `on: push\npermissions: ${v}\n` + JOB, ["-: broad"]]),
   ...broadValues.map(([name, v]) => [`job ${name}`, `on: push\npermissions: {}\njobs:\n  a:\n    runs-on: u\n    permissions: ${v}\n`, ["a: broad"]]),
   ...yaml11.map(([name, v]) => [`YAML 1.1 ${name}`, `%YAML 1.1\n---\n"on": push\npermissions: ${v}\n` + JOB, ["-: broad"]]),
@@ -78,6 +80,10 @@ const prtCheckout = [
   ["event name in other case", prt(co("{ ref: refs/pull/1/head }"), "Pull_Request_Target"), ["a: prt-checkout"]],
   ["action name in other case", prt("{ uses: Actions/Checkout@abc, with: { ref: refs/pull/1/head } }"), ["a: prt-checkout"]],
   ["action path", prt("{ uses: actions/checkout/sub@abc, with: { ref: refs/pull/1/head } }"), ["a: prt-checkout"]],
+  ["step key With", prt("{ uses: actions/checkout@abc, With: { ref: '${{ github.event.pull_request.head.sha }}' } }"), ["a: prt-checkout"]],
+  ["step key Uses", prt("{ Uses: actions/checkout@abc, with: { ref: refs/pull/1/head } }"), ["a: prt-checkout"]],
+  ["job key Steps and Env", "on: pull_request_target\npermissions: {}\njobs:\n  a: { runs-on: u, Env: { INPUT_REF: x }, Steps: [" + co("{ ref: refs/pull/1/head }") + "] }\n", ["a: prt-checkout", "a: prt-checkout"]],
+  ["file keys On and Jobs", "On: pull_request_target\npermissions: {}\nJobs:\n  a: { runs-on: u, steps: [" + co("{ ref: refs/pull/1/head }") + "] }\n", ["a: prt-checkout"]],
   ["key Ref", prt(co("{ Ref: refs/pull/1/head }")), ["a: prt-checkout"]],
   ["key REPOSITORY", prt(co("{ REPOSITORY: '${{ github.event.pull_request.head.repo.full_name }}' }")), ["a: prt-checkout"]],
   ["ref main beside Ref expression", prt(co("{ ref: main, Ref: '${{ github.head_ref }}' }")), ["a: prt-checkout"]],
@@ -137,6 +143,9 @@ const unreadable = [
   ["merge key in with", prt("{ uses: actions/checkout@abc, with: { <<: *w } }", "pull_request_target", "x: &w { ref: refs/pull/1/head }\n")],
   ["quoted merge key in a step", prt('{ "<<": *s }', "pull_request_target", "x: &s { uses: actions/checkout@abc }\n")],
   ["merge key list in with", prt("{ uses: actions/checkout@abc, with: { <<: [*w] } }", "pull_request_target", "x: &w { ref: main }\n")],
+  ["file keys differing only in case", "on: push\npermissions: {}\nPermissions: write-all\n" + JOB],
+  ["job keys differing only in case", "on: push\npermissions: {}\njobs:\n  a: { runs-on: u, permissions: {}, Permissions: write-all }\n"],
+  ["step keys differing only in case", prt("{ uses: actions/checkout@abc, with: { ref: main }, With: { ref: refs/pull/1/head } }")],
   ["no on", "permissions: {}\n" + JOB],
   ["on is a number", "on: 1\npermissions: {}\n" + JOB],
   ["on is null", "on:\npermissions: {}\n" + JOB],
