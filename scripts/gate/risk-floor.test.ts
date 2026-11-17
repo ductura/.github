@@ -52,6 +52,10 @@ test("globs: ** is whole segments (also none), * stays in one segment", () => {
     ["a+b", "aab", false],
     ["a+b", "a+b", true],
     ["@x/*", "@x/a", true],
+    ["**/**/a", "x/a", true],
+    ["a/**/b/**/c/**", "a/b/c/d", true],
+    ["*a*b*", "xaybz", true],
+    ["*a*b*", "xbya", false],
   ];
   for (const [pattern, path, match] of cases) {
     const t = parseRiskTable(table([rule(pattern, "critical")]));
@@ -82,7 +86,7 @@ const BAD_LEVELS: unknown[] = [
 const BAD_PATTERNS: unknown[] = [
   ...["", " a", "a ", "a\r", "a\nb", "a\tb", "a\u00a0b", "a\u007f", "a\\b", "\u010d/**"],
   ...["a?b", "a[b]", "{a,b}", "!a", "/a", "a/", "./a", "a//b", "a/./b", "a/../b", ".."],
-  ...["docs**", "**.md", "***", "a/**b", "**/**/a", "a/**/b/**/c/**", "*a*b*", 1],
+  ...["docs**", "**.md", "***", "a/**b", 1],
 ];
 const BAD_PATHS = [
   ...["docs\\a.md", "/a", "a/", "./a", "a//b", "a/./b", "docs/../.github/x"],
@@ -123,4 +127,14 @@ test("bad path lists are rejected (the caller treats it as critical)", () => {
   const bad: unknown[] = [[], "docs/a.md", [1], [null], [""], ...BAD_PATHS.map((path) => [path])];
   for (const paths of bad)
     assert.throws(() => minimumRisk(t, paths as string[]), /risk floor/, JSON.stringify(paths));
+});
+
+test("matching stays polynomial for patterns that make a RegExp backtrack", () => {
+  // A RegExp took about 7 s here at five segments and grows exponentially.
+  const pattern = [...Array<string>(5).fill("*a*"), "z"].join("/");
+  const path = [...Array<string>(5).fill("a".repeat(40)), "q"].join("/");
+  const t = parseRiskTable(table([rule(pattern, "critical")]));
+  const start = performance.now();
+  assert.equal(minimumRisk(t, [path]), "standard");
+  assert.ok(performance.now() - start < 1000, "glob matching must not backtrack");
 });

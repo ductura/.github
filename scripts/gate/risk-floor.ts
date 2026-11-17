@@ -2,8 +2,9 @@
 // from the changed paths and the repository's own .github/risk-paths.json,
 // whose format is scripts/new-repo/templates/common/risk-paths.json. The
 // highest matching rule wins; a path no rule matches gets the table default.
-// globToRegExp is ported from ductura/server scripts/engineering/risk-floor.ts
-// (DAN-722, 351b158). Rules: Ductus docs/ENGINEERING_SYSTEM.md §5.
+// The glob semantics follow ductura/server scripts/engineering/risk-floor.ts
+// (DAN-722, 351b158), matched by dynamic programming instead of a RegExp.
+// Rules: Ductus docs/ENGINEERING_SYSTEM.md §5.
 // Bad input throws; the caller turns any error into `critical` (fails closed).
 
 export type Risk = "low" | "standard" | "critical";
@@ -43,16 +44,9 @@ function checkRisk(value: unknown, where: string): Risk {
 function checkPattern(value: unknown, seen: Set<string>): string {
   if (typeof value !== "string" || !PATTERN_RE.test(value) || !canonicalSegments(value))
     tableError(`bad pattern ${JSON.stringify(value)}`);
-  // `**` only as a whole segment: `docs**` would cross a slash. At most two
-  // `**`, never adjacent, and two `*` per segment bound the regex backtracking.
-  const segments = value.split("/");
-  const globstars = segments.filter((segment) => segment === "**").length;
-  if (segments.some((segment) => segment.includes("**") && segment !== "**"))
+  // `**` only as a whole segment: `docs**` would cross a slash.
+  if (value.split("/").some((segment) => segment.includes("**") && segment !== "**"))
     tableError(`** must be a whole segment in ${value}`);
-  if (globstars > 2 || value.includes("**/**"))
-    tableError(`too many ** in ${value}`);
-  if (segments.some((segment) => segment !== "**" && segment.split("*").length > 3))
-    tableError(`too many * in ${value}`);
   if (seen.has(value)) tableError(`duplicate pattern ${value}`);
   seen.add(value);
   return value;
@@ -88,50 +82,71 @@ export function parseRiskTable(text: string): RiskTable {
   return { version: 1, default: fallback, rules };
 }
 
-/** Glob to RegExp: `**` is any number of segments, `*` stays within one. */
-function globToRegExp(glob: string, flags: string): RegExp {
-  let source = "";
-  for (let i = 0; i < glob.length; i += 1) {
-    const char = glob.charAt(i);
-    if (glob.startsWith("**/", i)) {
-      source += "(?:.*/)?";
-      i += 2;
-    } else if (glob.startsWith("**", i)) {
-      source += ".*";
-      i += 1;
-    } else if (char === "*") {
-      source += "[^/]*";
-    } else {
-      source += char.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+/** `*` within one segment, by dynamic programming: no backtracking. */
+function matchSegment(pattern: string, name: string): boolean {
+  // row[j]: the pattern read so far matches the first j characters of name.
+  let row = Array.from({ length: name.length + 1 }, (_, j) => j === 0);
+  for (const char of pattern) {
+    const next = Array.from({ length: name.length + 1 }, () => false);
+    for (let j = 0; j <= name.length; j += 1) {
+      if (char === "*") next[j] = row[j] === true || (j > 0 && next[j - 1] === true);
+      else next[j] = j > 0 && row[j - 1] === true && name[j - 1] === char;
     }
+    row = next;
   }
-  // "s": U+2028 and U+2029 are no control characters, and `.*` must not stop at them.
-  return new RegExp(`^${source}$`, flags);
+  return row[name.length] === true;
 }
 
 /**
+ * Glob over path segments, by dynamic programming (polynomial for any table):
+ * `**` is any number of segments, at least one when it ends the pattern (as
+ * the ported `.*` after a slash), and `*` stays within one segment.
+ */
+function matchGlob(pattern: readonly string[], path: readonly string[]): boolean {
+  // after[j]: the pattern from the next segment on matches path[j..].
+  let after = Array.from({ length: path.length + 1 }, (_, j) => j === path.length);
+  for (let i = pattern.length - 1; i >= 0; i -= 1) {
+    const segment = pattern[i] ?? "";
+    const here = Array.from({ length: path.length + 1 }, () => false);
+    for (let j = path.length; j >= 0; j -= 1) {
+      if (segment === "**" && i === pattern.length - 1) here[j] = j < path.length;
+      else if (segment === "**") here[j] = after[j] === true || here[j + 1] === true;
+      else
+        here[j] = j < path.length && after[j + 1] === true && matchSegment(segment, path[j] ?? "");
+    }
+    after = here;
+  }
+  return after[0] === true;
+}
+
+// Letter case of ASCII only: no non-ASCII letter folds onto an ASCII rule.
+const foldAscii = (text: string): string => text.replace(/[A-Z]/g, (c) => c.toLowerCase());
+
+/**
  * Floor of the changed paths. Each path gets the higher of two readings, exact
- * and ignoring letter case (ASCII only, flag `i` without `u`), so a case
- * variant can neither escape a higher rule nor gain a lower one. Paths must be
- * canonical repository paths as GitHub lists them; anything else throws.
+ * and ignoring ASCII letter case, so a case variant can neither escape a
+ * higher rule nor gain a lower one. Paths must be canonical repository paths
+ * as GitHub lists them; anything else throws.
  */
 export function minimumRisk(table: RiskTable, paths: readonly string[]): Risk {
   if (!Array.isArray(paths) || paths.length === 0) throw new Error("risk floor: no paths");
   const base = RISK_RANK.get(table.default) ?? 2;
-  const readings = ["s", "si"].map((flags) =>
-    table.rules.map((rule) => ({
+  const readings = [(text: string) => text, foldAscii].map((read) => ({
+    read,
+    rules: table.rules.map((rule) => ({
       rank: RISK_RANK.get(rule.risk) ?? 2,
-      re: globToRegExp(rule.pattern, flags),
+      segments: read(rule.pattern).split("/"),
     })),
-  );
+  }));
   let floor = 0;
   for (const path of paths) {
     const bad = typeof path !== "string" || path.includes("\\") || CONTROL_RE.test(path);
     if (bad || !canonicalSegments(path))
       throw new Error(`risk floor: bad path ${JSON.stringify(path)}`);
-    for (const rules of readings) {
-      const matched = rules.filter((rule) => rule.re.test(path)).map((rule) => rule.rank);
-      floor = Math.max(floor, matched.length > 0 ? Math.max(...matched) : base);
+    for (const { read, rules } of readings) {
+      const segments = read(path).split("/");
+      const matched = rules.filter((rule) => matchGlob(rule.segments, segments));
+      floor = Math.max(floor, ...matched.map((rule) => rule.rank), matched.length > 0 ? 0 : base);
     }
   }
   return RISKS[floor] ?? "critical";
