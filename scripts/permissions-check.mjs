@@ -48,15 +48,36 @@ function eventsOf(wf) {
 const CHECKOUT = /^actions\/checkout(\/[^@]*)?@/i;
 // An expression cannot be shown not to name the PR head, so it fails closed.
 const UNSAFE_REF = /\$\{\{|refs\/pull\//i;
-// INPUT_* keys in every env mapping at any depth (job, step, container,
-// services, ...): checkout reads its inputs from INPUT_* (review of #22).
-function inputEnv(node) {
-  if (Array.isArray(node)) return node.flatMap(inputEnv);
-  if (!isPlainMap(node)) return [];
-  return Object.entries(node).flatMap(([k, v]) => [
-    ...(k.toLowerCase() === "env" && isPlainMap(v) ? Object.keys(v).filter((e) => /^input_/i.test(e)) : []),
-    ...inputEnv(v),
-  ]);
+// What can set INPUT_* for a checkout, which reads its inputs from INPUT_*:
+// an INPUT_* key in the env of the file, job, container, a service or a step,
+// or one of those given by an expression or in another form (reviews of #22).
+// Keys are matched in any case; anything not a mapping fails closed.
+const valuesOf = (node, name) => (isPlainMap(node) ? Object.keys(node).filter((k) => k.toLowerCase() === name).map((k) => node[k]) : []);
+const isExpression = (v) => typeof v === "string" && v.includes("${{");
+function envProblems(node) {
+  return valuesOf(node, "env").flatMap((env) => {
+    if (env == null) return [];
+    if (!isPlainMap(env)) return ["env is not a mapping"];
+    return Object.keys(env).filter((k) => /^input_/i.test(k)).map((k) => `env ${k}`);
+  });
+}
+function jobEnvProblems(job) {
+  const found = envProblems(job);
+  for (const container of valuesOf(job, "container")) {
+    if (isExpression(container)) found.push("container from an expression");
+    else found.push(...envProblems(container));
+  }
+  for (const services of valuesOf(job, "services")) {
+    if (isExpression(services)) found.push("services from an expression");
+    else if (isPlainMap(services)) {
+      for (const [id, service] of Object.entries(services)) {
+        if (isExpression(service)) found.push(`service ${id} from an expression`);
+        else found.push(...envProblems(service).map((d) => `service ${id} ${d}`));
+      }
+    }
+  }
+  for (const step of Array.isArray(job.steps) ? job.steps : []) found.push(...envProblems(step));
+  return found;
 }
 
 // Checkouts that can fetch PR code in a pull_request_target workflow
@@ -64,10 +85,10 @@ function inputEnv(node) {
 function prtFindings(wf) {
   const found = [];
   const add = (job, detail) => found.push({ job, detail });
-  const fileEnv = inputEnv({ env: wf.env });
-  if (fileEnv.length) add(undefined, `env ${fileEnv.join(", ")}`);
+  for (const detail of envProblems(wf)) add(undefined, detail);
   for (const [job, node] of Object.entries(wf.jobs)) {
-    if (inputEnv(node).length) add(job, `env ${inputEnv(node).join(", ")}`);
+    const envFound = jobEnvProblems(node);
+    if (envFound.length) add(job, envFound.join(", "));
     if (!Object.hasOwn(node, "steps")) continue;
     if (!Array.isArray(node.steps)) return { reason: `steps of job ${job} is not a list` };
     for (const step of node.steps) {

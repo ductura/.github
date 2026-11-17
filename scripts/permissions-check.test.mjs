@@ -88,6 +88,13 @@ const prtCheckout = [
   ["INPUT_REPOSITORY in the step env", prt("{ uses: actions/checkout@abc, env: { INPUT_REPOSITORY: x } }"), ["a: prt-checkout"]],
   ["INPUT_REF in the container env", "on: pull_request_target\npermissions: {}\njobs:\n  a: { runs-on: u, container: { image: node:24, env: { INPUT_REF: refs/pull/1/head } }, steps: [{ uses: actions/checkout@abc }] }\n", ["a: prt-checkout"]],
   ["INPUT_REF in a service env", "on: pull_request_target\npermissions: {}\njobs:\n  a: { runs-on: u, services: { db: { image: x, env: { INPUT_REF: x } } }, steps: [{ uses: actions/checkout@abc }] }\n", ["a: prt-checkout"]],
+  ["job env as an expression", "on: pull_request_target\npermissions: {}\njobs:\n  a:\n    runs-on: u\n    env: ${{ fromJSON('{\"INPUT_REF\":\"refs/pull/1/head\"}') }}\n    steps: [{ uses: actions/checkout@abc }]\n", ["a: prt-checkout"]],
+  ["file env as an expression", prt("{ uses: actions/checkout@abc }", "pull_request_target", "env: ${{ fromJSON(vars.E) }}\n"), ["-: prt-checkout"]],
+  ["step env as an expression", prt("{ uses: actions/checkout@abc, env: '${{ fromJSON(vars.E) }}' }"), ["a: prt-checkout"]],
+  ["env as a list", prt("{ uses: actions/checkout@abc, env: [INPUT_REF] }"), ["a: prt-checkout"]],
+  ["container as an expression", "on: pull_request_target\npermissions: {}\njobs:\n  a: { runs-on: u, container: '${{ fromJSON(vars.C) }}', steps: [{ uses: actions/checkout@abc }] }\n", ["a: prt-checkout"]],
+  ["services as an expression", "on: pull_request_target\npermissions: {}\njobs:\n  a: { runs-on: u, services: '${{ fromJSON(vars.S) }}', steps: [{ uses: actions/checkout@abc }] }\n", ["a: prt-checkout"]],
+  ["a service as an expression", "on: pull_request_target\npermissions: {}\njobs:\n  a: { runs-on: u, services: { db: '${{ fromJSON(vars.S) }}' }, steps: [{ uses: actions/checkout@abc }] }\n", ["a: prt-checkout"]],
   ["Env in other case", "on: pull_request_target\npermissions: {}\njobs:\n  a: { runs-on: u, container: { image: x, ENV: { INPUT_REF: x } }, steps: [{ uses: actions/checkout@abc }] }\n", ["a: prt-checkout"]],
 ];
 const prtSafe = [
@@ -97,6 +104,9 @@ const prtSafe = [
   ["pull_request is not _target", prt(co("{ ref: '${{ github.event.pull_request.head.sha }}' }"), "pull_request")],
   ["workflow_call only", prt(co("{ ref: '${{ inputs.sha }}' }"), "workflow_call")],
   ["another action with an expression ref", prt("{ uses: other/action@abc, with: { ref: '${{ github.head_ref }}' } }")],
+  ["container as an image name", "on: pull_request_target\npermissions: {}\njobs:\n  a: { runs-on: u, container: node:24, env: { CI: 'true', X: '${{ github.sha }}' }, steps: [{ uses: actions/checkout@abc }] }\n"],
+  ["env as an input of another action", prt("{ uses: other/deploy@abc, with: { env: prod } }")],
+  ["env: null", prt("{ uses: actions/checkout@abc, env: null }")],
   ["run text with <<", prt("{ run: \"cat <<EOF\" }")],
   ["CRLF", prt(co("{ ref: main }")).replaceAll("\n", "\r\n")],
 ];
