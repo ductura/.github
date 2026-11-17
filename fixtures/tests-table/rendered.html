@@ -1,0 +1,431 @@
+<p dir="auto">OBLAK w948b · UGOVOR · DAN-948 dio 948-1 (ductura/.github)</p>
+<p dir="auto">Agent: <code class="notranslate">claude:w948b:platforma</code> · Task: DAN-948 · Izvor: odluka orkestratora c.6954603619 (novi pristup; <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="5692088210" data-permission-text="Title is private" data-url="https://github.com/danielrisavi77-create/Ductus/issues/28" data-hovercard-type="pull_request" data-hovercard-url="/danielrisavi77-create/Ductus/pull/28/hovercard" href="https://github.com/danielrisavi77-create/Ductus/pull/28">#28</a> zatvoren) · grana <code class="notranslate">claude/dan-948-1-rendered-table</code> od <code class="notranslate">main</code> 73e36c4 · <strong>Risk: critical</strong> (cijeli repo osim <code class="notranslate">profile/**</code> i <code class="notranslate">ISSUE_TEMPLATE/**</code>, <code class="notranslate">docs/PLAN.md</code> §7).</p>
+<p dir="auto"><strong>Podjela DAN-948.</strong> Odluka c.6954603619 sve stavlja pod „948-1”, ali to je oko 600 redaka. Zadatak traži oko 200 redaka i jedan kriterij po PR-u, a podjelu navedenu u ugovoru. Zato dijelim na tri PR-a; orkestrator može podjelu ispraviti.</p>
+<ul dir="auto">
+<li>
+<p dir="auto"><strong>948-1 (ovaj PR):</strong> čista provjera nad HTML-om GitHubova renderera i pravilo docs PR-a. Bez mreže i bez workflowa. Testovi idu u postojeći posao <code class="notranslate">unit</code> (<code class="notranslate">node --test scripts/*.test.mjs</code>).</p>
+</li>
+<li>
+<p dir="auto">948-2:</p>
+<ul dir="auto">
+<li>runner: svježi <code class="notranslate">GET pulls/&lt;n&gt;</code> i <code class="notranslate">pulls/&lt;n&gt;/files</code>, zatim <code class="notranslate">POST /markdown</code> (<code class="notranslate">mode: gfm</code>);</li>
+<li>reusable <code class="notranslate">tests-table.yml</code> i samotest u <code class="notranslate">self-test.yml</code> nad fixtureima sa snimljenim HTML-om, bez mreže i tokena;</li>
+<li>README i <code class="notranslate">docs/PLAN.md</code> §6/§7.</li>
+</ul>
+<p dir="auto">Workflow ne ulazi bez samotesta (<code class="notranslate">docs/PLAN.md</code> r. 67 i 73; to je bio nalaz na <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="5692088210" data-permission-text="Title is private" data-url="https://github.com/danielrisavi77-create/Ductus/issues/28" data-hovercard-type="pull_request" data-hovercard-url="/danielrisavi77-create/Ductus/pull/28/hovercard" href="https://github.com/danielrisavi77-create/Ductus/pull/28">#28</a>), pa idu zajedno.</p>
+</li>
+<li>
+<p dir="auto">948-3: odjeljak <code class="notranslate">## Testovi prihvata</code> u <code class="notranslate">PULL_REQUEST_TEMPLATE.md</code>.</p>
+</li>
+</ul>
+<p dir="auto"><strong>Opseg 948-1</strong> (oko 200 redaka s testovima; <code class="notranslate">isDocsOnly</code> je verbatim port iz <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="5692088210" data-permission-text="Title is private" data-url="https://github.com/danielrisavi77-create/Ductus/issues/28" data-hovercard-type="pull_request" data-hovercard-url="/danielrisavi77-create/Ductus/pull/28/hovercard" href="https://github.com/danielrisavi77-create/Ductus/pull/28">#28</a> 52af3a3):</p>
+<ul dir="auto">
+<li><code class="notranslate">scripts/tests-table.mjs</code>: <code class="notranslate">isDocsOnly(files)</code> (port), <code class="notranslate">checkRenderedTable(html)</code> i <code class="notranslate">checkTestsTable(html, files)</code>. Čiste funkcije, ništa ne ispisuju.</li>
+<li><code class="notranslate">scripts/tests-table.test.mjs</code>: jedinični testovi.</li>
+<li><code class="notranslate">fixtures/tests-table/rendered.html</code>: snimka. To je cijeli <code class="notranslate">body_html</code> ovog komentara, nepromijenjen. Test provjerava njegov sha256 i reže ga po oznakama <code class="notranslate">CASE-&lt;ime&gt;-START/END</code>; ulazi su u <code class="notranslate">&lt;details&gt;</code> na dnu. Snimka je podatak, ne kod, pa se ne broji u ~200 redaka; broj redaka navodim u PR-u.</li>
+</ul>
+<p dir="auto"><strong>Pravilo.</strong> Sve izvan ovoga je pad, a funkcija nikad ne baca iznimku.</p>
+<ul dir="auto">
+<li>
+<p dir="auto">Docs PR prolazi bez HTML-a (pravilo iz <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="5692088210" data-permission-text="Title is private" data-url="https://github.com/danielrisavi77-create/Ductus/issues/28" data-hovercard-type="pull_request" data-hovercard-url="/danielrisavi77-create/Ductus/pull/28/hovercard" href="https://github.com/danielrisavi77-create/Ductus/pull/28">#28</a>, nepromijenjeno).</p>
+</li>
+<li>
+<p dir="auto">Inače <code class="notranslate">html</code> mora biti neprazan niz. Ništa se ne uklanja. Pad je svaki <code class="notranslate">&lt;!</code> ili <code class="notranslate">&lt;?</code>, oznaka velikim slovima, atribut koji nije <code class="notranslate">ime="vrijednost"</code> i samostalni <code class="notranslate">&lt;</code>, jer ih GitHub tako ne serijalizira. <code class="notranslate">&lt;tablex</code> nije tablica. Omotač <code class="notranslate">&lt;markdown-accessiblity-table&gt;</code> oko tablice je dopušten.</p>
+</li>
+<li>
+<p dir="auto"><strong>Zaglavlje</strong> je tekst prvog <code class="notranslate">&lt;tr&gt;</code> tablice, čitan blago, bez oznaka. Ako nakon normalizacije nije točno <code class="notranslate">kriterij</code>, <code class="notranslate">test</code>, <code class="notranslate">pada bez promjene</code>, tablica se zanemaruje. Ugniježđena tablica sudi se zasebno, a vanjska se zanemaruje.</p>
+</li>
+<li>
+<p dir="auto">Tablica s našim zaglavljem čita se <strong>strogo</strong>, u obliku koji GFM daje: <code class="notranslate">table &gt; thead &gt; tr &gt; th×3</code>, zatim <code class="notranslate">tbody &gt; (tr &gt; td×3)+</code>. Svako odstupanje je pad:</p>
+<ul dir="auto">
+<li>između strukturnih oznaka smije biti samo razmak;</li>
+<li><code class="notranslate">th</code> i <code class="notranslate">td</code> smiju imati samo <code class="notranslate">align</code>;</li>
+<li>u ćeliji su dopuštene samo oznake <code class="notranslate">a b br code del em i ins kbd s strong sub sup g-emoji</code>, bez atributa osim onih koje snimka pokazuje.</li>
+</ul>
+</li>
+<li>
+<p dir="auto"><strong>Normalizacija ćelije:</strong></p>
+<ul dir="auto">
+<li>oznake se uklone;</li>
+<li>entiteti se dekodiraju u jednom prolazu (<code class="notranslate">&amp;amp; &amp;lt; &amp;gt; &amp;quot; &amp;#39;</code> i brojčani). Pad su 0, surogati, vrijednost iznad 0x10FFFF, više od 7 znamenki i nepoznati imenovani entitet;</li>
+<li>uklone se <code class="notranslate">\p{Cf}</code> i <code class="notranslate">\p{Default_Ignorable_Code_Point}</code>;</li>
+<li>razmaci (i NBSP) se sažmu i obrežu, a slova postaju mala.</li>
+</ul>
+<p dir="auto">Unicode svojstva su iz Node 24 (<code class="notranslate">.nvmrc</code>).</p>
+</li>
+<li>
+<p dir="auto"><strong>Prolaz:</strong> postoji barem jedna tablica s našim zaglavljem, a svaka takva:</p>
+<ul dir="auto">
+<li>je ispravna i ima barem jedan redak;</li>
+<li>u svakoj ćeliji ima <code class="notranslate">\p{L}</code> ili <code class="notranslate">\p{N}</code> (U+2800 je <code class="notranslate">So</code>, pa pada po ovom pravilu);</li>
+<li>u trećoj ćeliji ima <code class="notranslate">da</code>.</li>
+</ul>
+</li>
+<li>
+<p dir="auto">Poruke su fiksne, s brojem tablice i retka. Tekst tijela se nikad ne vraća.</p>
+</li>
+</ul>
+<p dir="auto"><strong>Kriterij prihvata (jedan):</strong> za datoteke s kodom <code class="notranslate">checkTestsTable(html, files)</code> vraća neuspjeh za svaki negativni slučaj (snimljeni i ručni), a uspjeh za pozitivne. Za docs PR vraća uspjeh bez HTML-a.</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Kriterij</th>
+<th>Test</th>
+<th>Pada bez promjene</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>kodni PR: negativni slučajevi padaju, pozitivni prolaze; docs PR prolazi</td>
+<td><code class="notranslate">scripts/tests-table.test.mjs</code>: <code class="notranslate">code PR fails: &lt;slučaj&gt;</code>, <code class="notranslate">code PR fails (hand-made): &lt;slučaj&gt;</code>, <code class="notranslate">code PR passes: &lt;slučaj&gt;</code>, <code class="notranslate">docs PR passes without a table</code>, <code class="notranslate">isDocsOnly</code> (dva testa), <code class="notranslate">capture is unchanged</code></td>
+<td>da: lokalno sa zamjenom <code class="notranslate">checkRenderedTable = () =&gt; ({ ok: true })</code> svi negativni padaju (u IZVJEŠTAJU)</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto"><strong>Negativni slučajevi idu prvi:</strong></p>
+<ul dir="auto">
+<li>Klase iz <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="5692088210" data-permission-text="Title is private" data-url="https://github.com/danielrisavi77-create/Ductus/issues/28" data-hovercard-type="pull_request" data-hovercard-url="/danielrisavi77-create/Ductus/pull/28/hovercard" href="https://github.com/danielrisavi77-create/Ductus/pull/28">#28</a> (ograđeni i uvučeni kod, <code class="notranslate">&lt;pre&gt;</code>, CDATA, komentar, U+2028 i U+2029, blok između zaglavlja i razdjelnika). GitHub iz njih ne daje našu tablicu. Snimka to dokazuje, a za provjeru su to slučajevi „nema tablice”.</li>
+<li>Snimljeni retci s praznim ili nevidljivim ćelijama: prazno, NBSP, <code class="notranslate">&amp;nbsp;</code>, U+200B, U+034F, U+3164, U+2800, U+FEFF+U+00AD, sama interpunkcija, emoji, <code class="notranslate">&lt;br&gt;</code>, netaknut predložak <code class="notranslate">&lt;…&gt;</code>, <code class="notranslate">&amp;#x200B;</code>.</li>
+<li>Treća ćelija: <code class="notranslate">ne</code>, <code class="notranslate">da.</code>, ćirilično <code class="notranslate">да</code>, prazna. Uz to: dva stupca, samo zaglavlje, redak s dvije ćelije, dobar pa loš redak, dobra i loša tablica, sirova tablica bez <code class="notranslate">thead</code>, <code class="notranslate">null</code> i prazan <code class="notranslate">html</code>.</li>
+<li>Ručno pisani HTML (renderer ga ne daje, a provjera mora pasti):
+<ul dir="auto">
+<li><code class="notranslate">&lt;!--&gt;</code>, <code class="notranslate">&lt;!---&gt;</code>, <code class="notranslate">&lt;?</code>, velika slova, <code class="notranslate">&lt;br/&gt;</code>;</li>
+<li><code class="notranslate">img</code>, <code class="notranslate">details</code> i ugniježđena tablica u ćeliji;</li>
+<li><code class="notranslate">hidden</code>, <code class="notranslate">aria-hidden</code> ili <code class="notranslate">style</code> na oznaci;</li>
+<li><code class="notranslate">td colspan</code>, <code class="notranslate">th colspan</code>, tekst između <code class="notranslate">tr</code>, atribut s <code class="notranslate">&gt;</code>;</li>
+<li><code class="notranslate">&amp;amp;</code> sam, <code class="notranslate">&amp;amp;#x41;</code> (ne smije dati <code class="notranslate">A</code>), nepoznat entitet, <code class="notranslate">&amp;#0;</code>, <code class="notranslate">&amp;#xD800;</code>, <code class="notranslate">&amp;#x110000;</code>, <code class="notranslate">&amp;#99999999999;</code>;</li>
+<li>nezatvorena tablica, <code class="notranslate">html</code> koji nije niz.</li>
+</ul>
+</li>
+<li>Docs: port slučajeva iz <a class="issue-link js-issue-link" data-error-text="Failed to load title" data-id="5692088210" data-permission-text="Title is private" data-url="https://github.com/danielrisavi77-create/Ductus/issues/28" data-hovercard-type="pull_request" data-hovercard-url="/danielrisavi77-create/Ductus/pull/28/hovercard" href="https://github.com/danielrisavi77-create/Ductus/pull/28">#28</a> (prazan popis, kod uz docs, <code class="notranslate">docs\x.ts</code>, <code class="notranslate">..</code>, <code class="notranslate">CLAUDE.md</code>, <code class="notranslate">.github/x.md</code>, preimenovanje iz koda).</li>
+</ul>
+<p dir="auto">Pozitivni slučajevi: jedan redak; <code class="notranslate">code</code>, <code class="notranslate">strong</code>, poveznica, <code class="notranslate">&amp;</code> i <code class="notranslate">Da</code>; poravnanje <code class="notranslate">align</code>; tablica u <code class="notranslate">&lt;details&gt;</code>; sirova HTML tablica u GFM obliku, koju GitHub prikazuje kao tablicu.</p>
+<p dir="auto"><strong>Ne ulazi:</strong></p>
+<ul dir="auto">
+<li>mreža, <code class="notranslate">POST /markdown</code>, workflow, samotest, README i PLAN (948-2);</li>
+<li>predložak (948-3);</li>
+<li>zahtjev da tablica stoji pod naslovom <code class="notranslate">## Testovi prihvata</code>. Naslov ne mijenja ono što renderer prikazuje.</li>
+</ul>
+<p dir="auto"><strong>Poznate granice:</strong></p>
+<ul dir="auto">
+<li>Provjera je oblikovna: „da” je izjava pisca. Postoji li test, provjeravaju review i QA.</li>
+<li>Tablica u zatvorenom <code class="notranslate">&lt;details&gt;</code> vrijedi, jer se prikazuje na klik (tako je i predložak).</li>
+<li>Ako GitHub promijeni oblik HTML-a, provjera pada, nikad ne prolazi. Popravak je nova snimka.</li>
+<li>Snimka je <code class="notranslate">body_html</code> komentara, ne izravno <code class="notranslate">POST /markdown</code>, jer taj put iz oblaka nije dostupan. 948-2 snima <code class="notranslate">POST /markdown</code> za samotest.</li>
+</ul>
+<details>
+<summary>Snimka ulaza za fixture (948-1): GitHub ovaj komentar rendera istim GFM cjevovodom, pa body_html isječaka između oznaka CASE postaje fixture</summary>
+<p dir="auto">CASE-fenced-START</p>
+<div class="snippet-clipboard-content notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="| Kriterij | Test | Pada bez promjene |
+|---|---|---|
+| a | b | da |"><pre class="notranslate"><code class="notranslate">| Kriterij | Test | Pada bez promjene |
+|---|---|---|
+| a | b | da |
+</code></pre></div>
+<p dir="auto">CASE-fenced-END</p>
+<p dir="auto">CASE-tilde-START</p>
+<div class="snippet-clipboard-content notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="| Kriterij | Test | Pada bez promjene |
+|---|---|---|
+| a | b | da |"><pre class="notranslate"><code class="notranslate">| Kriterij | Test | Pada bez promjene |
+|---|---|---|
+| a | b | da |
+</code></pre></div>
+<p dir="auto">CASE-tilde-END</p>
+<p dir="auto">CASE-indent4-START</p>
+<div class="snippet-clipboard-content notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="| Kriterij | Test | Pada bez promjene |
+|---|---|---|
+| a | b | da |"><pre class="notranslate"><code class="notranslate">| Kriterij | Test | Pada bez promjene |
+|---|---|---|
+| a | b | da |
+</code></pre></div>
+<p dir="auto">CASE-indent4-END</p>
+<p dir="auto">CASE-indenttab-START</p>
+<div class="snippet-clipboard-content notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="| Kriterij | Test | Pada bez promjene |
+|---|---|---|
+| a | b | da |"><pre class="notranslate"><code class="notranslate">| Kriterij | Test | Pada bez promjene |
+|---|---|---|
+| a | b | da |
+</code></pre></div>
+<p dir="auto">CASE-indenttab-END</p>
+<p dir="auto">CASE-indentspacetab-START</p>
+<div class="snippet-clipboard-content notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="| Kriterij | Test | Pada bez promjene |
+|---|---|---|
+| a | b | da |"><pre class="notranslate"><code class="notranslate">| Kriterij | Test | Pada bez promjene |
+|---|---|---|
+| a | b | da |
+</code></pre></div>
+<p dir="auto">CASE-indentspacetab-END</p>
+<p dir="auto">CASE-pre-START</p>
+<pre class="notranslate">| Kriterij | Test | Pada bez promjene |
+|---|---|---|
+| a | b | da |
+</pre>
+<p dir="auto">CASE-pre-END</p>
+<p dir="auto">CASE-cdata-START</p>
+<p dir="auto">&lt;[CDATA[</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Kriterij</th>
+<th>Test</th>
+<th>Pada bez promjene</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a</td>
+<td>b</td>
+<td>da</td>
+</tr>
+<tr>
+<td>]]&gt;</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">CASE-cdata-END</p>
+<p dir="auto">CASE-comment-START</p>
+
+<p dir="auto">CASE-comment-END</p>
+<p dir="auto">CASE-u2028-START</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Kriterij</th>
+<th>Test</th>
+<th>Pada bez promjene</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a</td>
+<td>b</td>
+<td>da</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">CASE-u2028-END</p>
+<p dir="auto">CASE-u2029-START</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Kriterij</th>
+<th>Test</th>
+<th>Pada bez promjene</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a</td>
+<td>b</td>
+<td>da</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">CASE-u2029-END</p>
+<p dir="auto">CASE-fencebetween-START</p>
+<p dir="auto">| Kriterij | Test | Pada bez promjene |</p>
+<div class="snippet-clipboard-content notranslate position-relative overflow-auto" data-snippet-clipboard-copy-content="x"><pre class="notranslate"><code class="notranslate">x
+</code></pre></div>
+<p dir="auto">|---|---|---|<br>
+| a | b | da |</p>
+<p dir="auto">CASE-fencebetween-END</p>
+<p dir="auto">CASE-headeronly-START</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Kriterij</th>
+<th>Test</th>
+<th>Pada bez promjene</th>
+</tr>
+</thead>
+</table></markdown-accessiblity-table>
+<p dir="auto">CASE-headeronly-END</p>
+<p dir="auto">CASE-twocols-START</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Kriterij</th>
+<th>Test</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a</td>
+<td>b</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">CASE-twocols-END</p>
+<p dir="auto">CASE-rows-START</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Kriterij</th>
+<th>Test</th>
+<th>Pada bez promjene</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a</td>
+<td>b</td>
+<td>da</td>
+</tr>
+<tr>
+<td>a</td>
+<td></td>
+<td>da</td>
+</tr>
+<tr>
+<td>a</td>
+<td></td>
+<td>da</td>
+</tr>
+<tr>
+<td>a</td>
+<td> </td>
+<td>da</td>
+</tr>
+<tr>
+<td>a</td>
+<td></td>
+<td>da</td>
+</tr>
+<tr>
+<td>a</td>
+<td>͏</td>
+<td>da</td>
+</tr>
+<tr>
+<td>a</td>
+<td>ㅤ</td>
+<td>da</td>
+</tr>
+<tr>
+<td>⠀</td>
+<td>⠀</td>
+<td>da</td>
+</tr>
+<tr>
+<td>a</td>
+<td></td>
+<td>da</td>
+</tr>
+<tr>
+<td>a</td>
+<td>—.-</td>
+<td>da</td>
+</tr>
+<tr>
+<td>a</td>
+<td>✅</td>
+<td>da</td>
+</tr>
+<tr>
+<td>a</td>
+<td><br></td>
+<td>da</td>
+</tr>
+<tr>
+<td>&lt;…&gt;</td>
+<td>&lt;…&gt;</td>
+<td>da</td>
+</tr>
+<tr>
+<td>a</td>
+<td>b</td>
+<td>ne</td>
+</tr>
+<tr>
+<td>a</td>
+<td>b</td>
+<td>da.</td>
+</tr>
+<tr>
+<td>a</td>
+<td>b</td>
+<td>да</td>
+</tr>
+<tr>
+<td>a</td>
+<td>b</td>
+<td></td>
+</tr>
+<tr>
+<td>a <strong>b</strong></td>
+<td><code class="notranslate">x</code></td>
+<td>Da</td>
+</tr>
+<tr>
+<td>a</td>
+<td>b</td>
+<td>​</td>
+</tr>
+<tr>
+<td>a &amp; b</td>
+<td><a href="https://example.com" rel="nofollow">x</a></td>
+<td>da</td>
+</tr>
+<tr>
+<td>a</td>
+<td>b</td>
+<td>da</td>
+</tr>
+<tr>
+<td>a</td>
+<td>b</td>
+<td></td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">CASE-rows-END</p>
+<p dir="auto">CASE-aligned-START</p>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th align="left">Kriterij</th>
+<th align="center">Test</th>
+<th align="right">Pada bez promjene</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="left">a</td>
+<td align="center">b</td>
+<td align="right">da</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+<p dir="auto">CASE-aligned-END</p>
+<p dir="auto">CASE-details-START</p>
+<details>
+<summary>Detalji</summary>
+<markdown-accessiblity-table><table role="table">
+<thead>
+<tr>
+<th>Kriterij</th>
+<th>Test</th>
+<th>Pada bez promjene</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a</td>
+<td>b</td>
+<td>da</td>
+</tr>
+</tbody>
+</table></markdown-accessiblity-table>
+</details>
+<p dir="auto">CASE-details-END</p>
+<p dir="auto">CASE-rawtable-START</p>
+<markdown-accessiblity-table><table role="table"><thead><tr><th>Kriterij</th><th>Test</th><th>Pada bez promjene</th></tr></thead><tbody><tr><td>a</td><td>b</td><td>da</td></tr></tbody></table></markdown-accessiblity-table>
+<p dir="auto">CASE-rawtable-END</p>
+<p dir="auto">CASE-rawnothead-START</p>
+<markdown-accessiblity-table><table role="table"><tbody><tr><td>Kriterij</td><td>Test</td><td>Pada bez promjene</td></tr><tr><td>a</td><td>b</td><td>da</td></tr></tbody></table></markdown-accessiblity-table>
+<p dir="auto">CASE-rawnothead-END</p>
+</details>
+<hr>
+<p dir="auto"><em>Generated by <a href="https://claude.ai/code" rel="nofollow">Claude Code</a></em></p>
