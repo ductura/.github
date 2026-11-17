@@ -105,6 +105,69 @@ jobs:
         typecheck
         test
 
+  # A Node project whose test fails on purpose (DAN-971): ci-node.yml stays
+  # green only because expect-failure asserts that the test failed.
+  node-fail:
+    permissions: { contents: read, packages: read }
+    uses: ./.github/workflows/ci-node.yml
+    with:
+      working-directory: fixtures/node-fail
+      scripts: test
+      expect-failure: true
+
+  # A required job that never runs; ci-ok must not count it as passed.
+  node-skipped:
+    if: ${{ false }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: echo never runs
+
+  # ci-ok.yml's exact block must be red over the failed test and over the
+  # skipped job. Logic tested in scripts/ci-node.test.mjs.
+  red-aggregate:
+    if: ${{ always() }}
+    needs: [node-fail, node-skipped]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: ci-ok is red over a failed test and a skipped job
+        shell: bash
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+          SCRIPTS_RESULT: ${{ needs.node-fail.outputs.scripts-result }}
+        run: |
+          # red-aggregate:begin
+          set -euo pipefail
+          node scripts/extract-run.mjs .github/workflows/ci-ok.yml ci-ok > "$RUNNER_TEMP/ci-ok.sh"
+          node_fail="$(jq -r '."node-fail".result' <<< "$RESULTS")"
+          if [ "$node_fail" != success ]; then
+            echo "::error::node-fail result: $node_fail (its test must fail, its install must pass)"
+            exit 1
+          fi
+          expect_red() {
+            local out
+            if out="$(RESULTS="$2" ALLOW_SKIPPED="" bash "$RUNNER_TEMP/ci-ok.sh" 2>&1)"; then
+              echo "::error::ci-ok passed over $1"
+              exit 1
+            fi
+            if ! grep -qxF "::error::job $1" <<< "$out"; then
+              while IFS= read -r line; do echo "> $line"; done <<< "$out"
+              echo "::error::ci-ok failed over $1 for another reason"
+              exit 1
+            fi
+            echo "ci-ok is red over $1"
+          }
+          expect_red "node-fail result: failure" "$(jq -c --arg r "$SCRIPTS_RESULT" '{"node-fail": (."node-fail" + {result: $r})}' <<< "$RESULTS")"
+          expect_red "node-skipped result: skipped" "$(jq -c '{"node-skipped": ."node-skipped"}' <<< "$RESULTS")"
+          # red-aggregate:end
+
   presets:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -200,7 +263,7 @@ jobs:
   # The reusable ci-ok.yml called for real, as other repositories call it.
   ci-ok-reusable:
     if: ${{ always() }}
-    needs: [actionlint, pin-check, permissions-check, gate, engineering-gate, node-ok, node-ok-multiline, presets, lint-presets, secret-scan, secret-scan-negative, dependency-review]
+    needs: [actionlint, pin-check, permissions-check, gate, engineering-gate, node-ok, node-ok-multiline, node-fail, red-aggregate, presets, lint-presets, secret-scan, secret-scan-negative, dependency-review]
     uses: ./.github/workflows/ci-ok.yml
     with:
       results: ${{ toJSON(needs) }}
@@ -213,7 +276,7 @@ jobs:
   ci-ok:
     name: ci-ok
     if: ${{ always() }}
-    needs: [actionlint, pin-check, permissions-check, gate, engineering-gate, node-ok, node-ok-multiline, presets, lint-presets, secret-scan, secret-scan-negative, dependency-review, ci-ok-reusable]
+    needs: [actionlint, pin-check, permissions-check, gate, engineering-gate, node-ok, node-ok-multiline, node-fail, red-aggregate, presets, lint-presets, secret-scan, secret-scan-negative, dependency-review, ci-ok-reusable]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
