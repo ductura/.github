@@ -18,7 +18,9 @@ export const NOTE = "Mergify je ukinut 17. 11.";
 export const RETURN =
   "Mergify se vraća ako dva PR-a zaredom slome main ili ako spajanje mora raditi bez ovog računala.";
 
-const RETURN_TAIL = "se vraća ako dva PR-a zaredom slome main";
+// Each clause of the return condition, counted without the name, so a partial,
+// reworded or second condition is found whatever it calls the tool.
+const RETURN_CLAUSES = ["se vraća ako", "dva PR-a zaredom slome main", "spajanje mora raditi bez ovog računala"];
 
 /** Problems with how a set of files ({path: text}) names Mergify; empty when the docs obey DAN-988. */
 export const mergifyProblems = (files) => {
@@ -37,9 +39,12 @@ export const mergifyProblems = (files) => {
     if (rest.match(NAME)) problems.push(`${where}: Mergify outside the abolition note and the return condition`);
     if (!line.includes(NOTE)) problems.push(`${where}: no abolition note`);
   }
-  // Counted without the name, so a second condition that avoids the name is found too.
-  const returns = normalize(Object.values(files).join("\n")).split(RETURN_TAIL).length - 1;
-  if (returns !== 1) problems.push(`expected the return condition once, found ${returns}`);
+  const all = normalize(Object.values(files).join("\n"));
+  const count = (s) => all.split(s).length - 1;
+  if (count(RETURN) !== 1) problems.push(`expected the full return condition verbatim once, found ${count(RETURN)}`);
+  for (const clause of RETURN_CLAUSES) {
+    if (count(clause) !== 1) problems.push(`expected "${clause}" once, found ${count(clause)}`);
+  }
   return problems;
 };
 
@@ -62,6 +67,13 @@ test("checker reports stray, disguised and repeated Mergify mentions", () => {
     "no note": { a: `x ${RETURN}` },
     "return twice": { a: ok, b: RETURN.replace("Mergify", "Taj alat") + " " + RETURN.replace("Mergify", "Taj alat") },
     "no return": { a: `x ${NOTE}` },
+    "second clause dropped, name replaced": {
+      a: `x ${NOTE} Uvjet: alat se vraća ako dva PR-a zaredom slome main.`,
+    },
+    "second clause dropped": { a: `x ${NOTE} Mergify se vraća ako dva PR-a zaredom slome main.` },
+    "first clause dropped": { a: `x ${NOTE} Mergify se vraća ako spajanje mora raditi bez ovog računala.` },
+    "clauses joined by i": { a: `x ${NOTE} ${RETURN.replace(" ili ", " i ")}` },
+    "extra clause elsewhere": { a: ok, b: "Alat se vraća i ako spajanje mora raditi bez ovog računala." },
     "no mention": { a: "nothing" },
   };
   for (const [name, files] of Object.entries(bad)) assert.notDeepEqual(mergifyProblems(files), [], name);
