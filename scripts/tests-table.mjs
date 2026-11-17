@@ -100,6 +100,13 @@ function closeOf(tokens, at) {
   throw new CheckError("Opis PR-a sadrži nezatvorenu HTML oznaku");
 }
 
+// True when a cell tag has a colspan or rowspan attribute. Only attribute
+// names count: quoted values (a link's href, a title) are removed first.
+function spans(attrs) {
+  const names = attrs.replace(/"[^"]*"|'[^']*'/g, "").match(/[^\s=/]+(?=\s*=|\s|\/|$)/g) ?? [];
+  return names.some((n) => /^(?:colspan|rowspan)$/i.test(n));
+}
+
 // Indexes of opening `name` tags strictly between `from` and `to` (only that range is read).
 function opens(tokens, from, to, name) {
   const found = [];
@@ -120,7 +127,7 @@ export function checkRenderedTable(html, files) {
   if (at === undefined) return fail("Odjeljak „Testovi prihvata” nema tablicu koju GitHub prikazuje.");
   const end = closeOf(tokens, at);
   const inside = tokens.slice(at + 1, end);
-  if (inside.some((t) => ["table", "tfoot", "caption"].includes(t.tag) || /\b(?:colspan|rowspan)\s*=/i.test(t.attrs ?? "")))
+  if (inside.some((t) => ["table", "tfoot", "caption"].includes(t.tag) || ((t.tag === "td" || t.tag === "th") && spans(t.attrs))))
     return fail("Tablica testova ima nedopušten oblik (tfoot, caption, ugniježđena tablica, colspan ili rowspan).");
   const [thead] = opens(tokens, at, end, "thead");
   const theadEnd = thead === undefined ? -1 : closeOf(tokens, thead);
