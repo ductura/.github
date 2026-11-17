@@ -1,0 +1,15 @@
+# Must fail scripts/permissions-check.mjs: pull_request_target with a checkout
+# of the PR head (DAN-970). Not a workflow of this repository; it is never run.
+name: prt-checkout
+on: pull_request_target
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: echo build
