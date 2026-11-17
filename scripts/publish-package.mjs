@@ -6,7 +6,7 @@
 // sha256= (also to $GITHUB_OUTPUT); any mismatch exits 1.
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { appendFileSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync } from "node:fs";
+import { appendFileSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmdirSync, rmSync, writeSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { gunzipSync } from "node:zlib";
@@ -74,7 +74,11 @@ export function readTarball(gz) {
       return entries;
     }
     const sum = block.reduce((s, b, i) => s + (i >= 148 && i < 156 ? 32 : b), 0);
-    if (octal(block, 148, 8, "checksum") !== sum) throw new Error("tar: bad header checksum");
+    // node-tar reads the checksum over 12 bytes (on into typeflag and linkname):
+    // only six digits and a terminator, as npm pack writes them, read the same.
+    const checksum = block.subarray(148, 156).toString("latin1");
+    if (!/^[0-7]{6}( \0|\0 )$/.test(checksum)) throw new Error(`tar: checksum is not six octal digits and a terminator: ${JSON.stringify(checksum)}`);
+    if (parseInt(checksum, 8) !== sum) throw new Error("tar: bad header checksum");
     // POSIX ustar only (magic "ustar\0", version "00"), as npm pack writes it:
     // old and GNU headers are read differently by other tar readers.
     if (block.subarray(257, 265).toString("latin1") !== "ustar\u000000") throw new Error("tar: not a POSIX ustar header");
@@ -166,18 +170,28 @@ export function main(args, env = process.env) {
       const after = readdirSync(out);
       const same = after.length === 1 && createHash("sha256").update(readFileSync(join(out, after[0]))).digest("hex") === sha256;
       if (!same) throw new Error("GITHUB_OUTPUT changed the output folder");
-      process.stdout.write(lines);
+      // Synchronous, inside the try: a stdout that fails goes through the cleanup.
+      writeSync(1, lines);
       return 0;
     }
   } catch (error) {
     problems = [error.message];
   }
-  // Nothing of a failed run stays: the folder it made goes, if it is still that folder.
-  if (made) {
-    const now = lstatSync(out, { throwIfNoEntry: false });
-    if (now?.isDirectory() && now.dev === made.dev && now.ino === made.ino) rmSync(out, { recursive: true, force: true });
-  }
   for (const problem of problems) console.error(`publish-package: ${problem}`);
+  // Nothing of a failed run stays: its own files in the folder it made, then the
+  // folder, if it is still that folder. Never recursive: a folder inside it is
+  // another run's (made there without `recursive`) and stays, and so does this one.
+  const now = made && lstatSync(out, { throwIfNoEntry: false });
+  if (now?.isDirectory() && now.dev === made.dev && now.ino === made.ino) {
+    for (const name of readdirSync(out)) {
+      if (lstatSync(join(out, name), { throwIfNoEntry: false })?.isDirectory() === false) rmSync(join(out, name), { force: true });
+    }
+    try {
+      rmdirSync(out);
+    } catch (error) {
+      if (error.code !== "ENOTEMPTY") throw error;
+    }
+  }
   return 1;
 }
 

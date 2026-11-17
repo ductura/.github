@@ -11,7 +11,7 @@ import { checkTarball, parseTag } from "./publish-package.mjs";
 // A ustar archive written here, so every malformed shape can be built. The
 // header holds what npm pack writes (mode 000644, the fixed mtime, devmajor and
 // devminor 0, all other fields NUL); `set` overwrites raw bytes at an offset.
-function header(path, size, { type = "0", prefix = "", sizeText, magic = "ustar\u000000", set = {} } = {}) {
+function header(path, size, { type = "0", prefix = "", sizeText, magic = "ustar\u000000", set = {}, sumText } = {}) {
   const h = Buffer.alloc(512);
   Buffer.from(path, "utf8").copy(h, 0, 0, 100);
   h.write("000644 \0", 100);
@@ -25,7 +25,7 @@ function header(path, size, { type = "0", prefix = "", sizeText, magic = "ustar\
   for (const [at, text] of Object.entries(set)) h.write(text, Number(at), "latin1");
   h.write("        ", 148);
   const sum = h.reduce((s, b) => s + b, 0);
-  h.write(`${sum.toString(8).padStart(6, "0")}\0 `, 148);
+  h.write(sumText ? sumText(sum) : `${sum.toString(8).padStart(6, "0")}\0 `, 148, "latin1");
   return h;
 }
 function tarball(entries, { end = Buffer.alloc(1024), badSum = false, cut = 0 } = {}) {
@@ -139,6 +139,29 @@ for (const [name, at, text] of [
     assert.match(problems[0], new RegExp(`\\b${name}\\b`));
   });
 }
+
+// node-tar reads the checksum over 12 bytes (into typeflag and linkname): only
+// six digits and a terminator, as npm pack writes it, read the same in both.
+for (const [name, sumText] of [
+  ["eight digits, no terminator", (sum) => sum.toString(8).padStart(8, "0")],
+  ["seven digits", (sum) => `${sum.toString(8).padStart(7, "0")}\0`],
+  ["no NUL", (sum) => `${sum.toString(8).padStart(6, "0")}  `],
+]) {
+  test(`rejects: checksum with ${name}`, () => {
+    const problems = check([...GOOD, ["package/rules/b.js", "x", { sumText }]]);
+    assert.equal(problems.length, 1, problems.join("\n"));
+    assert.match(problems[0], /checksum/);
+  });
+}
+
+test("accepts the checksum as npm pack writes it (digits, space, NUL)", () => {
+  assert.deepEqual(check([...GOOD, ["package/rules/b.js", "x", { sumText: (sum) => `${sum.toString(8).padStart(6, "0")} \0` }]]), []);
+});
+
+test("rejects: an entry whose size runs past the end of the archive", () => {
+  const problems = check([...GOOD, ["package/rules/b.js", "x", { sizeText: "00000010000\0" }]]);
+  assert.deepEqual(problems, ["tar: truncated"]);
+});
 
 test("rejects: truncated gzip", () => {
   const gz = tarball(GOOD);
@@ -272,6 +295,44 @@ test("CLI: two parallel runs on one output folder: one takes it, its tarball sta
   assert.equal(won[0].stdout, `file=${file}\nsha256=${sha256Of(join(out, file))}\n`);
 });
 
+test("CLI: a run that fails leaves another run's folder inside its own, and that tarball, untouched", () => {
+  // A stand-in npm first runs the script for another preset into <out>/b (a
+  // nested run that exits 0), then the real npm pack: the outer run then finds
+  // two entries and fails. Its cleanup may remove only what it wrote itself.
+  const realNpm = spawnSync("sh", ["-c", "command -v npm"], { encoding: "utf8" }).stdout.trim();
+  const bin = temp();
+  writeFileSync(
+    join(bin, "npm"),
+    '#!/bin/sh\nif [ -n "$NESTED_OUT" ]; then\n  out="$NESTED_OUT"; unset NESTED_OUT\n' +
+      '  "$NODE" "$SCRIPT" "$NESTED_TAG" "$out" > "$NESTED_LOG" || exit 3\nfi\nexec "$REAL_NPM" "$@"\n',
+    { mode: 0o755 },
+  );
+  const out = fresh();
+  const nested = join(out, "b");
+  const log = join(temp(), "nested.log");
+  const run = cli([`refs/tags/tsconfig-v${versionOf("tsconfig")}`, out], {
+    PATH: `${bin}:${process.env.PATH}`, NODE: process.execPath, SCRIPT, REAL_NPM: realNpm,
+    NESTED_OUT: nested, NESTED_TAG: `refs/tags/eslint-config-v${versionOf("eslint-config")}`, NESTED_LOG: log,
+  });
+  assert.equal(run.status, 1, run.stderr);
+  assert.match(run.stderr, /npm pack wrote 2 files/);
+  const file = `ductura-eslint-config-${versionOf("eslint-config")}.tgz`;
+  assert.deepEqual(readdirSync(out), ["b"]);
+  assert.deepEqual(readdirSync(nested), [file]);
+  assert.equal(readFileSync(log, "utf8"), `file=${file}\nsha256=${sha256Of(join(nested, file))}\n`);
+});
+
+test("CLI: stdout that is closed fails with 1 and removes the folder", async () => {
+  const out = fresh();
+  const status = await new Promise((done) => {
+    const child = spawn(process.execPath, [SCRIPT, `refs/tags/tsconfig-v${versionOf("tsconfig")}`, out], { stdio: ["ignore", "pipe", "ignore"] });
+    child.stdout.destroy();
+    child.on("close", done);
+  });
+  assert.equal(status, 1);
+  assert.equal(existsSync(out), false);
+});
+
 test("CLI started through a symlink still runs: a bad tag fails with 1, no arguments with 2", () => {
   const link = join(temp(), "publish-package.mjs");
   symlinkSync(SCRIPT, link);
@@ -288,9 +349,11 @@ test("CLI started through a symlink still runs: a bad tag fails with 1, no argum
 test("CLI: GITHUB_OUTPUT that is a folder or inside the output folder fails with 1, prints nothing and removes the folder", () => {
   const tag = `refs/tags/tsconfig-v${versionOf("tsconfig")}`;
   const file = `ductura-tsconfig-${versionOf("tsconfig")}.tgz`;
-  const folder = cli([tag, fresh()], { GITHUB_OUTPUT: temp() });
+  const folderOut = fresh();
+  const folder = cli([tag, folderOut], { GITHUB_OUTPUT: temp() });
   assert.equal(folder.status, 1);
   assert.equal(folder.stdout, "");
+  assert.equal(existsSync(folderOut), false);
   for (const name of [file, "github-output", "."]) {
     const out = fresh();
     const run = cli([tag, out], { GITHUB_OUTPUT: join(out, name) });
