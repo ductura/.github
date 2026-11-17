@@ -3,7 +3,7 @@
 // path guard are tested without network; the real image runs in self-test.yml.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, chmodSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, chmodSync, symlinkSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -18,7 +18,11 @@ function run(scanPath, dockerExit = 0) {
   const ws = join(root, "ws");
   const bin = join(root, "bin");
   mkdirSync(join(ws, "app"), { recursive: true });
+  mkdirSync(join(root, "outside"));
   mkdirSync(bin);
+  // escape -> a real folder outside the workspace; inner -> a folder inside it.
+  symlinkSync(join(root, "outside"), join(ws, "escape"));
+  symlinkSync(join(ws, "app"), join(ws, "inner"));
   writeFileSync(join(bin, "docker"), `#!/usr/bin/env bash\nprintf '%s\\n' "$@" > "${root}/args"\nexit ${dockerExit}\n`);
   chmodSync(join(bin, "docker"), 0o755);
   const r = spawnSync("bash", ["-c", script], {
@@ -63,7 +67,7 @@ for (const [code, message] of [
   });
 }
 
-for (const bad of ["../x", "a/../..", "a:b", "/etc", "a b", "a\nb", "a\tb", "a\u00a0b", "a\u007fb", "C:\\x", "", "missing"]) {
+for (const bad of ["../x", "a/../..", "a:b", "/etc", "a b", "a\nb", "a\tb", "a\u00a0b", "a\u007fb", "C:\\x", "", "missing", "escape", "escape/", "app/../escape"]) {
   test(`path ${JSON.stringify(bad)} is refused before docker runs`, () => {
     const r = run(bad, 0);
     assert.equal(r.status, 1, r.out);
@@ -73,7 +77,7 @@ for (const bad of ["../x", "a/../..", "a:b", "/etc", "a b", "a\nb", "a\tb", "a\u
 }
 
 test("clean scan passes and mounts the resolved directory read-only", () => {
-  for (const ok of ["app", ".", "./app/"]) {
+  for (const ok of ["app", ".", "./app/", "inner"]) {
     const r = run(ok, 0);
     assert.equal(r.status, 0, r.out);
     const mount = r.args[r.args.indexOf("-v") + 1];
@@ -82,4 +86,15 @@ test("clean scan passes and mounts the resolved directory read-only", () => {
     assert.deepEqual(r.args.slice(-4), ["scan", "source", "-r", "/src"]);
     assert.ok(r.args.includes("HOME=/tmp"));
   }
+});
+
+test("a symlink out of the workspace is refused by the realpath check", () => {
+  for (const p of ["escape", "escape/"]) {
+    const r = run(p, 0);
+    assert.equal(r.status, 1, r.out);
+    assert.equal(r.args, null, "docker must not run");
+    assert.ok(r.out.includes("::error::path resolves outside the repository"), r.out);
+  }
+  const inner = run("inner", 0);
+  assert.equal(inner.args[inner.args.indexOf("-v") + 1], `${join(inner.ws, "app")}:/src:ro`);
 });

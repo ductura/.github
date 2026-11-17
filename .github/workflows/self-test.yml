@@ -272,6 +272,7 @@ jobs:
           root="$(mktemp -d "$RUNNER_TEMP/osv.XXXXXX")"
           mkdir "$root/vulnerable" "$root/empty"
           cp -r fixtures/osv/clean "$root/clean"
+          ln -s "$RUNNER_TEMP" "$root/escape"  # a real folder outside the scanned workspace
           # minimist 1.2.5: GHSA-xvch-5gv4-984h (prototype pollution), fixed in 1.2.6.
           printf '%s\n' "lockfileVersion: '9.0'" "importers:" "  .:" "    dependencies:" \
             "      minimist: {specifier: 1.2.5, version: 1.2.5}" "packages:" \
@@ -291,6 +292,7 @@ jobs:
           expect_fail vulnerable "::error::osv-scanner found known vulnerabilities" GHSA-xvch-5gv4-984h
           expect_fail empty "::error::osv-scanner found no lockfile to scan"
           expect_fail ../x "::error::path must be relative"
+          expect_fail escape "::error::path resolves outside the repository"
 
   dependency-review:
     if: ${{ github.event_name == 'pull_request' }}
