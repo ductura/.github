@@ -257,7 +257,7 @@ const FIXTURES = new URL("../fixtures/tests-table/", import.meta.url);
 const fixtureNames = readdirSync(FIXTURES).filter((f) => f.endsWith(".json"));
 test("captured fixtures carry their source and cover the template and #28's cases", () => {
   const names = fixtureNames.map((f) => f.slice(0, -5));
-  for (const want of ["template", "code-fence", "zero-rows", "comment-only", "math-cell", "mixed-indent", "fence-between", "line-separator", "cdata"]) {
+  for (const want of ["template", "filled-template", "code-fence", "zero-rows", "comment-only", "math-cell", "mixed-indent", "fence-between", "line-separator", "cdata"]) {
     assert.ok(names.includes(want), want);
   }
   for (const f of fixtureNames) {
@@ -313,4 +313,36 @@ test("self-test.yml runs tests-table.yml over every fixture, at least one passin
   assert.deepEqual([...cases].sort(), files.sort());
   const exits = files.map((f) => JSON.parse(readFileSync(new URL(`${f}.json`, FIXTURES), "utf8")).expect.exit);
   assert.ok(exits.includes(0) && exits.includes(1));
+});
+
+// The template and the check agree both ways (DAN-948-3): the untouched
+// template fails (fixture template), and the template with only its
+// placeholder row filled passes. Both fixtures hold the current template's
+// markdown, so a template change without a new capture fails here.
+const PLACEHOLDER_ROW = "| <…> | <…> | da |\n";
+function fillTemplate(template, row) {
+  const parts = template.split(PLACEHOLDER_ROW);
+  if (parts.length !== 2) throw new Error(`the template needs exactly one placeholder row, found ${parts.length - 1}`);
+  return parts.join(row);
+}
+const FILLED_ROW = "| popunjen predložak prolazi provjeru | `scripts/tests-table.test.mjs` „filled template” | da |\n";
+const TEMPLATE = readFileSync(new URL("../PULL_REQUEST_TEMPLATE.md", import.meta.url), "utf8");
+
+test("filled template: a template without, or with two, placeholder rows is refused", () => {
+  assert.throws(() => fillTemplate(TEMPLATE.replace(PLACEHOLDER_ROW, ""), FILLED_ROW));
+  assert.throws(() => fillTemplate(TEMPLATE.replace(PLACEHOLDER_ROW, PLACEHOLDER_ROW.repeat(2)), FILLED_ROW));
+  assert.throws(() => fillTemplate(TEMPLATE.replace(PLACEHOLDER_ROW, PLACEHOLDER_ROW.replace("\n", "\r\n")), FILLED_ROW));
+});
+test("filled template is the template with only its placeholder row filled, and passes", () => {
+  const fx = JSON.parse(readFileSync(new URL("filled-template.json", FIXTURES), "utf8"));
+  assert.equal(fx.markdown, fillTemplate(TEMPLATE, FILLED_ROW));
+  // The HTML belongs to that markdown: the filled cells are there, no placeholder cell is.
+  assert.ok(fx.pr.body_html.includes("<td>popunjen predložak prolazi provjeru</td>"));
+  assert.ok(fx.pr.body_html.includes("<td><code class=\"notranslate\">scripts/tests-table.test.mjs</code> „filled template”</td>"));
+  assert.ok(!fx.pr.body_html.includes("&lt;…&gt;</td>"));
+  assert.equal(isDocsOnly(fx.files), false);
+  assert.deepEqual(checkRenderedTable(fx.pr.body_html, fx.files), { ok: true, message: "Tablica testova ima 1 popunjen(ih) redak(a)." });
+  const untouched = JSON.parse(readFileSync(new URL("template.json", FIXTURES), "utf8"));
+  assert.equal(untouched.markdown, TEMPLATE);
+  assert.equal(checkRenderedTable(untouched.pr.body_html, untouched.files).ok, false);
 });

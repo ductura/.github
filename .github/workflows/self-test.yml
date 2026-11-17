@@ -94,14 +94,15 @@ jobs:
       self-test: ${{ matrix.case }}
 
   # The reusable tests-table.yml itself over fixtures/tests-table (DAN-948-1):
-  # GitHub's captured body_html of invented bodies; a filled table and a
-  # docs-only PR pass, the template and every table GitHub does not show fail.
+  # GitHub's captured body_html of invented bodies; a filled table, the PR
+  # template with its placeholder row filled (DAN-948-3) and a docs-only PR
+  # pass, the untouched template and every table GitHub does not show fail.
   # Local fake API only; no token reaches the runner.
   tests-table:
     strategy:
       fail-fast: false
       matrix:
-        case: [cdata, code-fence, comment-only, del-da, docs-only, fence-between, filled-table, line-separator, math-cell, mixed-indent, raw-html-hidden, template, zero-rows]
+        case: [cdata, code-fence, comment-only, del-da, docs-only, fence-between, filled-table, filled-template, line-separator, math-cell, mixed-indent, raw-html-hidden, template, zero-rows]
     permissions: { contents: read, pull-requests: read }
     uses: ./.github/workflows/tests-table.yml
     with:
