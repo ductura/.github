@@ -158,7 +158,7 @@ jobs:
               exit 1
             fi
             if ! grep -qxF "::error::job $1" <<< "$out"; then
-              sed 's/^::/: :/' <<< "$out"
+              while IFS= read -r line; do echo "> $line"; done <<< "$out"
               echo "::error::ci-ok failed over $1 for another reason"
               exit 1
             fi
