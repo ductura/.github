@@ -43,7 +43,7 @@ const yaml11 = [["set", "!!set { write-all }"], ["omap", "!!omap [ { contents: r
 const broad = [
   ...broadValues.map(([name, v]) => [`file ${name}`, `on: push\npermissions: ${v}\n` + JOB, ["-: broad"]]),
   ...broadValues.map(([name, v]) => [`job ${name}`, `on: push\npermissions: {}\njobs:\n  a:\n    runs-on: u\n    permissions: ${v}\n`, ["a: broad"]]),
-  ...yaml11.map(([name, v]) => [`YAML 1.1 ${name}`, `%YAML 1.1\n---\non: push\npermissions: ${v}\n` + JOB, ["-: broad"]]),
+  ...yaml11.map(([name, v]) => [`YAML 1.1 ${name}`, `%YAML 1.1\n---\n"on": push\npermissions: ${v}\n` + JOB, ["-: broad"]]),
   ["alias to write-all", "on: push\nx: &w write-all\njobs:\n  a: { runs-on: u, permissions: *w }\n", ["a: broad"]],
   ["file write-all although every job has a list", "on: push\npermissions: write-all\njobs:\n  a: { runs-on: u, permissions: {} }\n", ["-: broad"]],
   ["one job of two", "on: push\njobs:\n  a: { runs-on: u, permissions: {} }\n  b: { runs-on: u, permissions: write-all }\n", ["b: broad"]],
@@ -57,6 +57,45 @@ const notBroad = [
   ["write for one scope is a list", "on: push\npermissions: { contents: write }\n" + JOB],
   ["alias to a mapping", "on: push\nx: &p { contents: write }\npermissions: *p\n" + JOB],
   ["CRLF with read-all", "on: push\r\npermissions: read-all\r\njobs:\r\n  a:\r\n    runs-on: u\r\n"],
+];
+
+// pull_request_target with a checkout of PR code (DAN-970, criterion 3): any
+// expression or refs/pull/ in ref or repository, or an INPUT_* env, fails.
+const prt = (step, on = "pull_request_target", extra = "") =>
+  `on: ${on}\npermissions: {}\n${extra}jobs:\n  a:\n    runs-on: u\n    steps:\n      - ${step}\n`;
+const co = (w) => `{ uses: actions/checkout@abc, with: ${w} }`;
+const prtCheckout = [
+  ["head sha", prt(co("{ ref: '${{ github.event.pull_request.head.sha }}' }")), ["a: prt-checkout"]],
+  ["head_ref", prt(co("{ ref: '${{ github.head_ref }}' }")), ["a: prt-checkout"]],
+  ["refs/pull merge", prt(co("{ ref: refs/pull/1/merge }")), ["a: prt-checkout"]],
+  ["refs/PULL in upper case", prt(co("{ ref: refs/PULL/1/head }")), ["a: prt-checkout"]],
+  ["format()", prt(co("{ ref: \"${{ format('refs/{0}/1/head', 'pull') }}\" }")), ["a: prt-checkout"]],
+  ["env expression", prt(co("{ ref: '${{ env.X }}' }")), ["a: prt-checkout"]],
+  ["head repository", prt(co("{ repository: '${{ github.event.pull_request.head.repo.full_name }}' }")), ["a: prt-checkout"]],
+  ["on as a list", prt(co("{ ref: refs/pull/1/head }"), "[push, pull_request_target]"), ["a: prt-checkout"]],
+  ["on as a mapping", prt(co("{ ref: refs/pull/1/head }"), "{ pull_request_target: { types: [opened] } }"), ["a: prt-checkout"]],
+  ["with workflow_call", prt(co("{ ref: refs/pull/1/head }"), "[pull_request_target, workflow_call]"), ["a: prt-checkout"]],
+  ["event name in other case", prt(co("{ ref: refs/pull/1/head }"), "Pull_Request_Target"), ["a: prt-checkout"]],
+  ["action name in other case", prt("{ uses: Actions/Checkout@abc, with: { ref: refs/pull/1/head } }"), ["a: prt-checkout"]],
+  ["action path", prt("{ uses: actions/checkout/sub@abc, with: { ref: refs/pull/1/head } }"), ["a: prt-checkout"]],
+  ["key Ref", prt(co("{ Ref: refs/pull/1/head }")), ["a: prt-checkout"]],
+  ["key REPOSITORY", prt(co("{ REPOSITORY: '${{ github.event.pull_request.head.repo.full_name }}' }")), ["a: prt-checkout"]],
+  ["ref main beside Ref expression", prt(co("{ ref: main, Ref: '${{ github.head_ref }}' }")), ["a: prt-checkout"]],
+  ["second of two steps", prt("{ uses: actions/checkout@abc }\n      - " + co("{ ref: refs/pull/1/head }")), ["a: prt-checkout"]],
+  ["two jobs", "on: pull_request_target\npermissions: {}\njobs:\n  a: { runs-on: u, steps: [" + co("{ ref: refs/pull/1/head }") + "] }\n  b: { runs-on: u, steps: [" + co("{ ref: '${{ github.head_ref }}' }") + "] }\n", ["a: prt-checkout", "b: prt-checkout"]],
+  ["INPUT_REF in the file env", prt("{ uses: actions/checkout@abc }", "pull_request_target", "env: { INPUT_REF: refs/pull/1/head }\n"), ["-: prt-checkout"]],
+  ["input_ref in the job env", "on: pull_request_target\npermissions: {}\njobs:\n  a: { runs-on: u, env: { input_ref: x }, steps: [{ uses: actions/checkout@abc }] }\n", ["a: prt-checkout"]],
+  ["INPUT_REPOSITORY in the step env", prt("{ uses: actions/checkout@abc, env: { INPUT_REPOSITORY: x } }"), ["a: prt-checkout"]],
+];
+const prtSafe = [
+  ["checkout without with", prt("{ uses: actions/checkout@abc }")],
+  ["literal ref and repository", prt(co("{ ref: main, repository: ductura/.github, persist-credentials: false }"))],
+  ["literal sha", prt(co("{ ref: 3d3c42e5aac5ba805825da76410c181273ba90b1 }"))],
+  ["pull_request is not _target", prt(co("{ ref: '${{ github.event.pull_request.head.sha }}' }"), "pull_request")],
+  ["workflow_call only", prt(co("{ ref: '${{ inputs.sha }}' }"), "workflow_call")],
+  ["another action with an expression ref", prt("{ uses: other/action@abc, with: { ref: '${{ github.head_ref }}' } }")],
+  ["run text with <<", prt("{ run: \"cat <<EOF\" }")],
+  ["CRLF", prt(co("{ ref: main }")).replaceAll("\n", "\r\n")],
 ];
 
 // Anything the parser cannot read the way GitHub does fails closed.
@@ -82,6 +121,18 @@ const unreadable = [
   ["job is a string", "on: push\npermissions: {}\njobs:\n  a: run\n"],
   ["merge key at file level", "on: push\nx: &x { permissions: {} }\n<<: *x\n" + JOB],
   ["merge key in a job", "on: push\nx: &x { permissions: {} }\njobs:\n  a: { <<: *x, runs-on: u }\n"],
+  ["merge key in with", prt("{ uses: actions/checkout@abc, with: { <<: *w } }", "pull_request_target", "x: &w { ref: refs/pull/1/head }\n")],
+  ["quoted merge key in a step", prt('{ "<<": *s }', "pull_request_target", "x: &s { uses: actions/checkout@abc }\n")],
+  ["merge key list in with", prt("{ uses: actions/checkout@abc, with: { <<: [*w] } }", "pull_request_target", "x: &w { ref: main }\n")],
+  ["no on", "permissions: {}\n" + JOB],
+  ["on is a number", "on: 1\npermissions: {}\n" + JOB],
+  ["on is null", "on:\npermissions: {}\n" + JOB],
+  ["on list with a mapping", "on: [{ push: {} }]\npermissions: {}\n" + JOB],
+  ["on becomes true under YAML 1.1", "%YAML 1.1\n---\non: push\npermissions: {}\n" + JOB],
+  ["steps is not a list", "on: pull_request_target\npermissions: {}\njobs:\n  a: { runs-on: u, steps: { uses: actions/checkout@abc } }\n"],
+  ["step is not a mapping", prt("actions/checkout@abc")],
+  ["with value is a list", prt(co("{ ref: [main] }"))],
+  ["with value is binary", prt(co("{ ref: !!binary aGk= }"))],
 ];
 
 for (const [name, text, expected] of missing) {
@@ -95,6 +146,12 @@ for (const [name, text, expected] of broad) {
 }
 for (const [name, text] of notBroad) {
   test(`not broad: ${name}`, () => assert.deepEqual(found(text), []));
+}
+for (const [name, text, expected] of prtCheckout) {
+  test(`pull_request_target checkout fails: ${name}`, () => assert.deepEqual(found(text), expected));
+}
+for (const [name, text] of prtSafe) {
+  test(`pull_request_target checkout passes: ${name}`, () => assert.deepEqual(found(text), []));
 }
 for (const [name, text] of unreadable) {
   test(`unreadable fails closed: ${name}`, () => assert.deepEqual(found(text), ["-: unreadable"]));
@@ -117,6 +174,9 @@ test("CLI: the fixture fails, the workflows pass", () => {
   const wide = run(new URL("../fixtures/permissions/write-all.yml", import.meta.url).pathname);
   assert.equal(wide.status, 1, wide.stdout + wide.stderr);
   assert.match(wide.stderr, /write-all\.yml: permissions of the file: broad \("write-all"\)/);
+  const head = run(new URL("../fixtures/permissions/prt-checkout.yml", import.meta.url).pathname);
+  assert.equal(head.status, 1, head.stdout + head.stderr);
+  assert.match(head.stderr, /prt-checkout\.yml: job build: pull_request_target with a checkout that can fetch PR code/);
   const good = run(workflows.pathname);
   assert.equal(good.status, 0, good.stdout + good.stderr);
 });

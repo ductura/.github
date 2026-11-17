@@ -1,8 +1,9 @@
 // Fails when a workflow job has no permissions of its own and the file has none
-// either, or when the file or a job grants more than a list or read-all
-// (DAN-970). Workflows are read with a real YAML parser; anything it cannot
-// read the way GitHub does (YAML errors, several documents, merge keys, missing
-// jobs) is a finding, never a pass.
+// either, when the file or a job grants more than a list or read-all, or when a
+// pull_request_target workflow checks out what may be PR code (DAN-970).
+// Workflows are read with a real YAML parser; anything it cannot read the way
+// GitHub does (YAML errors, several documents, merge keys anywhere, an unusual
+// on, missing jobs) is a finding, never a pass.
 // Usage: node scripts/permissions-check.mjs <dir-or-file>...
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -25,19 +26,71 @@ const shown = (v) => (Array.isArray(v) ? "list" : typeof v === "object" ? v.cons
 // never sees, so any of them makes the file unreadable (review of #19).
 const FOREIGN_BREAK = /\r(?!\n)|[\u0085\u2028\u2029]/;
 
+// A merge key anywhere: the parser keeps it as a plain key, GitHub would merge
+// it and could hide a key such as permissions or ref (keys only, never values).
+function hasMergeKey(v) {
+  if (Array.isArray(v)) return v.some(hasMergeKey);
+  if (!isPlainMap(v)) return false;
+  return Object.keys(v).some((k) => k === "<<" || hasMergeKey(v[k]));
+}
+
+// Event names of `on` in lower case, or null when `on` is missing or not a
+// name, a list of names or a non-empty mapping (under %YAML 1.1 it reads as true).
+function eventsOf(wf) {
+  const on = Object.hasOwn(wf, "on") ? wf.on : undefined;
+  let names = null;
+  if (typeof on === "string") names = [on];
+  else if (Array.isArray(on) && on.length > 0 && on.every((e) => typeof e === "string")) names = on;
+  else if (isPlainMap(on) && Object.keys(on).length > 0) names = Object.keys(on);
+  return names && names.map((e) => e.toLowerCase());
+}
+
+const CHECKOUT = /^actions\/checkout(\/[^@]*)?@/i;
+// An expression cannot be shown not to name the PR head, so it fails closed.
+const UNSAFE_REF = /\$\{\{|refs\/pull\//i;
+const inputEnv = (node) => (isPlainMap(node.env) ? Object.keys(node.env).filter((k) => /^input_/i.test(k)) : []);
+
+// Checkouts that can fetch PR code in a pull_request_target workflow
+// (DAN-970, criterion 3): { reason } when the shape cannot be read.
+function prtFindings(wf) {
+  const found = [];
+  const add = (job, detail) => found.push({ job, detail });
+  if (inputEnv(wf).length) add(undefined, `env ${inputEnv(wf).join(", ")}`);
+  for (const [job, node] of Object.entries(wf.jobs)) {
+    if (inputEnv(node).length) add(job, `env ${inputEnv(node).join(", ")}`);
+    if (!Object.hasOwn(node, "steps")) continue;
+    if (!Array.isArray(node.steps)) return { reason: `steps of job ${job} is not a list` };
+    for (const step of node.steps) {
+      if (!isPlainMap(step)) return { reason: `a step of job ${job} is not a mapping` };
+      if (inputEnv(step).length) add(job, `env ${inputEnv(step).join(", ")}`);
+      if (typeof step.uses !== "string" || !CHECKOUT.test(step.uses) || step.with == null) continue;
+      if (!isPlainMap(step.with)) return { reason: `with of a checkout in job ${job} is not a mapping` };
+      for (const [key, value] of Object.entries(step.with)) {
+        if (!["ref", "repository"].includes(key.toLowerCase())) continue;
+        if (!["string", "number", "boolean"].includes(typeof value)) return { reason: `${key} of a checkout in job ${job} is not a scalar` };
+        if (UNSAFE_REF.test(String(value))) add(job, `${key}: ${value}`);
+      }
+    }
+  }
+  return { found };
+}
+
 function readWorkflow(text) {
   if (FOREIGN_BREAK.test(text)) return { reason: "line break other than LF or CRLF" };
   const doc = parseDocument(text, { uniqueKeys: true, merge: false });
   if (doc.errors.length > 0) return { reason: doc.errors.map((e) => e.code).join(", ") };
   const wf = doc.toJS({ maxAliasCount: 100 });
   if (!isMap(wf)) return { reason: "the document is not a mapping" };
-  if (Object.hasOwn(wf, "<<")) return { reason: "merge key << at file level" };
+  if (hasMergeKey(wf)) return { reason: "merge key <<" };
+  const events = eventsOf(wf);
+  if (!events) return { reason: "on is not an event name, a list of names or a mapping" };
   if (!isMap(wf.jobs) || Object.keys(wf.jobs).length === 0) return { reason: "no jobs mapping" };
   for (const [name, job] of Object.entries(wf.jobs)) {
     if (!isMap(job)) return { reason: `job ${name} is not a mapping` };
-    if (Object.hasOwn(job, "<<")) return { reason: `merge key << in job ${name}` };
   }
-  return { wf };
+  if (!events.includes("pull_request_target")) return { wf, prt: [] };
+  const prt = prtFindings(wf);
+  return prt.reason ? prt : { wf, prt: prt.found };
 }
 
 export function checkText(text, file) {
@@ -54,6 +107,10 @@ export function checkText(text, file) {
   for (const [job, node] of Object.entries(wf.jobs)) {
     if (isBroad(node)) problems.push({ file, job, kind: "broad", message: `job ${job}: broad permissions (${shown(node.permissions)})` });
     else if (!hasPermissions(wf) && !hasPermissions(node)) problems.push({ file, job, kind: "missing", message: `job ${job}: no permissions in the job or the file` });
+  }
+  for (const { job, detail } of read.prt) {
+    const where = job === undefined ? "the file" : `job ${job}`;
+    problems.push({ file, job, kind: "prt-checkout", message: `${where}: pull_request_target with a checkout that can fetch PR code (${detail})` });
   }
   return problems;
 }
