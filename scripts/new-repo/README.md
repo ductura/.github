@@ -16,7 +16,7 @@ node scripts/new-repo/generate.mjs --name server --preset node \
 - `AGENTS.md` i `CLAUDE.md` su tanki adapteri (S-0.6): samo poveznice na kanonske dokumente, isti sadržaj u svakom repou osim imena.
 - PR predložak, `labels.yml` i `.nvmrc` su doslovne kopije iz ovog repoa; verzije alata u `package.json` dolaze iz `fixtures/lint-presets` i `packages/*`.
 - `ci.yml` poziva zajedničke workflowe punim SHA-om (`@<sha> # <oznaka>`) i završava pozivom `ci-ok` s `if: always()`.
-- Format `risk-paths.json` je PRIJEDLOG dok ga gate (S-0.10-a) ne počne čitati.
+- `risk-paths.json` čita gate (`scripts/gate/risk-floor.ts`, S-0.10-a), koji neispravnu tablicu odbija greškom.
 
 Drugi prolaz ne mijenja ništa. Postojeća datoteka s drukčijim sadržajem je sukob: ništa se ne piše, izlazni kod je 1. Neispravan ulaz daje izlazni kod 2.
 
