@@ -40,6 +40,9 @@ const failing = [
   ["wrong header names", "## Testovi prihvata\n\n| A | B | C |\n|---|---|---|\n| a | b | da |\n"],
   ["no separator row", "## Testovi prihvata\n\n| Kriterij | Test | Pada bez promjene |\n| a | b | da |\n"],
   ["table after the next heading", "## Testovi prihvata\n\n## Dokaz\n\n" + HEAD + "| a | b | da |\n"],
+  ["table in an indented code block", "## Testovi prihvata\n\n    " + (HEAD + "| a | b | da |").split("\n").join("\n    ") + "\n"],
+  ["table in a tab-indented code block", "## Testovi prihvata\n\n\t" + (HEAD + "| a | b | da |").split("\n").join("\n\t") + "\n"],
+  ["table after an indented heading", "## Testovi prihvata\n\n   ## Dokaz\n\n" + HEAD + "| a | b | da |\n"],
   ["HTML table", "## Testovi prihvata\n\n<table><tr><td>a</td><td>b</td><td>da</td></tr></table>\n"],
 ];
 for (const [name, text] of failing) {
@@ -53,6 +56,7 @@ for (const [name, text] of failing) {
 const passing = [
   ["filled table", GOOD],
   ["CRLF body", GOOD.replace(/\n/g, "\r\n")],
+  ["issue reference before the table", body("| a | b | da |").replace("## Testovi prihvata\n", "## Testovi prihvata\n#1836\n")],
   ["lone CR body", GOOD.replace(/\n/g, "\r")],
   ["text before the table", body("| a | b | da |").replace("## Testovi prihvata\n", "## Testovi prihvata\nUvod.\n")],
   ["Da with spaces and tabs", body("|  a \t| b |  Da  |")],

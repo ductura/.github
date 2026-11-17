@@ -46,7 +46,9 @@ function activeLines(body) {
 }
 
 // Cells of a row that starts and ends with an unescaped pipe, or null.
+// Four spaces or a tab of indent make an indented code block, not a row.
 function cells(line) {
+  if (/^(?: {4}|\t)/.test(line)) return null;
   const t = line.trim();
   if (!t.startsWith("|") || !/(?:^|[^\\])\|$/.test(t) || t.length < 2) return null;
   return t.slice(1, -1).split(/(?<!\\)\|/).map((c) => c.replace(/\p{Cf}/gu, "").replace(/\\\|/g, "|").trim());
@@ -65,7 +67,8 @@ export function checkTestsTable(body, files) {
   const at = lines.flatMap((l, i) => (/^## Testovi prihvata[ \t]*$/.test(l) ? [i] : []));
   if (at.length !== 1) return fail(`Odjeljak „## Testovi prihvata” mora postojati točno jednom (nađeno: ${at.length}).`);
   let i = at[0] + 1;
-  const end = lines.findIndex((l, j) => j > at[0] && l.startsWith("#"));
+  // The next ATX heading ends the section; `#1836` alone is not a heading.
+  const end = lines.findIndex((l, j) => j > at[0] && /^ {0,3}#{1,6}(?:[ \t]|$)/.test(l));
   const stop = end === -1 ? lines.length : end;
   while (i < stop && cells(lines[i]) === null) i += 1;
   const head = i < stop ? cells(lines[i]) : null;
