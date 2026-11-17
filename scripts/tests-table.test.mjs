@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -331,7 +331,8 @@ const fixtureCases = fixtureNames.map((f) => {
   return { path: fileURLToPath(new URL(f, FIXTURES)), fixture: fx, code: !isDocsOnly(fx.files) };
 });
 function copy(mutate = {}, selfTest = (s) => s) {
-  const dir = mkdtempSync(join(tmpdir(), "tests-table-mutant-"));
+  // Real path: the copied self-test runs only when argv[1] is its own path.
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), "tests-table-mutant-")));
   let runner = readFileSync(new URL("tests-table.mjs", SCRIPTS), "utf8");
   for (const [name, body] of Object.entries(mutate)) {
     const signature = `export function ${name}(`;
@@ -343,9 +344,16 @@ function copy(mutate = {}, selfTest = (s) => s) {
   return dir;
 }
 const selfTestExit = (dir, path) => {
-  const r = spawnSync(process.execPath, [join(dir, "tests-table-self-test.mjs"), path], { encoding: "utf8", timeout: 20_000 });
+  const r = spawnSync(process.execPath, [join(dir, "tests-table-self-test.mjs"), path], { encoding: "utf8", timeout: 20_000, killSignal: "SIGKILL" });
   assert.equal(r.error, undefined, "the self-test finished in time");
   return { exit: r.status, output: r.stdout };
+};
+const withCopy = (dir, fn) => {
+  try {
+    fn();
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 };
 const MUTANTS = [
   ["always passes", { checkRenderedTable: 'return { ok: true, message: "ok" };' }, (c) => c.fixture.expect.exit === 1],
@@ -356,21 +364,27 @@ const MUTANTS = [
 
 test("unbroken copy passes the self-test step over every fixture", () => {
   const dir = copy();
-  for (const c of fixtureCases) assert.equal(selfTestExit(dir, c.path).exit, 0, c.path);
-  rmSync(dir, { recursive: true });
+  withCopy(dir, () => {
+    for (const c of fixtureCases) {
+      const { exit, output } = selfTestExit(dir, c.path);
+      assert.equal(exit, 0, c.path);
+      assert.match(output, /: exit [01] as expected\n$/, c.path);
+    }
+  });
 });
 for (const [name, mutate, caught] of MUTANTS) {
   test(`broken check fails the self-test step: ${name}`, () => {
     const dir = copy(mutate);
     const hit = fixtureCases.filter(caught);
     assert.ok(hit.length > 0);
-    for (const c of hit) {
-      const { exit, output } = selfTestExit(dir, c.path);
-      assert.equal(exit, 1, c.path);
-      // A failing fixture exits 1 either way; the output comparison catches it.
-      if (name === "throws") assert.equal(output.includes(`> ${c.fixture.expect.output}`), false, c.path);
-    }
-    rmSync(dir, { recursive: true });
+    withCopy(dir, () => {
+      for (const c of hit) {
+        const { exit, output } = selfTestExit(dir, c.path);
+        assert.equal(exit, 1, c.path);
+        // A failing fixture exits 1 either way; the output comparison catches it.
+        if (name === "throws") assert.equal(output.includes(`> ${c.fixture.expect.output}`), false, c.path);
+      }
+    });
   });
 }
 // The tests above can fail: a self-test that compares nothing lets every mutant through.
@@ -382,8 +396,9 @@ test("a self-test that compares nothing lets every mutant through", () => {
   };
   for (const [name, mutate] of MUTANTS) {
     const dir = copy(mutate, blind);
-    for (const c of fixtureCases) assert.equal(selfTestExit(dir, c.path).exit, 0, `${name}: ${c.path}`);
-    rmSync(dir, { recursive: true });
+    withCopy(dir, () => {
+      for (const c of fixtureCases) assert.equal(selfTestExit(dir, c.path).exit, 0, `${name}: ${c.path}`);
+    });
   }
 });
 // A red self-test step reaches ci-ok: needs and always() are in ci-ok.test.mjs.
@@ -392,6 +407,13 @@ test("tests-table failure is never softened: no continue-on-error, fail-fast off
   const reusable = read("tests-table.yml");
   const selfTest = read("self-test.yml");
   const job = selfTest.jobs["tests-table"];
+  // The step runs exactly the script the mutant tests run, over its own case, and nothing swallows its exit.
+  const [own] = Object.values(reusable.jobs);
+  assert.equal(own["timeout-minutes"], 5);
+  const step = own.steps.find((s) => s.if === "${{ inputs.self-test != '' }}");
+  assert.equal(step.run, 'node scripts/tests-table-self-test.mjs "fixtures/tests-table/$SELF_TEST.json"');
+  assert.equal(step.shell, undefined);
+  assert.deepEqual(step.env, { SELF_TEST: "${{ inputs.self-test }}" });
   for (const j of [...Object.values(reusable.jobs), job]) assert.equal(j["continue-on-error"], undefined);
   for (const s of Object.values(reusable.jobs).flatMap((j) => j.steps)) assert.equal(s["continue-on-error"], undefined);
   assert.equal(job.strategy["fail-fast"], false);
