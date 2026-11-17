@@ -2,10 +2,11 @@
 // tarball: the tag refs/tags/<pkg>-vX.Y.Z names the package and the version,
 // and the tarball holds only package.json, README.md and the files matched by
 // `files` of the package. Usage: node scripts/publish-package.mjs <GITHUB_REF> <out-dir>
-// Prints file= and sha256= (also to $GITHUB_OUTPUT); any mismatch exits 1.
+// <out-dir> must not exist yet: the run makes it and owns it. Prints file= and
+// sha256= (also to $GITHUB_OUTPUT); any mismatch exits 1.
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync } from "node:fs";
+import { appendFileSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { gunzipSync } from "node:zlib";
@@ -45,16 +46,23 @@ function field(block, start, length) {
   return bytes.subarray(0, end === -1 ? length : end).toString("latin1");
 }
 
-function octal(block, start, length) {
+function octal(block, start, length, name) {
   // The whole raw field, no trim(): octal digits, then only spaces or NULs, so
   // NBSP or bytes after a NUL cannot make a field that node-tar reads differently.
   const text = block.subarray(start, start + length).toString("latin1");
-  if (!/^ *[0-7]+[ \0]*$/.test(text)) throw new Error(`tar: not an octal number: ${JSON.stringify(text)}`);
+  if (!/^ *[0-7]+[ \0]*$/.test(text)) throw new Error(`tar: ${name} is not an octal number: ${JSON.stringify(text)}`);
   return parseInt(text, 8);
 }
 
+// Every byte of a ustar header is checked. These fields npm pack (node-tar,
+// portable) leaves empty; other tar readers act on each of them (a linkname on a
+// regular file is rejected by node-tar), so all their bytes must be NUL.
+const EMPTY = [["uid", 108, 8], ["gid", 116, 8], ["linkname", 157, 100], ["uname", 265, 32], ["gname", 297, 32], ["prefix", 345, 155], ["padding", 500, 12]];
+// These numbers npm pack writes as fixed values; mtime is any octal number.
+const NUMBERS = [["mode", 100, 8, 0o644], ["mtime", 136, 12], ["devmajor", 329, 8, 0], ["devminor", 337, 8, 0]];
+
 // Regular files of a ustar archive. Anything else (links, folders, pax or GNU
-// headers, a prefix field) and every malformed archive throws.
+// headers, a header field npm pack does not write) and every malformed archive throws.
 export function readTarball(gz) {
   const tar = gunzipSync(gz);
   const entries = [];
@@ -66,14 +74,20 @@ export function readTarball(gz) {
       return entries;
     }
     const sum = block.reduce((s, b, i) => s + (i >= 148 && i < 156 ? 32 : b), 0);
-    if (octal(block, 148, 8) !== sum) throw new Error("tar: bad header checksum");
+    if (octal(block, 148, 8, "checksum") !== sum) throw new Error("tar: bad header checksum");
     // POSIX ustar only (magic "ustar\0", version "00"), as npm pack writes it:
     // old and GNU headers are read differently by other tar readers.
     if (block.subarray(257, 265).toString("latin1") !== "ustar\u000000") throw new Error("tar: not a POSIX ustar header");
     const path = field(block, 0, 100);
     if (block[156] !== 0x30) throw new Error(`tar: ${JSON.stringify(path)} is not a regular file`);
-    if (field(block, 345, 155) !== "") throw new Error(`tar: ${JSON.stringify(path)} uses the prefix field`);
-    const size = octal(block, 124, 12);
+    for (const [name, start, length] of EMPTY) {
+      if (!block.subarray(start, start + length).every((b) => b === 0)) throw new Error(`tar: ${JSON.stringify(path)} has a ${name} field`);
+    }
+    for (const [name, start, length, only] of NUMBERS) {
+      const value = octal(block, start, length, name);
+      if (only !== undefined && value !== only) throw new Error(`tar: ${JSON.stringify(path)} has ${name} ${value.toString(8)}, not ${only.toString(8)}`);
+    }
+    const size = octal(block, 124, 12, "size");
     const data = tar.subarray(at + 512, at + 512 + size);
     if (data.length !== size) throw new Error("tar: truncated");
     entries.push({ path, data });
@@ -124,12 +138,17 @@ export function main(args, env = process.env) {
   }
   const out = resolve(args[1]);
   let problems;
-  let ours = false;
+  let made; // the folder this run made: only it may be removed
   try {
     const tag = parseTag(args[0]);
-    if (existsSync(out) && readdirSync(out).length > 0) throw new Error(`${out} is not empty`);
-    mkdirSync(out, { recursive: true });
-    ours = true;
+    // No `recursive`: an existing folder (or one another run just made) is EEXIST,
+    // so one run alone owns the folder and no other run can clean it up.
+    try {
+      mkdirSync(out);
+    } catch (error) {
+      throw new Error(error.code === "EEXIST" ? `${out} already exists` : error.message);
+    }
+    made = lstatSync(out);
     const dir = new URL(`../packages/${tag.pkg}/`, import.meta.url);
     const { files } = JSON.parse(readFileSync(new URL("package.json", dir), "utf8"));
     execFileSync("npm", ["pack", "--ignore-scripts", "--pack-destination", out], { cwd: dir, stdio: ["ignore", "ignore", "inherit"] });
@@ -153,8 +172,11 @@ export function main(args, env = process.env) {
   } catch (error) {
     problems = [error.message];
   }
-  // The folder was empty before npm pack: nothing of a failed run stays in it.
-  if (ours) for (const name of readdirSync(out)) rmSync(join(out, name), { recursive: true, force: true });
+  // Nothing of a failed run stays: the folder it made goes, if it is still that folder.
+  if (made) {
+    const now = lstatSync(out, { throwIfNoEntry: false });
+    if (now?.isDirectory() && now.dev === made.dev && now.ino === made.ino) rmSync(out, { recursive: true, force: true });
+  }
   for (const problem of problems) console.error(`publish-package: ${problem}`);
   return 1;
 }

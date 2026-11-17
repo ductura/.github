@@ -1,22 +1,28 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtempSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
 import { checkTarball, parseTag } from "./publish-package.mjs";
 
-// A ustar archive written here, so every malformed shape can be built.
-function header(path, size, { type = "0", prefix = "", sizeText, magic = "ustar\u000000" } = {}) {
+// A ustar archive written here, so every malformed shape can be built. The
+// header holds what npm pack writes (mode 000644, the fixed mtime, devmajor and
+// devminor 0, all other fields NUL); `set` overwrites raw bytes at an offset.
+function header(path, size, { type = "0", prefix = "", sizeText, magic = "ustar\u000000", set = {} } = {}) {
   const h = Buffer.alloc(512);
   Buffer.from(path, "utf8").copy(h, 0, 0, 100);
-  h.write("0000644\0", 100);
+  h.write("000644 \0", 100);
   h.write(sizeText ?? `${size.toString(8).padStart(11, "0")}\0`, 124, "latin1"); // one byte per char: raw 0xA0
+  h.write("3560116604 \0", 136);
   h.write(type, 156);
   h.write(magic, 257, "latin1");
+  h.write("000000 \0", 329);
+  h.write("000000 \0", 337);
   Buffer.from(prefix).copy(h, 345, 0, 155);
+  for (const [at, text] of Object.entries(set)) h.write(text, Number(at), "latin1");
   h.write("        ", 148);
   const sum = h.reduce((s, b) => s + b, 0);
   h.write(`${sum.toString(8).padStart(6, "0")}\0 `, 148);
@@ -104,6 +110,36 @@ for (const [name, opts] of [
   test(`rejects: ${name}`, () => assert.notDeepEqual(check(GOOD, opts), []));
 }
 
+// Every header field npm pack leaves empty must be all NUL, and the numbers it
+// writes must be what it writes: other tar readers act on each of them. An
+// allowed path, so only that field rejects the entry; the problem names it.
+for (const [name, at, text] of [
+  ["linkname", 157, "package/index.js"],
+  ["linkname", 157, "\0x"],
+  ["uid", 108, "0001750 \0"],
+  ["uid", 108, "0000000 \0"],
+  ["gid", 116, "0001750 \0"],
+  ["uname", 265, "root"],
+  ["gname", 297, "root"],
+  ["padding", 500, "x"],
+  ["prefix", 345, "\0x"],
+  ["mode", 100, "004755 \0"],
+  ["mode", 100, "000755 \0"],
+  ["mode", 100, "00064x \0"],
+  ["mtime", 136, "\0\0\0\0\0\0\0\0\0\0\0\0"],
+  ["mtime", 136, "3560116604x\0"],
+  ["devmajor", 329, "000001 \0"],
+  ["devmajor", 329, "\0\0\0\0\0\0\0\0"],
+  ["devminor", 337, "000001 \0"],
+  ["devminor", 337, "0000-1 \0"],
+]) {
+  test(`rejects: header field ${name} = ${JSON.stringify(text)}`, () => {
+    const problems = check([...GOOD, ["package/rules/b.js", "x", { set: { [at]: text } }]]);
+    assert.equal(problems.length, 1, problems.join("\n"));
+    assert.match(problems[0], new RegExp(`\\b${name}\\b`));
+  });
+}
+
 test("rejects: truncated gzip", () => {
   const gz = tarball(GOOD);
   assert.notDeepEqual(checkTarball(gz.subarray(0, gz.length - 8), FILE, FILES, TAG), []);
@@ -144,54 +180,130 @@ test("parses the three package tags", () => {
 
 // Dry run in CI: the real npm pack of every preset, nothing published.
 const SCRIPT = new URL("./publish-package.mjs", import.meta.url).pathname;
-function cli(args, env = {}) {
-  return spawnSync(process.execPath, [SCRIPT, ...args], { encoding: "utf8", env: { ...process.env, ...env } });
+function cli(args, env = {}, script = SCRIPT) {
+  return spawnSync(process.execPath, [script, ...args], { encoding: "utf8", env: { ...process.env, ...env } });
+}
+function cliAsync(args) {
+  return new Promise((done) => {
+    const child = spawn(process.execPath, [SCRIPT, ...args], { stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "";
+    child.stdout.on("data", (chunk) => (stdout += chunk));
+    child.on("close", (status) => done({ status, stdout }));
+  });
 }
 const temp = () => mkdtempSync(join(tmpdir(), "publish-package-"));
+const fresh = () => join(temp(), "out"); // the output folder must not exist yet
+const versionOf = (pkg) => JSON.parse(readFileSync(new URL(`../packages/${pkg}/package.json`, import.meta.url), "utf8")).version;
+const sha256Of = (path) => createHash("sha256").update(readFileSync(path)).digest("hex");
 
 for (const pkg of ["tsconfig", "eslint-config", "prettier-config"]) {
   test(`dry run: npm pack of @ductura/${pkg} passes and names its file and sha256`, () => {
-    const { version } = JSON.parse(readFileSync(new URL(`../packages/${pkg}/package.json`, import.meta.url), "utf8"));
-    const out = join(temp(), "out");
+    const version = versionOf(pkg);
+    const out = fresh();
     const output = join(temp(), "github-output");
     const run = cli([`refs/tags/${pkg}-v${version}`, out], { GITHUB_OUTPUT: output });
     assert.equal(run.status, 0, run.stderr);
     const file = `ductura-${pkg}-${version}.tgz`;
-    const sha256 = createHash("sha256").update(readFileSync(join(out, file))).digest("hex");
-    assert.equal(readFileSync(output, "utf8"), `file=${file}\nsha256=${sha256}\n`);
+    assert.deepEqual(readdirSync(out), [file]);
+    const lines = `file=${file}\nsha256=${sha256Of(join(out, file))}\n`;
+    assert.equal(run.stdout, lines);
+    assert.equal(readFileSync(output, "utf8"), lines);
   });
 }
 
-test("dry run: a tag with another version fails and leaves no tarball", () => {
-  const out = temp();
+test("dry run: a tag with another version fails, prints nothing and removes the folder it made", () => {
+  const out = fresh();
   const run = cli(["refs/tags/tsconfig-v9.9.9", out]);
   assert.equal(run.status, 1);
   assert.match(run.stderr, /version/);
-  assert.deepEqual(readdirSync(out), []);
+  assert.equal(run.stdout, "");
+  assert.equal(existsSync(out), false);
 });
 
-test("CLI: a bad tag or a non-empty output folder fails with 1, wrong usage with 2", () => {
-  assert.equal(cli(["refs/heads/main", temp()]).status, 1);
-  const full = temp();
-  writeFileSync(join(full, "old.tgz"), "");
-  assert.equal(cli(["refs/tags/tsconfig-v0.1.0", full]).status, 1);
-  assert.deepEqual(readdirSync(full), ["old.tgz"]);
+test("CLI: a bad tag fails with 1 and makes no folder, wrong usage with 2", () => {
+  const out = fresh();
+  assert.equal(cli(["refs/heads/main", out]).status, 1);
+  assert.equal(existsSync(out), false);
   assert.equal(cli(["refs/tags/tsconfig-v0.1.0"]).status, 2);
+  assert.equal(cli([]).status, 2);
 });
 
-test("CLI: GITHUB_OUTPUT that is a folder or inside the output folder fails with 1, prints nothing and leaves it empty", () => {
-  assert.equal(cli(["refs/tags/tsconfig-v0.1.0", join(temp(), "o")], { GITHUB_OUTPUT: temp() }).stdout, "");
-  for (const name of ["ductura-tsconfig-0.1.0.tgz", "github-output", "."]) {
-    const out = temp();
-    const run = cli(["refs/tags/tsconfig-v0.1.0", out], { GITHUB_OUTPUT: join(out, name) });
+test("CLI: an output folder that exists, empty or not, fails with 1 and is left as it was", () => {
+  const empty = temp();
+  const full = temp();
+  writeFileSync(join(full, "old.tgz"), "old");
+  for (const out of [empty, full]) {
+    const run = cli([`refs/tags/tsconfig-v${versionOf("tsconfig")}`, out]);
+    assert.equal(run.status, 1, out);
+    assert.equal(run.stdout, "", out);
+  }
+  assert.deepEqual(readdirSync(empty), []);
+  assert.deepEqual(readdirSync(full), ["old.tgz"]);
+  assert.equal(readFileSync(join(full, "old.tgz"), "utf8"), "old");
+});
+
+test("CLI: a second run on the same output folder fails with 1 and leaves the first tarball", () => {
+  const out = fresh();
+  const first = cli([`refs/tags/tsconfig-v${versionOf("tsconfig")}`, out]);
+  assert.equal(first.status, 0, first.stderr);
+  const [file] = readdirSync(out);
+  const sha256 = sha256Of(join(out, file));
+  // A wrong version of the same preset: its cleanup must not reach the first tarball.
+  for (const tag of [`refs/tags/tsconfig-v${versionOf("tsconfig")}`, "refs/tags/tsconfig-v9.9.9", "refs/heads/main"]) {
+    const second = cli([tag, out]);
+    assert.equal(second.status, 1, tag);
+    assert.equal(second.stdout, "", tag);
+    assert.deepEqual(readdirSync(out), [file], tag);
+    assert.equal(sha256Of(join(out, file)), sha256, tag);
+  }
+  assert.equal(first.stdout, `file=${file}\nsha256=${sha256}\n`);
+});
+
+test("CLI: two parallel runs on one output folder: one takes it, its tarball stays as it printed it", async () => {
+  const out = fresh();
+  const runs = await Promise.all(
+    ["tsconfig", "eslint-config", "prettier-config"].map((pkg) => cliAsync([`refs/tags/${pkg}-v${versionOf(pkg)}`, out])),
+  );
+  const won = runs.filter((run) => run.status === 0);
+  assert.equal(won.length, 1, JSON.stringify(runs));
+  assert.deepEqual(runs.map((run) => run.status).sort(), [0, 1, 1]);
+  const [file] = readdirSync(out);
+  assert.deepEqual(readdirSync(out), [file]);
+  assert.equal(won[0].stdout, `file=${file}\nsha256=${sha256Of(join(out, file))}\n`);
+});
+
+test("CLI started through a symlink still runs: a bad tag fails with 1, no arguments with 2", () => {
+  const link = join(temp(), "publish-package.mjs");
+  symlinkSync(SCRIPT, link);
+  const out = fresh();
+  const bad = cli(["refs/tags/tsconfig-v9.9.9", out], {}, link);
+  assert.equal(bad.status, 1, bad.stderr);
+  assert.match(bad.stderr, /version/);
+  assert.equal(existsSync(out), false);
+  const usage = cli([], {}, link);
+  assert.equal(usage.status, 2);
+  assert.match(usage.stderr, /usage/);
+});
+
+test("CLI: GITHUB_OUTPUT that is a folder or inside the output folder fails with 1, prints nothing and removes the folder", () => {
+  const tag = `refs/tags/tsconfig-v${versionOf("tsconfig")}`;
+  const file = `ductura-tsconfig-${versionOf("tsconfig")}.tgz`;
+  const folder = cli([tag, fresh()], { GITHUB_OUTPUT: temp() });
+  assert.equal(folder.status, 1);
+  assert.equal(folder.stdout, "");
+  for (const name of [file, "github-output", "."]) {
+    const out = fresh();
+    const run = cli([tag, out], { GITHUB_OUTPUT: join(out, name) });
     assert.equal(run.status, 1, name);
     assert.equal(run.stdout, "", name);
-    assert.deepEqual(readdirSync(out), [], name);
+    assert.equal(existsSync(out), false, name);
   }
   // A link elsewhere that points at the tarball npm pack is about to write.
-  const out = temp();
+  const out = fresh();
   const link = join(temp(), "github-output");
-  symlinkSync(join(out, "ductura-tsconfig-0.1.0.tgz"), link);
-  assert.equal(cli(["refs/tags/tsconfig-v0.1.0", out], { GITHUB_OUTPUT: link }).status, 1);
-  assert.deepEqual(readdirSync(out), []);
+  symlinkSync(join(out, file), link);
+  const run = cli([tag, out], { GITHUB_OUTPUT: link });
+  assert.equal(run.status, 1);
+  assert.equal(run.stdout, "");
+  assert.equal(existsSync(out), false);
 });
