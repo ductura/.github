@@ -9,13 +9,13 @@ import { gzipSync } from "node:zlib";
 import { checkTarball, parseTag } from "./publish-package.mjs";
 
 // A ustar archive written here, so every malformed shape can be built.
-function header(path, size, { type = "0", prefix = "", sizeText } = {}) {
+function header(path, size, { type = "0", prefix = "", sizeText, magic = "ustar\u000000" } = {}) {
   const h = Buffer.alloc(512);
   Buffer.from(path, "utf8").copy(h, 0, 0, 100);
   h.write("0000644\0", 100);
   h.write(sizeText ?? `${size.toString(8).padStart(11, "0")}\0`, 124, "latin1"); // one byte per char: raw 0xA0
   h.write(type, 156);
-  h.write("ustar\u000000", 257);
+  h.write(magic, 257, "latin1");
   Buffer.from(prefix).copy(h, 345, 0, 155);
   h.write("        ", 148);
   const sum = h.reduce((s, b) => s + b, 0);
@@ -77,6 +77,11 @@ const rejected = [
   ["byte after NUL in the name", [...GOOD, ["package/rules/b.js\0\nx"]]],
   ["byte after NUL in the prefix", [...GOOD, ["package/rules/b.js", "x", { prefix: "\0x" }]]],
   ["byte after NUL in the size", [...GOOD, ["package/rules/b.js", "x", { sizeText: "0000000001\0x" }]]],
+  // Only POSIX ustar ("ustar\0" and version "00"), as npm pack writes it.
+  ...["\0\0\0\0\0\0\0\0", "ustar  \0", "ustar\0  ", "ustar\u000001", "USTAR\u000000"].map((magic) => [
+    `magic ${JSON.stringify(magic)}`,
+    [...GOOD, ["package/rules/b.js", "x", { magic }]],
+  ]),
   ["NBSP in the size", [...GOOD, ["package/rules/b.js", "x", { sizeText: "\u00a000000000001" }]]],
   ["non-octal size", [...GOOD, ["package/rules/b.js", "x", { sizeText: "00000000019\0" }]]],
   ["files entry with no match", GOOD.filter(([p]) => p !== "package/index.d.ts")],
@@ -174,8 +179,9 @@ test("CLI: a bad tag or a non-empty output folder fails with 1, wrong usage with
   assert.equal(cli(["refs/tags/tsconfig-v0.1.0"]).status, 2);
 });
 
-test("CLI: GITHUB_OUTPUT inside the output folder fails with 1 and leaves it empty", () => {
-  for (const name of ["ductura-tsconfig-0.1.0.tgz", "github-output"]) {
+test("CLI: GITHUB_OUTPUT that is a folder or inside the output folder fails with 1, prints nothing and leaves it empty", () => {
+  assert.equal(cli(["refs/tags/tsconfig-v0.1.0", join(temp(), "o")], { GITHUB_OUTPUT: temp() }).stdout, "");
+  for (const name of ["ductura-tsconfig-0.1.0.tgz", "github-output", "."]) {
     const out = temp();
     const run = cli(["refs/tags/tsconfig-v0.1.0", out], { GITHUB_OUTPUT: join(out, name) });
     assert.equal(run.status, 1, name);

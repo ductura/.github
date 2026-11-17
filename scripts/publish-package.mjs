@@ -67,6 +67,9 @@ export function readTarball(gz) {
     }
     const sum = block.reduce((s, b, i) => s + (i >= 148 && i < 156 ? 32 : b), 0);
     if (octal(block, 148, 8) !== sum) throw new Error("tar: bad header checksum");
+    // POSIX ustar only (magic "ustar\0", version "00"), as npm pack writes it:
+    // old and GNU headers are read differently by other tar readers.
+    if (block.subarray(257, 265).toString("latin1") !== "ustar\u000000") throw new Error("tar: not a POSIX ustar header");
     const path = field(block, 0, 100);
     if (block[156] !== 0x30) throw new Error(`tar: ${JSON.stringify(path)} is not a regular file`);
     if (field(block, 345, 155) !== "") throw new Error(`tar: ${JSON.stringify(path)} uses the prefix field`);
