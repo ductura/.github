@@ -58,9 +58,9 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: read
-      issues: read
-      pull-requests: read
-      statuses: write
+      issues: read # verdict lines in the PR's comments
+      pull-requests: read # the PR's head, author and labels
+      statuses: write # the "Engineering review gate" status on the head
     steps:
       - name: Inputs are valid
         shell: bash

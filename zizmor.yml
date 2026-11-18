@@ -1,0 +1,30 @@
+# Exceptions for the zizmor job of self-test.yml (DAN-1078). Any other finding
+# is fixed in the workflow; every rule here needs a reason.
+rules:
+  # Reason: self-test.yml calls this repository's reusable workflows as
+  # `./.github/workflows/<file>.yml`, which GitHub resolves at the same commit.
+  # The pinned actionlint (v1.7.7) does not read the `$/` spelling, and
+  # scripts/ci-ok.test.mjs asserts the `./` calls.
+  self-repository:
+    ignore:
+      - self-test.yml
+  # Reason: a job without `name` shows up under its id, and the ids are the
+  # check names that callers and the required status read (`ci-ok`,
+  # `<caller> / node`). A `name` could drift from the id and would drop the
+  # matrix values from a matrix job's check name. Per file, so a new workflow
+  # without names is still a finding.
+  anonymous-definition:
+    ignore:
+      - ci-node.yml
+      - ci-ok.yml
+      - dependency-review.yml
+      - drift-check.yml
+      - osv-scan.yml
+      - secret-scan.yml
+      - self-test.yml
+  # Reason: self-test.yml has no concurrency group on purpose: every pushed
+  # head keeps its own complete run, so `ci-ok` on each head SHA is a result,
+  # never "cancelled". The reusable gate workflows set their own groups.
+  concurrency-limits:
+    ignore:
+      - self-test.yml

@@ -328,7 +328,7 @@ test("drift-check.yml: write scope only in deliver, behind the flag, this reposi
   const deliver = jobs.slice(jobs.indexOf("\n  deliver:\n"));
   assert.ok(jobs.indexOf("\n  deliver:\n") > 0);
   assert.equal(yml.match(/\bwrite\b/g).length, 1);
-  assert.match(deliver, /\n {4}permissions:\n {6}contents: read\n {6}issues: write\n {4}steps:/);
+  assert.match(deliver, /\n {4}permissions:\n {6}contents: read\n {6}issues: write(?: #[^\n]*)?\n {4}steps:/);
   assert.match(
     deliver,
     /\n {4}if: \$\{\{ always\(\) && vars\.DRIFT_DELIVERY == 'true' && github\.repository == 'ductura\/\.github' && \(github\.event_name == 'schedule' \|\| github\.event_name == 'workflow_dispatch'\) && github\.ref == 'refs\/heads\/main' \}\}\n/,
