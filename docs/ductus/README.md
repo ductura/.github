@@ -6,15 +6,9 @@ Arhiva služi kao izvor za odluke i specifikacije koje Ductura preuzima iz Ductu
 
 Poveznice unutar arhive upućuju na putanje u Ductus repozitoriju i ovdje ne moraju vrijediti.
 
-## Izostavljene datoteke
+## Napomena
 
-Pri kopiranju su izostavljene datoteke sa stvarnim adresama e-pošte (pravilo kopije: bez stvarnih adresa izvan primjernih domena):
-
-- `DECISIONS.md`
-- `backend/program.md`
-- `backend/prijava-i-ovlasti.md`
-
-Izvornik je u Ductus repozitoriju na istom commitu.
+Kopirane su sve datoteke iz `docs/`. `DECISIONS.md`, `backend/program.md` i `backend/prijava-i-ovlasti.md` sadrže službene javne adrese (Srce, archive.org) kao i u Ductus repozitoriju.
 
 ## Provjere
 
