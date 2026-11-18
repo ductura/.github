@@ -190,7 +190,7 @@ const after = [
   ["line comment after a newline", "a\n// x\nb < c", "<"],
   ["block comment after a newline", "a\n/* x */ b < c", "<"],
   ["regex whose flags are longer than its tail", "r = /a+b/gimsuy < c", "<"],
-  ["object literal inside an interpolation", "x = `${ {a: 1}.a } a < b`; c > d", ">"],
+  ["object literal inside an interpolation", "x = `${ {a: 1}['`'] } a < b`; c > d", ">"],
 ];
 for (const [name, src, op] of after) test(`mutated after: ${name}`, () => assert.deepEqual(at(src), [last(src, op)]));
 
