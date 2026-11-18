@@ -4,9 +4,10 @@ import { spawn, spawnSync } from "node:child_process";
 import { chmodSync, cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { mutantsOf } from "./mutate/mutate.mjs";
 
-const root = new URL("..", import.meta.url).pathname;
+const root = fileURLToPath(new URL("..", import.meta.url));
 const MUTATE = join(root, "scripts/mutate/mutate.mjs");
 
 // A copy of fixtures/mutate in a temporary directory; the repo is never mutated.
@@ -47,6 +48,34 @@ test("tests that rewrite a file under test exit 2", () =>
     const r = run(dir, ["src.mjs", ...check("fmt.check.mjs")]);
     assert.equal(r.status, 2, r.stdout + r.stderr);
     assert.match(r.stderr, /the tests change a file under test/);
+    assert.equal(readFileSync(join(dir, "src.mjs"), "utf8"), readFileSync(join(root, "fixtures/mutate/src.mjs"), "utf8"));
+  }));
+
+// Every exit after the tests ran gives back every target, byte for byte: a deleted target, or another target than the one under a mutant.
+test("every target comes back on exit 2", () => {
+  const a = "export const a = 1 < 1;\n", b = "export const b = 3;\r\n";
+  const del = 'import { rmSync } from "node:fs";\nrmSync("a.mjs");\n';
+  const other = 'import { a } from "./a.mjs";\nimport { appendFileSync } from "node:fs";\nif (a) appendFileSync("b.mjs", "//");\n';
+  inCopy({ "a.mjs": a, "b.mjs": b, "del.check.mjs": del, "other.check.mjs": other }, (dir) => {
+    for (const name of ["del.check.mjs", "other.check.mjs"]) {
+      const r = run(dir, ["a.mjs", "b.mjs", ...check(name)]);
+      assert.equal(r.status, 2, name + r.stdout + r.stderr);
+      assert.match(r.stderr, /the tests change a file under test/);
+      assert.equal(readFileSync(join(dir, "a.mjs"), "utf8"), a, name);
+      assert.equal(readFileSync(join(dir, "b.mjs"), "utf8"), b, name);
+    }
+  });
+});
+
+// A run that ends by a signal the timeout did not send says nothing about the mutant: never a kill.
+test("a mutant run ended by a foreign signal is unjudged, never killed", { skip: process.platform === "win32" && "POSIX signals" }, () =>
+  inCopy({ "self.check.mjs": 'import { canVote } from "./src.mjs";\nif (canVote(18, true) !== true || canVote(17, true)) process.kill(process.pid, "SIGKILL");\n' }, (dir) => {
+    for (const cmd of [[process.execPath, "self.check.mjs"], ["/bin/sh", "-c", `"${process.execPath}" self.check.mjs`]]) {
+      const r = run(dir, ["src.mjs", "--", ...cmd]);
+      assert.equal(r.status, 2, r.stdout + r.stderr);
+      assert.match(r.stdout, /^unjudged src\.mjs:2:57 '>=' -> '>' \(/m);
+      assert.match(r.stdout, /2 mutants, 0 killed, 0 survived, 2 unjudged/);
+    }
   }));
 
 test("weak check: survivors listed, exit 1", () =>
@@ -156,6 +185,13 @@ const none = [
   ["arrow and shifts", "f = (a) => a >> 1 >>> 2 << 3"],
   ["compound operators", "a >>>= 1; b <<= 2; c **= 3; d &&= e; f ||= g; h ?? i; j?.k; [...l]; m++; n--; o += 1; p -= 2; q >>= 1"],
   ["boolean as part of a name", "$true; true_; x.true; y?.false"],
+  ["line comment ended by CR", "// a\r/b+c/"],
+  ["regex after debugger", 'debugger\n/a+b/.test("aab")'],
+  ["regex after statement keywords", "break\n/a+b/; continue\n/a-b/; do /a<b/.x(); while (0); export default /a>b/"],
+  ["regex after the brace of a block", "if (x) {}\n/a+b/; function f() {}\n/a-b/; {}\n/a<b/; l: {}\n/a&&b/; class A {}\n/a>b/"],
+  ["regex after a statement head", "if (x) /a+b/.test(y); while (x) /a-b/; for (;;) /a<b/; with (o) /a>b/; for await (const v of w) /a&&b/"],
+  ["regex after a block holding an object", "if (x) { y = { a: 1 } }\n/a+b/"],
+  ["exponent signs in numbers", "x = [1e-8, 1.5E+3, .5e-1, 1_0e-2_0, 2.e+1]"],
 ];
 for (const [name, src] of none) test(`no mutant: ${name}`, () => assert.deepEqual(ops(src), []));
 
@@ -166,6 +202,16 @@ const some = [
   ["logical", "a && b || c", ["&&>||", "||>&&"]],
   ["division stays division", "a / b + 2 / c - (d) / e", ["+>-", "->+"]],
   ["booleans", "x = true || false", ["true>false", "||>&&", "false>true"]],
+  ["comment ended by a lone CR", "export const checked = true;\n// note\r export const unchecked = 2 + 3;", ["true>false", "+>-"]],
+  ["comment ended by LS and PS", "// a\u2028b + c; // d\u2029e - f", ["+>-", "->+"]],
+  ["division after an object literal", "export const ratio = { valueOf: () => 8 } / 2 + 1", ["+>-"]],
+  ["division after nested objects", "x = { a: { b: {} } } / 2 + 1; f({} / 2 - 1)", ["+>-", "->+"]],
+  ["division after an object in a ternary", "x = a ? {} / 2 + 1 : {} / 2 - 1", ["+>-", "->+"]],
+  ["division after function and class expressions", "x = function () {} / 2 + 1; y = class {} / 2 - 1; z = async function () {} / 2 + 1", ["+>-", "->+", "+>-"]],
+  ["division after a call and value keywords", "f(x) / 2 + 1; this / 2 - 1; null / 2 + 1", ["+>-", "->+", "+>-"]],
+  ["division after an object returned on the same line", "return { a: 1 }.a / 2 + 1", ["+>-"]],
+  ["division after an object in a ternary written a?.5:", "x = a?.5:{} / 2 + 1", ["+>-"]],
+  ["sums next to numbers", "1e3-1; 0x1e-2; 0b1-1; 1n+1n; 1.5.toFixed(1)+1; a1e-8", ["->+", "->+", "->+", "+>-", "+>-", "->+"]],
 ];
 for (const [name, src, want] of some) test(`mutants: ${name}`, () => assert.deepEqual(ops(src), want));
 
@@ -191,6 +237,7 @@ const after = [
   ["block comment after a newline", "a\n/* x */ b < c", "<"],
   ["regex whose flags are longer than its tail", "r = /a+b/gimsuy < c", "<"],
   ["object literal inside an interpolation", "x = `${ {a: 1}['`'] } a < b`; c > d", ">"],
+  ["object divided inside an interpolation", "x = `${ {a: 1} / 2 }`; c > d", ">"],
 ];
 for (const [name, src, op] of after) test(`mutated after: ${name}`, () => assert.deepEqual(at(src), [last(src, op)]));
 
@@ -198,4 +245,11 @@ test("line and column survive CRLF, tab, NBSP and DEL", () => {
   const at = (src) => mutantsOf(src).map((m) => `${m.line}:${m.col}`);
   assert.deepEqual(at("a\r\n\tb < c"), ["2:4"]);
   assert.deepEqual(at("\u007fa < b"), ["1:4"]);
+  assert.deepEqual(at("a\u00a0< b"), ["1:3"]);
+});
+
+test("line and column count every JS line terminator, CRLF as one", () => {
+  const at = (src) => mutantsOf(src).map((m) => `${m.line}:${m.col}`);
+  for (const nl of ["\n", "\r", "\r\n", "\u2028", "\u2029"]) assert.deepEqual(at(`a${nl}b < c`), ["2:3"], JSON.stringify(nl));
+  assert.deepEqual(at("a\n\rb < c"), ["3:3"]);
 });
