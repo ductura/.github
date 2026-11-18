@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { chmodSync, cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, cpSync, linkSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -87,6 +87,15 @@ test("weak check: survivors listed, exit 1", () =>
     assert.match(r.stdout, /^survived src\.mjs:2:57 '>=' -> '>'$/m);
     assert.match(r.stdout, /2 mutants, 0 killed, 2 survived/);
     assert.deepEqual(readFileSync(join(dir, "src.mjs")), before);
+  }));
+
+// A hard link is the same file under another name: one target, never "the tests change a file".
+test("a file named twice through a hard link is mutated once", { skip: process.platform === "win32" && "POSIX links" }, () =>
+  inCopy({}, (dir) => {
+    linkSync(join(dir, "src.mjs"), join(dir, "same.mjs"));
+    const r = run(dir, ["src.mjs", "same.mjs", ...check("strong.check.mjs")]);
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /2 mutants, 2 killed, 0 survived/);
   }));
 
 test("strong check: every mutant killed, exit 0", () =>
@@ -211,6 +220,7 @@ const none = [
   ["arrow and shifts", "f = (a) => a >> 1 >>> 2 << 3"],
   ["compound operators", "a >>>= 1; b <<= 2; c **= 3; d &&= e; f ||= g; h ?? i; j?.k; [...l]; m++; n--; o += 1; p -= 2; q >>= 1"],
   ["boolean as part of a name", "$true; true_; x.true; y?.false"],
+  ["booleans as keys and method names", "o = { true: 1, false : 2, true?: 3 }; class A { true() {} false() {} }; type T = { true: string }"],
   ["line comment ended by CR", "// a\r/b+c/"],
   ["regex after debugger", 'debugger\n/a+b/.test("aab")'],
   ["regex after statement keywords", "break\n/a+b/; continue\n/a-b/; do /a<b/.x(); while (0); export default /a>b/"],
@@ -254,6 +264,8 @@ const some = [
   ["division after await (x)", "x = await (p) / 2 + 1", ["+>-"]],
   ["division after a function returned on the same line", "return function () {} / 2 + 1", ["+>-"]],
   ["stray closers", ") ] } a < b", ["<><="]],
+  ["booleans in a ternary or case", "x = a ? true : false; y = { k: b ? false : true }; switch (c) { case true: }; z = false ? (a) : b", ["true>false", "false>true", "false>true", "true>false", "true>false", "false>true"]],
+  ["sum with an indexed name readonly", "x = 2 - readonly[0]; total + readonly [i]", ["->+", "+>-"]],
   ["sums next to numbers", "1e3-1; 0x1e-2; 0b1-1; 1n+1n; 1.5.toFixed(1)+1; a1e-8", ["->+", "->+", "->+", "+>-", "+>-", "->+"]],
 ];
 for (const [name, src, want] of some) test(`mutants: ${name}`, () => assert.deepEqual(ops(src), want));
@@ -293,6 +305,7 @@ test("line and column survive CRLF, tab, NBSP and DEL", () => {
   assert.deepEqual(at("a\r\n\tb < c"), ["2:4"]);
   assert.deepEqual(at("\u007fa < b"), ["1:4"]);
   assert.deepEqual(at("a\u00a0< b"), ["1:3"]);
+  assert.deepEqual(at("\ufeffx = 1 + 2"), ["1:7"]);
 });
 
 test("line and column count every JS line terminator, CRLF as one", () => {

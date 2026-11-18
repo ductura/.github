@@ -31,8 +31,10 @@ const LINE_BREAK = /\r\n?|[\n\u2028\u2029]/g;
 const SOURCE = /\.[cm]?[jt]s$/i;
 // Tests and declaration files: a mutant there says nothing about the code.
 const SKIP = /\.(test|spec)\.[cm]?[jt]s$|\.d\.[cm]?ts$/i;
-// A TS mapped-type modifier (-readonly [K in T], -?:) is a type, not a sum; a - readonly is.
-const TYPE_MODIFIER = /\s*(readonly\s*\[|\?\s*:)/y;
+// A TS mapped-type modifier (-readonly [K in T], -?:) is a type, not a sum; a - readonly[0] is.
+// true or false as a key or method name ({ true: 1 }, true() {}, true?: T); in a ternary or case it is a value.
+const KEY_NEXT = /\s*(\?\s*:|[:(])/y;
+const TYPE_MODIFIER = /\s*(readonly\s*\[\s*[\p{ID_Start}$_][\p{ID_Continue}$]*\s+in\b|\?\s*:)/uy;
 
 const wordAt = (s, i) => ((WORD.lastIndex = i), WORD.exec(s)?.[0]);
 // The first JS line terminator (LF, CR, LS, PS) at or after i.
@@ -90,7 +92,8 @@ function blockAfter(prev, newline) {
 // A stack of open brackets tells regex from division after ) and }.
 function lex(s, i, out) {
   let prev = out ? null : { kind: "punct", text: "${" }, prev2 = null, end = i;
-  const at = { offset: 0, line: 1, start: 0 };
+  // A BOM is no column.
+  const at = { offset: 0, line: 1, start: s.startsWith("\ufeff") ? 1 : 0 };
   const stack = [{ block: true, ternary: 0 }];
   for (; i < s.length; ) {
     const c = s[i];
@@ -134,7 +137,8 @@ function lex(s, i, out) {
     } else if (tok.text === "?") top.ternary++;
     else if (tok.text === ":") tok.block = top.ternary > 0 ? (top.ternary--, false) : !!top.block;
     const typeModifier = (tok.text === "-" || tok.text === "+") && ((TYPE_MODIFIER.lastIndex = i + 1), TYPE_MODIFIER.test(s));
-    if (out && Object.hasOwn(SWAP, tok.text) && tok.kind !== "member" && !typeModifier) {
+    const key = (tok.text === "true" || tok.text === "false") && prev?.text !== "case" && ((KEY_NEXT.lastIndex = i + tok.text.length), KEY_NEXT.test(s)) && !(s[KEY_NEXT.lastIndex - 1] === ":" && top.ternary > 0);
+    if (out && Object.hasOwn(SWAP, tok.text) && tok.kind !== "member" && !typeModifier && !key) {
       // Lines are counted on from the previous mutant, so a long single line stays linear.
       for (const m of s.slice(at.offset, i).matchAll(LINE_BREAK)) at.line++, (at.start = at.offset + m.index + m[0].length);
       at.offset = i;
@@ -170,7 +174,8 @@ function runTests(argv, timeoutMs) {
     }
     const kill = (live.kill = () => { try { group ? process.kill(-child.pid, "SIGKILL") : child.kill("SIGKILL"); } catch {} });
     const timer = timeoutMs ? setTimeout(() => ((timedOut = true), kill()), timeoutMs) : null;
-    const end = (code) => { clearTimeout(timer); kill(); done(code); };
+    // Once ended, the group id may be reused: an interrupt must not kill it again.
+    const end = (code) => { clearTimeout(timer); kill(); live.kill = () => {}; done(code); };
     child.on("error", () => end("launch"));
     child.on("exit", (code, signal) => end(timedOut ? "timeout" : signal ? signal : code > 128 && code <= 192 ? `exit ${code}` : code));
   });
@@ -183,15 +188,17 @@ export async function main(args, log = console.log, warn = console.error) {
   const files = sep < 0 ? [] : args.slice(0, sep);
   const cmd = sep < 0 ? [] : args.slice(sep + 1);
   if (files.length === 0 || cmd.length === 0 || !cmd[0]) return warn("usage: node scripts/mutate/mutate.mjs <file>... -- <test command>..."), 2;
-  const targets = new Map();
+  const targets = new Map(), seen = new Set();
   for (const f of files) {
-    let real;
+    let real, id;
     try {
-      real = statSync(f).isFile() && realpathSync(f);
+      const st = statSync(f);
+      // Device and inode: the same file through a symlink or a hard link is one target.
+      if (st.isFile()) (real = realpathSync(f)), (id = st.ino ? `${st.dev}:${st.ino}` : real);
     } catch {}
     if (!real) return warn(`mutate: not a readable file: ${f}`), 2;
-    if (SOURCE.test(f) && !SKIP.test(f)) targets.set(real, { name: f, original: readFileSync(real) });
-    else log(`skipped ${f}`);
+    if (!SOURCE.test(f) || SKIP.test(f)) log(`skipped ${f}`);
+    else if (!seen.has(id)) seen.add(id), targets.set(real, { name: f, original: readFileSync(real) });
   }
   for (const t of targets.values()) t.mutants = mutantsOf(t.original.toString("utf8"));
   if ([...targets.values()].every((t) => t.mutants.length === 0)) return warn("mutate: no mutants in the given files"), 2;
