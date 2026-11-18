@@ -1,4 +1,4 @@
-// Source: ductura/server scripts/lint-rules/file-name.ts (DAN-719), without types.
+// Source: ductura/Institution_server scripts/lint-rules/file-name.ts (DAN-719), without types.
 import path from "node:path";
 
 const KEBAB = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;

@@ -1,5 +1,5 @@
 // Risk floor from a repository's risk-paths.json (S-0.10-a, DAN-1004).
-// The glob assertions follow ductura/server scripts/engineering/risk-floor.ts.
+// The glob assertions follow ductura/Institution_server scripts/engineering/risk-floor.ts.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";

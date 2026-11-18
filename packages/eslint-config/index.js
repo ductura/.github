@@ -23,7 +23,7 @@ const exact = (names) => ({
 });
 
 /**
- * The Ductura code rules (docs/CODE_STYLE.md in ductura/server). Inline
+ * The Ductura code rules (docs/CODE_STYLE.md in ductura/Institution_server). Inline
  * directives are off, so an `eslint-disable` comment cannot switch a rule off.
  * @param {import("./index.d.ts").Options} [options]
  * @returns {import("eslint").Linter.Config[]}

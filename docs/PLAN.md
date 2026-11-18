@@ -2,7 +2,7 @@ Kanonski plan migracije: [PLAN-MIGRACIJE.md](https://github.com/ductura/.github/
 
 # Ductura/.github: plan repozitorija
 
-Stanje: 14. 11. 2026. · **Samo plan.** Novi repo po vlasnikovoj odluci 14. 11. (#87 c.6870353871, mjera 2). Izvori kao u [planu servera](https://github.com/ductura/server/blob/main/docs/PLAN.md). Migracija ga je predlagala kao pomoćni repo (odluka 3, T-0.1 … T-0.4, T-0.7); ova odluka ga potvrđuje i pomiče na početak.
+Stanje: 14. 11. 2026. · **Samo plan.** Novi repo po vlasnikovoj odluci 14. 11. (#87 c.6870353871, mjera 2). Izvori kao u [planu servera](https://github.com/ductura/Institution_server/blob/main/docs/PLAN.md). Migracija ga je predlagala kao pomoćni repo (odluka 3, T-0.1 … T-0.4, T-0.7); ova odluka ga potvrđuje i pomiče na početak.
 
 ## 1. Svrha i granica
 

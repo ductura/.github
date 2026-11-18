@@ -1,6 +1,6 @@
 # @ductura/eslint-config
 
-Pravila koda Ductura repozitorija (ESLint flat config). Izvor su pravila S-0.7 iz `ductura/server` (`docs/CODE_STYLE.md`).
+Pravila koda Ductura repozitorija (ESLint flat config). Izvor su pravila S-0.7 iz `ductura/Institution_server` (`docs/CODE_STYLE.md`).
 
 ```ts
 // eslint.config.ts

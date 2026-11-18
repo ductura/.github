@@ -170,7 +170,7 @@ Pravilo za svaki prijenos: PR navodi izvorni SHA Ductusa, isti testovi prolaze p
 
 **Ostaje samo u Ductusu, kao povijest:** `docs/` (odluke, Ustav, plan, sažeci), `STATE.md`, skripte orkestratora (`scripts/orchestrator`), alati za gate Ductusa dok Ductus živi, `spikes/`, `plugins/`, `.claude/` i `.agents/` Ductusa, `middleware.ts` i Next.js rute API-ja (zamjenjuju ih rute servera), stari vizualni snimci.
 
-**Dvostruke promjene tijekom prijelaza (odluka vlasnika, Ductus#87 c.6881719844, točke 14 i 17):** od 14. 11. sav novi razvoj ide u Ducturu, a Ductus dobiva samo popravke; Ductus do 20. 12. ostaje funkcijski zaostao. Nova migracija glavne baze nastaje u `ductura/server` i kopira se u Ductus pod istim imenom i verzijom; CI provjerava jednakost `migrations.sum` u oba repoa do zamrzavanja Ductusa.
+**Dvostruke promjene tijekom prijelaza (odluka vlasnika, Ductus#87 c.6881719844, točke 14 i 17):** od 14. 11. sav novi razvoj ide u Ducturu, a Ductus dobiva samo popravke; Ductus do 20. 12. ostaje funkcijski zaostao. Nova migracija glavne baze nastaje u `ductura/Institution_server` i kopira se u Ductus pod istim imenom i verzijom; CI provjerava jednakost `migrations.sum` u oba repoa do zamrzavanja Ductusa.
 
 ---
 
@@ -399,7 +399,7 @@ Rizici uz odluku vlasnika 14. 11. (Ductus#87 c.6880835493). Svaki ima jednog nos
 | R-2 | Lokalni zapis (dnevnik) u pregledniku. | Šifriranje ili rok trajanja lokalnog zapisa odlučen prije pilota (D-122); shema dnevnika u E-0.1. |
 | R-3 | Izmjene izdanja tijekom pilota. | Faza A pilota zamrzava izdanje (§4d). |
 | R-4 | Domena je vezana uz AAI registraciju i `__Host-` kolačić (§1c). | V-0 mora biti konačan prije zahtjeva Srcu (V-5). |
-| R-5 | Knjiga migracija (ledger). | Samo za dodavanje (append-only). S-0.13 prenosi 112 migracija i `migrations.sum` doslovno u `db/main/migrations/`, s istom knjigom (usklađeno s §4, §10 i serverskim planom, `ductura/server` docs/PLAN.md redak 61). Nove migracije vidi §3 (točka 17). |
+| R-5 | Knjiga migracija (ledger). | Samo za dodavanje (append-only). S-0.13 prenosi 112 migracija i `migrations.sum` doslovno u `db/main/migrations/`, s istom knjigom (usklađeno s §4, §10 i serverskim planom, `ductura/Institution_server` docs/PLAN.md redak 61). Nove migracije vidi §3 (točka 17). |
 | R-6 | Domena evidencije i registar ključeva. | Dolaze iz konfiguracije operatera (D-102, DAN-759), ne iz koda. |
 | R-7 | Sintetički prolaz na stagingu. | Ovisi o B0.1. |
 | R-8 | Proba povrata baze nikad nije izvršena. | Proba (M11.2-P04) mora uključiti nižu reviziju na poslužitelju nakon povrata. Odluka vlasnika (Ductus#87 c.6880906459, varijanta A): na nižoj reviziji nakon povrata klijent ponovno šalje lokalne korake kao nove revizije s novim potpisanim potvrdama; lanac dokaza nosi oznaku „obnovljeno iz lokalne kopije nakon povrata”. |
