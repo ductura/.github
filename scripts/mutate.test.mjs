@@ -26,8 +26,8 @@ const run = (dir, args) =>
 const check = (name) => ["--", process.execPath, name];
 
 test("usage and file errors exit 2 before any mutant", () =>
-  inCopy({ "x.test.mjs": "1 < 2", "plain.mjs": "export const a = 1;\n" }, (dir) => {
-    for (const args of [[], ["src.mjs"], ["--", "node"], ["src.mjs", "--"], ["missing.mjs", ...check("strong.check.mjs")], ["x.test.mjs", "README.md", ...check("strong.check.mjs")], ["plain.mjs", ...check("strong.check.mjs")], ["src.mjs", "--", "no-such-command-1090"]]) {
+  inCopy({ "x.test.mjs": "1 < 2", "plain.mjs": "export const a = 1;\n", "t.d.ts": "declare const flag: true;\n" }, (dir) => {
+    for (const args of [[], ["src.mjs"], ["--", "node"], ["src.mjs", "--"], ["missing.mjs", ...check("strong.check.mjs")], ["x.test.mjs", "README.md", ...check("strong.check.mjs")], ["plain.mjs", ...check("strong.check.mjs")], ["src.mjs", "--", "no-such-command-1090"], ["src.mjs", "--", ""], ["t.d.ts", ...check("strong.check.mjs")]]) {
       const r = run(dir, args);
       assert.equal(r.status, 2, `${args.join(" ")}: ${r.stdout}${r.stderr}`);
       assert.doesNotMatch(r.stdout, /survived/);
@@ -39,6 +39,13 @@ test("tests that fail without a mutant exit 2", () =>
     const r = run(dir, ["src.mjs", ...check("bad.check.mjs")]);
     assert.equal(r.status, 2);
     assert.match(r.stderr, /fail without any mutant/);
+  }));
+
+test("tests that rewrite a file under test exit 2", () =>
+  inCopy({ "fmt.check.mjs": 'import { readFileSync, writeFileSync } from "node:fs";\nwriteFileSync("src.mjs", readFileSync("src.mjs", "utf8") + "\\n");\n' }, (dir) => {
+    const r = run(dir, ["src.mjs", ...check("fmt.check.mjs")]);
+    assert.equal(r.status, 2, r.stdout + r.stderr);
+    assert.match(r.stderr, /the tests change a file under test/);
   }));
 
 test("weak check: survivors listed, exit 1", () =>
@@ -81,8 +88,35 @@ test("a hanging mutant is killed by the timeout and the source is restored", () 
   });
 });
 
-// SIGTERM while a mutant hangs: the tests are killed and the source comes back.
-test("an interrupt restores the file under a mutant", async () => {
+// A killed process nobody reaps (no init in a container) stays a zombie: dead, but kill(pid, 0) finds it.
+function running(pid) {
+  try {
+    process.kill(pid, 0);
+  } catch {
+    return false;
+  }
+  try {
+    return readFileSync(`/proc/${pid}/stat`, "utf8").split(") ").at(-1)[0] !== "Z";
+  } catch {
+    return true;
+  }
+}
+// The tests run under a shell; the timeout must kill the node it started too.
+test("a timeout kills the whole process group", { skip: process.platform === "win32" && "POSIX process groups" }, () => {
+  const src = "export function spin() {\n  let i = 0;\n  while (i < 3) i = i + 1;\n  return i;\n}\n";
+  const chk = 'import { appendFileSync } from "node:fs";\nimport { spin } from "./spin.mjs";\nappendFileSync("pids", process.pid + "\\n");\nif (spin() !== 3) process.exit(1);\n';
+  inCopy({ "spin.mjs": src, "spin.check.mjs": chk }, (dir) => {
+    const r = run(dir, ["spin.mjs", "--", "/bin/sh", "-c", `"${process.execPath}" spin.check.mjs; exit $?`]);
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    const pids = readFileSync(join(dir, "pids"), "utf8").trim().split("\n").map(Number);
+    assert.equal(pids.length, 3);
+    for (const pid of pids) assert.ok(!running(pid), `process ${pid} still runs`);
+  });
+});
+
+// A signal while a mutant runs: the tests are killed and the source comes back.
+for (const [signal, status] of [["SIGINT", 130], ["SIGTERM", 143], ["SIGHUP", 129]])
+test(`${signal} restores the file under a mutant`, { skip: process.platform === "win32" && "POSIX signals" }, async () => {
   const dir = mkdtempSync(join(tmpdir(), "mutate-"));
   try {
     const src = "export function spin() {\n  let i = 0;\n  while (i < 3) i = i + 1;\n  return i;\n}\n";
@@ -94,8 +128,8 @@ test("an interrupt restores the file under a mutant", async () => {
       assert.ok(n < 400, "no mutant was written");
       await new Promise((r) => setTimeout(r, 25));
     }
-    child.kill("SIGTERM");
-    assert.equal(await exited, 130);
+    child.kill(signal);
+    assert.equal(await exited, status);
     assert.equal(readFileSync(join(dir, "spin.mjs"), "utf8"), src);
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -110,6 +144,8 @@ const none = [
   ["template with nested braces", "`a < ${`b && ${c ? '}' : d}`} > e`"],
   ["comment inside a template interpolation", "x = `${/* } ` a && b ` */ 1}`; y = `${1 // } a < b\n}`"],
   ["hashbang", "#!/usr/bin/env -S node --no-warnings\nx"],
+  ["TS mapped-type modifiers", "type M = { -readonly [k in K]-?: T[k] }; type P = { +readonly [k in K]+?: T[k] }"],
+  ["boolean after an astral identifier character", "const \u{1d499}true = 1; o.\u{1d499}true"],
   ["regex at the start", "/a+b/.test(x)"],
   ["regex after =", "r = /a<b/g"],
   ["regex after return", "return /a-b/"],
@@ -130,6 +166,26 @@ const some = [
   ["booleans", "x = true || false", ["true>false", "||>&&", "false>true"]],
 ];
 for (const [name, src, want] of some) test(`mutants: ${name}`, () => assert.deepEqual(ops(src), want));
+
+// Whatever is skipped ends exactly where it should: the code after it is mutated, at its own column.
+const at = (src) => mutantsOf(src).map((m) => `${m.from}@${m.line}:${m.col}`);
+// The expected place: the last occurrence of the operator, on the last line.
+const last = (src, op) => {
+  const i = src.lastIndexOf(op);
+  return `${op}@${src.slice(0, i).split("\n").length}:${i - src.lastIndexOf("\n", i)}`;
+};
+const after = [
+  ["single quotes with an escape", "'a\\'' < b", "<"],
+  ["double quotes", '"a" < b', "<"],
+  ["template", "`a` < b", "<"],
+  ["template with a regex holding braces and quotes", "x = `${s.replace(/[{`'\"]/g, '{')}`; y = a && b", "&&"],
+  ["template with an escaped brace in a regex", "x = `<td>${s.replace(/\\{/g, '&#123;')}</td>`; a < b", "<"],
+  ["regex with a class and flags", "r = /[/]a/gi < b", "<"],
+  ["block comment", "/* a < b */ c > d", ">"],
+  ["line comment", "// a < b\nc > d", ">"],
+  ["member named like a keyword", "x.in / 2 + 1", "+"],
+];
+for (const [name, src, op] of after) test(`mutated after: ${name}`, () => assert.deepEqual(at(src), [last(src, op)]));
 
 test("line and column survive CRLF, tab, NBSP and DEL", () => {
   const at = (src) => mutantsOf(src).map((m) => `${m.line}:${m.col}`);
