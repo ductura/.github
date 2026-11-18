@@ -21,13 +21,19 @@ test("zizmor is installed at an exact version with a sha256 for every file", () 
   for (const l of hashes) assert.match(l, /^ {4}--hash=sha256:[0-9a-f]{64}( \\)?$/);
   const block = extractRun(selfTestText, "zizmor");
   assert.match(block, /--require-hashes --no-deps --only-binary :all: -r scripts\/zizmor\/requirements\.txt/);
-  assert.match(block, /--offline --config zizmor\.yml --strict-collection/);
+  // The exact call: a filter flag (--min-severity, --min-confidence,
+  // --no-exit-codes, another persona or config) would hide findings.
+  const call = block.split("\n").filter((l) => /zizmor"? --|^\s+--/.test(l)).map((l) => l.trim()).join(" ");
+  assert.equal(call, '"$venv/bin/zizmor" --offline --config zizmor.yml --strict-collection \\ --persona regular --format plain --color never --no-progress "$ZIZMOR_INPUT" || status=$?');
+  assert.doesNotMatch(block, /--(min-severity|min-confidence|no-exit-codes|no-config|collect|no-ignores)\b/);
 });
 
 test("the zizmor job scans .github/workflows with its block", () => {
   const [step] = runs("zizmor");
   assert.equal(step.env?.ZIZMOR_INPUT, ".github/workflows");
-  assert.ok(step.run.includes("# zizmor:begin") && step.run.includes("# zizmor:end"));
+  // Nothing around the block: the negative job runs only what is between the markers.
+  assert.ok(step.run.startsWith("# zizmor:begin\n"), "the step starts with the block");
+  assert.ok(step.run.trimEnd().endsWith("\n# zizmor:end"), "the step ends with the block");
   assert.doesNotMatch(step.run, /\$\{\{/, "values reach the block only through env");
 });
 
@@ -35,7 +41,13 @@ test("zizmor-negative runs that block over the template-injection fixture", () =
   const [step] = runs("zizmor-negative");
   assert.match(step.run, /node scripts\/extract-run\.mjs \.github\/workflows\/self-test\.yml zizmor > /);
   assert.match(step.run, /fixture=fixtures\/zizmor\/template-injection\.yml\n/);
-  assert.ok(step.run.includes('"[template-injection] "'), "only template-injection may make it red");
+  const lines = step.run.split("\n").map((l) => l.trim());
+  for (const want of [
+    'expect_fail "$fixture" "::error::zizmor found findings in $fixture"',
+    'if [ "$ids" != "[template-injection] " ]; then',
+    'echo "::error::expected only [template-injection] in $fixture, got: ${ids:-none}"',
+  ]) assert.ok(lines.includes(want), `negative step has: ${want}`);
+  assert.doesNotMatch(step.run, /\b(true|false)\b|\|\|\s*:/, "no check is switched off");
   assert.doesNotMatch(step.run, /\$\{\{/);
   const fixture = parse(read("fixtures/zizmor/template-injection.yml"));
   const inRun = Object.values(fixture.jobs).flatMap((j) => j.steps).map((s) => s.run ?? "");
