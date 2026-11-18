@@ -23,11 +23,11 @@ function run({ status = 0, out = CLEAN, pipExit = 0, input } = {}) {
   const bin = join(root, "bin");
   mkdirSync(bin);
   mkdirSync(join(root, "workflows"));
-  const venvBin = (name, body) => `cat > "$3/bin/${name}" <<'EOF'\n#!/usr/bin/env bash\n${body}\nEOF\nchmod +x "$3/bin/${name}"\n`;
+  const venvBin = (name, body) => `cat > "$d/bin/${name}" <<'EOF'\n#!/usr/bin/env bash\n${body}\nEOF\nchmod +x "$d/bin/${name}"\n`;
   writeFileSync(
     join(bin, "python3"),
-    "#!/usr/bin/env bash\nmkdir -p \"$3/bin\"\n" +
-      venvBin("pip", `printf '%s\\n' "$@" > "${root}/pip.args"\nexit ${pipExit}`) +
+    `#!/usr/bin/env bash\nprintf '%s\\n' "$@" > "${root}/python3.args"\nd="\${@: -1}"\nmkdir -p "$d/bin"\n` +
+      venvBin("python", `printf '%s\\n' "$@" > "${root}/pip.args"\nexit ${pipExit}`) +
       venvBin("zizmor", `printf '%s\\n' "$@" > "${root}/zizmor.args"\nenv > "${root}/zizmor.env"\nprintf '%s\\n' ${JSON.stringify(out)}\nexit ${status}`),
   );
   chmodSync(join(bin, "python3"), 0o755);
@@ -44,7 +44,7 @@ function run({ status = 0, out = CLEAN, pipExit = 0, input } = {}) {
     },
   });
   const lines = (f) => (existsSync(join(root, f)) ? readFileSync(join(root, f), "utf8").trimEnd().split("\n") : null);
-  return { status: r.status, out: r.stdout + r.stderr, pip: lines("pip.args"), zizmor: lines("zizmor.args"), env: lines("zizmor.env"), root };
+  return { status: r.status, out: r.stdout + r.stderr, python3: lines("python3.args"), pip: lines("pip.args"), zizmor: lines("zizmor.args"), env: lines("zizmor.env"), root };
 }
 
 // Negative cases first: every one must end red with its own message.
@@ -107,13 +107,28 @@ test("a failed pip install fails the block before zizmor runs", () => {
 test("a clean scan passes with the exact install, call and no token", () => {
   const r = run();
   assert.equal(r.status, 0, r.out);
-  assert.deepEqual(r.pip, ["install", "--quiet", "--disable-pip-version-check", "--require-hashes", "--no-deps", "--only-binary", ":all:", "-r", "scripts/zizmor/requirements.txt"]);
+  // Isolated Python (-I): a venv.py or pip/ in the checkout cannot shadow the standard modules.
+  assert.deepEqual(r.python3, ["-I", "-m", "venv", r.python3[3]]);
+  assert.ok(r.python3[3].startsWith(join(r.root, "zizmor.")));
+  assert.deepEqual(r.pip, ["-I", "-m", "pip", "install", "--quiet", "--disable-pip-version-check", "--require-hashes", "--no-deps", "--only-binary", ":all:", "-r", "scripts/zizmor/requirements.txt"]);
   // A filter (--min-severity, --no-exit-codes, a persona below auditor,
   // another config) would hide findings: only zizmor.yml may set one aside.
-  assert.deepEqual(r.zizmor, ["--offline", "--config", "zizmor.yml", "--strict-collection", "--persona", "auditor", "--format", "plain", "--color", "never", "--no-progress", join(r.root, "workflows")]);
+  // --collect=all: a .gitignore in the checkout cannot hide a workflow from the scan.
+  assert.deepEqual(r.zizmor, ["--offline", "--config", "zizmor.yml", "--strict-collection", "--collect=all", "--persona", "auditor", "--format", "plain", "--color", "never", "--no-progress", join(r.root, "workflows")]);
   for (const name of ["GH_TOKEN", "GITHUB_TOKEN", "ZIZMOR_GITHUB_TOKEN", "ZIZMOR_CONFIG"]) {
     assert.equal(r.env.some((l) => l.startsWith(`${name}=`)), false, `${name} reaches zizmor`);
   }
+});
+
+test("the venv line of the block ignores a venv.py in the working directory (real python3)", () => {
+  const cwd = mkdtempSync(join(tmpdir(), "zizmor-cwd-"));
+  writeFileSync(join(cwd, "venv.py"), `open(${JSON.stringify(join(cwd, "shadowed"))}, "w").write("x")\n`);
+  const line = script.split("\n").filter((l) => /\bpython3\b.*-m venv/.test(l));
+  assert.equal(line.length, 1);
+  const r = spawnSync("bash", ["-c", `set -e; venv="$1"; ${line[0]}`, "bash", join(cwd, "v")], { cwd, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(existsSync(join(cwd, "shadowed")), false, "venv.py from the checkout ran");
+  assert.ok(existsSync(join(cwd, "v", "bin", "python")));
 });
 
 // The job and every step always run: an `if` or `continue-on-error` would

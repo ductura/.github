@@ -246,11 +246,12 @@ jobs:
             exit 1
           fi
           venv="$(mktemp -d "$RUNNER_TEMP/zizmor.XXXXXX")"
-          python3 -m venv "$venv"
-          "$venv/bin/pip" install --quiet --disable-pip-version-check --require-hashes --no-deps --only-binary :all: -r scripts/zizmor/requirements.txt
+          # Isolated (-I): a venv.py or pip/ in the checkout cannot shadow the standard modules.
+          python3 -I -m venv "$venv"
+          "$venv/bin/python" -I -m pip install --quiet --disable-pip-version-check --require-hashes --no-deps --only-binary :all: -r scripts/zizmor/requirements.txt
           status=0
           out="$(env -u GH_TOKEN -u GITHUB_TOKEN -u ZIZMOR_GITHUB_TOKEN -u ZIZMOR_CONFIG \
-            "$venv/bin/zizmor" --offline --config zizmor.yml --strict-collection \
+            "$venv/bin/zizmor" --offline --config zizmor.yml --strict-collection --collect=all \
             --persona auditor --format plain --color never --no-progress "$ZIZMOR_INPUT" 2>&1)" || status=$?
           printf '%s\n' "$out"
           case "$status" in
