@@ -136,7 +136,7 @@ jobs:
 
   # A required job that never runs; ci-ok must not count it as passed.
   node-skipped:
-    if: ${{ false }}
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -223,6 +223,80 @@ jobs:
             echo "::error::expected exactly TS2532 and TS7006, got: $codes"
             exit 1
           fi
+
+  # zizmor (exact version, every wheel by sha256) over this repository's
+  # workflows, offline, with the exceptions and their reasons in zizmor.yml
+  # (DAN-1078). Any finding or tool error is red.
+  zizmor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: zizmor over .github/workflows
+        shell: bash
+        env:
+          ZIZMOR_INPUT: .github/workflows
+        run: |
+          # zizmor:begin
+          set -euo pipefail
+          if [ ! -e "$ZIZMOR_INPUT" ]; then
+            echo "::error::zizmor input $ZIZMOR_INPUT does not exist"
+            exit 1
+          fi
+          venv="$(mktemp -d "$RUNNER_TEMP/zizmor.XXXXXX")"
+          python3 -m venv "$venv"
+          "$venv/bin/pip" install --quiet --disable-pip-version-check --require-hashes --no-deps --only-binary :all: -r scripts/zizmor/requirements.txt
+          status=0
+          env -u GH_TOKEN -u GITHUB_TOKEN -u ZIZMOR_GITHUB_TOKEN -u ZIZMOR_CONFIG \
+            "$venv/bin/zizmor" --offline --config zizmor.yml --strict-collection \
+            --persona regular --format plain --color never --no-progress "$ZIZMOR_INPUT" || status=$?
+          case "$status" in
+            0) ;;
+            1[0-4]) echo "::error::zizmor found findings in $ZIZMOR_INPUT (exit $status)"; exit 1 ;;
+            *) echo "::error::zizmor did not complete (exit $status)"; exit 1 ;;
+          esac
+          # zizmor:end
+
+  # The block of the zizmor job over fixtures/zizmor (DAN-1078): a pull
+  # request title expanded inside run must be red, for template-injection and
+  # nothing else; a missing input and an empty folder fail closed.
+  zizmor-negative:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Template injection in run fails zizmor
+        shell: bash
+        run: |
+          set -euo pipefail
+          scan="$RUNNER_TEMP/zizmor.sh"
+          node scripts/extract-run.mjs .github/workflows/self-test.yml zizmor > "$scan"
+          empty="$(mktemp -d "$RUNNER_TEMP/empty.XXXXXX")"
+          out=""
+          expect_fail() {
+            if out="$(ZIZMOR_INPUT="$1" bash "$scan" 2>&1)"; then
+              echo "$out"; echo "::error::zizmor passed $1"; exit 1
+            fi
+            echo "$out"
+            grep -qF -- "$2" <<< "$out" || { echo "::error::$1 failed without: $2"; exit 1; }
+          }
+          fixture=fixtures/zizmor/template-injection.yml
+          expect_fail "$fixture" "::error::zizmor found findings in $fixture"
+          # Red for template-injection and nothing else: the fixture is clean otherwise.
+          ids="$(grep -oE '^[a-z]+\[[a-z0-9-]+\]' <<< "$out" | sed -E 's/^[a-z]+//' | sort -u | tr '\n' ' ')"
+          if [ "$ids" != "[template-injection] " ]; then
+            echo "::error::expected only [template-injection] in $fixture, got: ${ids:-none}"
+            exit 1
+          fi
+          expect_fail fixtures/zizmor/missing.yml "::error::zizmor input fixtures/zizmor/missing.yml does not exist"
+          expect_fail "$empty" "::error::zizmor did not complete"
 
   secret-scan:
     uses: ./.github/workflows/secret-scan.yml
@@ -330,7 +404,7 @@ jobs:
   # The reusable ci-ok.yml called for real, as other repositories call it.
   ci-ok-reusable:
     if: ${{ always() }}
-    needs: [actionlint, pin-check, permissions-check, gate, engineering-gate, tests-table, node-ok, node-ok-multiline, node-fail, red-aggregate, presets, lint-presets, secret-scan, secret-scan-negative, osv-scan, osv-scan-negative, dependency-review]
+    needs: [actionlint, pin-check, permissions-check, gate, engineering-gate, tests-table, node-ok, node-ok-multiline, node-fail, red-aggregate, presets, lint-presets, secret-scan, secret-scan-negative, osv-scan, osv-scan-negative, zizmor, zizmor-negative, dependency-review]
     uses: ./.github/workflows/ci-ok.yml
     with:
       results: ${{ toJSON(needs) }}
@@ -343,7 +417,7 @@ jobs:
   ci-ok:
     name: ci-ok
     if: ${{ always() }}
-    needs: [actionlint, pin-check, permissions-check, gate, engineering-gate, tests-table, node-ok, node-ok-multiline, node-fail, red-aggregate, presets, lint-presets, secret-scan, secret-scan-negative, osv-scan, osv-scan-negative, dependency-review, ci-ok-reusable]
+    needs: [actionlint, pin-check, permissions-check, gate, engineering-gate, tests-table, node-ok, node-ok-multiline, node-fail, red-aggregate, presets, lint-presets, secret-scan, secret-scan-negative, osv-scan, osv-scan-negative, zizmor, zizmor-negative, dependency-review, ci-ok-reusable]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

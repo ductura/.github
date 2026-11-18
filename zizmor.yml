@@ -1,0 +1,11 @@
+# Exceptions for zizmor in self-test.yml (DAN-1078). Every entry needs a reason;
+# a finding is fixed in the workflow unless it is listed here.
+rules:
+  # Reason: self-test.yml calls this repository's reusable workflows as
+  # `./.github/workflows/<file>.yml`, which GitHub resolves at the same commit,
+  # so the `$/` spelling adds no protection here. The pinned actionlint
+  # (v1.7.7) does not read `$/`, and scripts/ci-ok.test.mjs asserts the `./`
+  # calls (ci-ok-reusable, node-fail).
+  self-repository:
+    ignore:
+      - self-test.yml
