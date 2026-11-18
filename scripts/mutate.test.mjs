@@ -186,6 +186,7 @@ const after = [
   ["block comment", "/* a < b */ c > d", ">"],
   ["line comment", "// a < b\nc > d", ">"],
   ["member named like a keyword", "x.in / 2 + 1", "+"],
+  ["the line after a hashbang", "#!/usr/bin/env node\nx < y", "<"],
   ["line comment after a newline", "a\n// x\nb < c", "<"],
   ["block comment after a newline", "a\n/* x */ b < c", "<"],
   ["regex whose flags are longer than its tail", "r = /a+b/gimsuy < c", "<"],
