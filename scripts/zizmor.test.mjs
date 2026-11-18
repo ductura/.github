@@ -57,14 +57,16 @@ for (const code of [10, 11, 12, 13, 14]) {
   });
 }
 
-for (const code of [1, 2, 3, 9, 15, 127, 255]) {
-  test(`zizmor exit ${code} (tool error) fails the block`, () => {
+// Every code but 0 and 10-14 is a tool error (3: no inputs collected).
+test("every other zizmor exit code (tool error) fails the block", () => {
+  for (let code = 1; code < 256; code++) {
+    if (code >= 10 && code <= 14) continue;
     const r = run({ status: code, out: "fatal: no inputs collected" });
-    assert.equal(r.status, 1, r.out);
+    assert.equal(r.status, 1, `exit ${code}: ${r.out}`);
     assert.ok(r.zizmor, "zizmor ran");
     assert.ok(r.out.includes(`::error::zizmor did not complete (exit ${code})`), r.out);
-  });
-}
+  }
+});
 
 for (const out of ["No findings to report. Good job! (3 suppressed)", "No findings (29 ignored, 1 suppressed)", "2 findings (2 suppressed): 0 informational, 0 low, 0 medium, 0 high"]) {
   test(`exit 0 with suppressed findings fails the block: ${out}`, () => {
@@ -108,7 +110,9 @@ test("a clean scan passes with the exact install, call and no token", () => {
 test("the zizmor job runs only its block, unconditionally, inside ci-ok", () => {
   const job = selfTest.jobs.zizmor;
   assert.ok(Object.hasOwn(selfTest.on, "pull_request"));
-  for (const key of ["if", "continue-on-error", "strategy", "uses", "needs"]) assert.equal(Object.hasOwn(job, key), false, `job has ${key}`);
+  // Exact keys: a container, working-directory or condition would scan something else or nothing.
+  assert.deepEqual(Object.keys(job).sort(), ["runs-on", "steps", "timeout-minutes"]);
+  assert.equal(job["runs-on"], "ubuntu-latest");
   for (const step of job.steps) {
     for (const key of ["if", "continue-on-error"]) assert.equal(Object.hasOwn(step, key), false, `step has ${key}`);
   }
@@ -118,6 +122,8 @@ test("the zizmor job runs only its block, unconditionally, inside ci-ok", () => 
   assert.match(job.steps[0].uses, /^actions\/checkout@[0-9a-f]{40}$/);
   assert.deepEqual(job.steps[0].with, { "persist-credentials": false });
   const runs = job.steps.slice(1);
+  assert.deepEqual(Object.keys(job.steps[0]).sort(), ["uses", "with"]);
+  assert.deepEqual(Object.keys(runs[0]).sort(), ["env", "name", "run", "shell"]);
   assert.equal(runs[0].shell, "bash");
   assert.deepEqual(runs[0].env, { ZIZMOR_INPUT: ".github/workflows" });
   assert.equal(runs[0].run, `# zizmor:begin\n${script}# zizmor:end\n`);
