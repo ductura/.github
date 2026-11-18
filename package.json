@@ -1,9 +1,15 @@
 {
   "name": "@ductura/dot-github-scripts",
   "private": true,
-  "description": "Dev dependencies of the tests in scripts/ (the YAML parser of scripts/ci-ok.test.mjs); nothing is published from here",
+  "description": "Dev dependencies of the tests in scripts/ (the YAML parser of scripts/ci-ok.test.mjs, the licence matcher of dependency-review-action in scripts/dependency-review.test.mjs); nothing is published from here",
   "devDependencies": {
     "ajv": "8.20.0",
+    "spdx-expression-parse": "4.0.0",
+    "spdx-satisfies": "6.0.0",
     "yaml": "2.9.1"
+  },
+  "overrides": {
+    "spdx-license-ids": "3.0.23",
+    "spdx-exceptions": "2.3.0"
   }
 }

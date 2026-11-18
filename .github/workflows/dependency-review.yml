@@ -12,10 +12,12 @@ on:
         description: Lowest vulnerability severity that fails (low, moderate, high, critical)
         type: string
         default: moderate
+      # LGPL-2.1-only also admits LGPL-2.1-or-later packages; an -or-later entry
+      # here would admit LGPL-3.0 too (owner decision T8 is LGPL-2.1, DAN-1033).
       allow-licenses:
         description: Comma-separated SPDX licences that are allowed
         type: string
-        default: MIT, ISC, Apache-2.0, BSD-2-Clause, BSD-3-Clause, 0BSD, MPL-2.0, BlueOak-1.0.0, CC0-1.0, CC-BY-4.0, Python-2.0
+        default: MIT, ISC, Apache-2.0, BSD-2-Clause, BSD-3-Clause, 0BSD, MPL-2.0, BlueOak-1.0.0, CC0-1.0, CC-BY-4.0, Python-2.0, LGPL-2.1-only
 permissions:
   contents: read
 jobs:
