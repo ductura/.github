@@ -77,6 +77,17 @@ for (const out of ["No findings to report. Good job! (3 suppressed)", "No findin
   });
 }
 
+// Exit 0 counts only with zizmor's own clean report at the start of a line
+// (QA on ductura/.github#37): an empty or foreign output is red.
+for (const out of ["", " \n", "done", "2 findings: 0 informational, 2 low, 0 medium, 0 high", "x No findings to report. Good job!"]) {
+  test(`exit 0 without the clean report fails the block: ${JSON.stringify(out)}`, () => {
+    const r = run({ status: 0, out });
+    assert.equal(r.status, 1, r.out);
+    assert.ok(r.zizmor, "zizmor ran");
+    assert.ok(r.out.includes("::error::zizmor reported no clean result"), r.out);
+  });
+}
+
 for (const input of [null, "", "missing-folder"]) {
   test(`input ${JSON.stringify(input)} that is unset or missing fails before zizmor runs`, () => {
     const r = run({ input });
@@ -136,7 +147,8 @@ test("zizmor is pinned to an exact version, every wheel by sha256", () => {
   const lines = read("scripts/zizmor/requirements.txt").split("\n").filter((l) => l.trim() && !l.startsWith("#"));
   assert.match(lines[0], /^zizmor==\d+\.\d+\.\d+ \\$/);
   assert.ok(lines.length > 1);
-  assert.equal(new Set(lines).size, lines.length, "unique hashes");
+  const hashes = lines.slice(1).map((l) => /[0-9a-f]{64}/.exec(l)?.[0]);
+  assert.equal(new Set(hashes).size, hashes.length, "unique hashes");
   lines.slice(1).forEach((l, i) => assert.match(l, i === lines.length - 2 ? /^ {4}--hash=sha256:[0-9a-f]{64}$/ : /^ {4}--hash=sha256:[0-9a-f]{64} \\$/));
 });
 

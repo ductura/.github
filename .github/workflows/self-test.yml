@@ -262,6 +262,11 @@ jobs:
             echo "::error::zizmor suppressed findings in $ZIZMOR_INPUT"
             exit 1
           fi
+          # Exit 0 counts only with zizmor's own clean report.
+          if ! grep -qE '^No findings to report\. Good job!' <<< "$out"; then
+            echo "::error::zizmor reported no clean result for $ZIZMOR_INPUT"
+            exit 1
+          fi
           # zizmor:end
 
   secret-scan:
