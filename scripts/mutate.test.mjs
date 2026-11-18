@@ -144,8 +144,34 @@ test("a timeout kills the whole process group", { skip: process.platform === "wi
   });
 });
 
+// A shell reports a signal as 129-192; any other code is a plain failure, so a kill.
+test("only exit codes 129-192 from a shell are unjudged", { skip: process.platform === "win32" && "a POSIX shell" }, () =>
+  inCopy({ "one.check.mjs": 'import { canVote } from "./src.mjs";\nif (canVote(18, true) !== true || canVote(17, true)) process.exit(1);\n' }, (dir) => {
+    for (const [code, status] of [[128, 0], [129, 2], [192, 2], [193, 0]]) {
+      const r = run(dir, ["src.mjs", "--", "/bin/sh", "-c", `"${process.execPath}" one.check.mjs || exit ${code}`]);
+      assert.equal(r.status, status, `${code}: ${r.stdout}${r.stderr}`);
+    }
+  }));
+
+// A reader that goes away (| head -1) ends the tool while a mutant is on disk: the source still comes back.
+test("a closed stdout restores the file under a mutant and exits 2", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "mutate-"));
+  try {
+    // Every mutant survives a check that only waits, so each one writes a line while the next could be on disk.
+    const src = "export const f = (a, b) => a + b - (a < b) + (a > b) + (a === b) + (a !== b);\n";
+    writeFileSync(join(dir, "src.mjs"), src);
+    writeFileSync(join(dir, "slow.check.mjs"), 'import "./src.mjs";\nawait new Promise((r) => setTimeout(r, 200));\n');
+    const child = spawn(process.execPath, [MUTATE, "src.mjs", ...check("slow.check.mjs")], { cwd: dir, env: { PATH: process.env.PATH }, stdio: ["ignore", "pipe", "ignore"] });
+    child.stdout.once("data", () => child.stdout.destroy());
+    assert.equal(await new Promise((done) => child.on("exit", (code) => done(code))), 2);
+    assert.equal(readFileSync(join(dir, "src.mjs"), "utf8"), src);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 // A signal while a mutant runs: the tests are killed and the source comes back.
-for (const [signal, status] of [["SIGINT", 130], ["SIGTERM", 143], ["SIGHUP", 129]])
+for (const [signal, status] of [["SIGINT", 130], ["SIGTERM", 143], ["SIGHUP", 129], ["SIGQUIT", 131], ["SIGUSR2", 140]])
 test(`${signal} restores the file under a mutant`, { skip: process.platform === "win32" && "POSIX signals" }, async () => {
   const dir = mkdtempSync(join(tmpdir(), "mutate-"));
   try {
@@ -192,8 +218,17 @@ const none = [
   ["regex after a statement head", "if (x) /a+b/.test(y); while (x) /a-b/; for (;;) /a<b/; with (o) /a>b/; for await (const v of w) /a&&b/"],
   ["regex after a block holding an object", "if (x) { y = { a: 1 } }\n/a+b/"],
   ["exponent signs in numbers", "x = [1e-8, 1.5E+3, .5e-1, 1_0e-2_0, 2.e+1]"],
+  ["regex after a block at the start", "{}\n/a+b/"],
+  ["regex after a block that return or yield leaves behind a newline", "return\n{}\n/a+b/; yield\n{}\n/a-b/"],
+  ["regex after a prefix ! on a new line", "a\n!/b+c/.test(d)"],
 ];
 for (const [name, src] of none) test(`no mutant: ${name}`, () => assert.deepEqual(ops(src), []));
+
+// The generics themselves are mutants (they do not parse, so they count as killed); nothing inside the regexes is.
+test("no mutant in a regex after a TS return type or heritage", () => {
+  const src = "function f(): void {}\n/a+b/; function g(): Promise<void> {}\n/a-b/; function h(): string[] {}\n/a&&b/; class A extends B<C> {}\n/a||b/; declare module \"x\" {}\n/a+c/; function k(): Map<A, B<C>> {}\n/a-c/";
+  assert.deepEqual(ops(src).filter((op) => !/^[<>]/.test(op)), []);
+});
 
 const some = [
   ["strict equality", "a === b !== c", ["===>!==", "!==>==="]],
@@ -211,6 +246,14 @@ const some = [
   ["division after a call and value keywords", "f(x) / 2 + 1; this / 2 - 1; null / 2 + 1", ["+>-", "->+", "+>-"]],
   ["division after an object returned on the same line", "return { a: 1 }.a / 2 + 1", ["+>-"]],
   ["division after an object in a ternary written a?.5:", "x = a?.5:{} / 2 + 1", ["+>-"]],
+  ["division after a TS non-null !", "a! / b + c / d; this.total! / 2 - 1; (a ?? b)! / 2 + 1; a! /= 2 - 1", ["+>-", "->+", "+>-", "->+"]],
+  ["sum with a name like a TS modifier", "total - readonly; n + readonly", ["->+", "+>-"]],
+  ["division after a private name spelled like a keyword", "this.#default / 2 + 1; this.#new / 2 - 1", ["+>-", "->+"]],
+  ["division after a function returned by an arrow", "f = () => function () {} / 2 + 1", ["+>-"]],
+  ["operators written without spaces", "a<=1&&b>=2||c===3", ["<=><", "&&>||", ">=>>", "||>&&", "===>!=="]],
+  ["division after await (x)", "x = await (p) / 2 + 1", ["+>-"]],
+  ["division after a function returned on the same line", "return function () {} / 2 + 1", ["+>-"]],
+  ["stray closers", ") ] } a < b", ["<><="]],
   ["sums next to numbers", "1e3-1; 0x1e-2; 0b1-1; 1n+1n; 1.5.toFixed(1)+1; a1e-8", ["->+", "->+", "->+", "+>-", "+>-", "->+"]],
 ];
 for (const [name, src, want] of some) test(`mutants: ${name}`, () => assert.deepEqual(ops(src), want));
@@ -234,9 +277,11 @@ const after = [
   ["line comment", "// a < b\nc > d", ">"],
   ["member named like a keyword", "x.in / 2 + 1", "+"],
   ["the line after a hashbang", "#!/usr/bin/env node\nx < y", "<"],
+  ["the line after a hashbang behind a BOM", "\ufeff#!/usr/bin/env -S node --no-warnings\nx < y", "<"],
   ["line comment after a newline", "a\n// x\nb < c", "<"],
   ["block comment after a newline", "a\n/* x */ b < c", "<"],
   ["regex whose flags are longer than its tail", "r = /a+b/gimsuy < c", "<"],
+  ["regex that ends with an operator", "r = /a+/ < c", "<"],
   ["object literal inside an interpolation", "x = `${ {a: 1}['`'] } a < b`; c > d", ">"],
   ["object divided inside an interpolation", "x = `${ {a: 1} / 2 }`; c > d", ">"],
 ];

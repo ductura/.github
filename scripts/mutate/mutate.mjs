@@ -17,27 +17,30 @@ const PUNCT = [">>>=", "...", "===", "!==", "**=", "<<=", ">>=", ">>>", "&&=", "
 // The values this, super, null, true and false are left out: a slash after them divides.
 const KEYWORDS = new Set("await break case catch class const continue debugger default delete do else enum export extends finally for function if import in instanceof let new of return static switch throw try typeof var void while with yield".split(" "));
 // A block opened right after these is a statement; after a } that closes it a slash opens a regex.
-const BLOCK_AFTER = new Set(["else", "do", "try", "catch", "finally", "static", "export", "class"]);
+// void: a TS return type (): void {.
+const BLOCK_AFTER = new Set(["else", "do", "try", "catch", "finally", "static", "export", "class", "void"]);
 // A ) that closes the head of these statements is followed by a statement.
 const HEADS = new Set(["if", "while", "for", "with"]);
 const WORD = /[\p{ID_Continue}$‌‍]+/uy;
 // A whole numeric literal, so the sign of an exponent (1e-8) is never read as a sum; 0x1e-2 is one.
 const NUMBER = /0[xob][\p{ID_Continue}]*|(?:\d[\d_]*(?:\.[\d_]*)?|\.\d[\d_]*)(?:e[+-]?[\d_]+)?[\p{ID_Continue}]*/iuy;
 const LINE_END = /[\n\r\u2028\u2029]/g;
+const BREAK = /[\n\r\u2028\u2029]/;
 // CRLF is one line break.
 const LINE_BREAK = /\r\n?|[\n\u2028\u2029]/g;
 const SOURCE = /\.[cm]?[jt]s$/i;
 // Tests and declaration files: a mutant there says nothing about the code.
 const SKIP = /\.(test|spec)\.[cm]?[jt]s$|\.d\.[cm]?ts$/i;
-// A TS mapped-type modifier (-readonly, -?) is a type, not a sum.
-const TYPE_MODIFIER = /\s*(readonly\b|\?(?![.?]))/y;
+// A TS mapped-type modifier (-readonly [K in T], -?:) is a type, not a sum; a - readonly is.
+const TYPE_MODIFIER = /\s*(readonly\s*\[|\?\s*:)/y;
 
 const wordAt = (s, i) => ((WORD.lastIndex = i), WORD.exec(s)?.[0]);
 // The first JS line terminator (LF, CR, LS, PS) at or after i.
 const lineEnd = (s, i) => ((LINE_END.lastIndex = i), LINE_END.exec(s)?.index ?? s.length);
 // The end of a comment (or a hashbang at the very start) at i, or -1 when none starts there.
 function skipComment(s, i) {
-  if (s.startsWith("//", i) || (i === 0 && s.startsWith("#!"))) return lineEnd(s, i);
+  const hashbang = s.startsWith("#!", i) && (i === 0 || (i === 1 && s[0] === "\ufeff"));
+  if (s.startsWith("//", i) || hashbang) return lineEnd(s, i);
   if (!s.startsWith("/*", i)) return -1;
   const end = s.indexOf("*/", i + 2);
   return end < 0 ? s.length : end + 2;
@@ -78,7 +81,8 @@ function regexAfter(prev) {
 function blockAfter(prev, newline) {
   if (!prev) return true;
   if (prev.kind === "word") return BLOCK_AFTER.has(prev.text) || ((prev.text === "return" || prev.text === "yield") && newline) || !KEYWORDS.has(prev.text);
-  return prev.kind === "punct" && (prev.block ?? [";", "{", "}", ")", "=>"].includes(prev.text));
+  // After a string, number, ] or > only a TS body can start: declare module "x" {, (): string[] {, extends B<C> {.
+  return prev.kind !== "punct" || (prev.block ?? [";", "{", "}", ")", "=>", ">", ">>", ">>>"].includes(prev.text));
 }
 
 // Reads tokens from i and pushes mutants to out. With out null it reads one
@@ -86,6 +90,7 @@ function blockAfter(prev, newline) {
 // A stack of open brackets tells regex from division after ) and }.
 function lex(s, i, out) {
   let prev = out ? null : { kind: "punct", text: "${" }, prev2 = null, end = i;
+  const at = { offset: 0, line: 1, start: 0 };
   const stack = [{ block: true, ternary: 0 }];
   for (; i < s.length; ) {
     const c = s[i];
@@ -101,15 +106,16 @@ function lex(s, i, out) {
       continue;
     }
     const word = wordAt(s, i);
-    const member = prev?.kind === "punct" && (prev.text === "." || prev.text === "?.");
+    // A member or private name (x.in, this.#default) is never a keyword.
+    const member = prev?.kind === "punct" && (prev.text === "." || prev.text === "?." || prev.text === "#");
     // ?. before a digit is a ? and a number (a?.5:b), never optional chaining.
     const punct = PUNCT.find((p) => s.startsWith(p, i) && !(p === "?." && /\d/.test(s[i + 2] ?? ""))) ?? c;
     const tok = word ? { kind: member ? "member" : "word", text: word } : { kind: "punct", text: punct };
-    const top = stack.at(-1), newline = lineEnd(s, end) < i;
+    const top = stack.at(-1), newline = BREAK.test(s.slice(end, i));
     if (tok.text === "function" || tok.text === "class") {
       // A function or class in an expression: the slash after its closing brace divides.
       const lead = prev?.text === "async" && !newline ? prev2 : prev;
-      if (tok.kind === "word" && lead?.text !== "default" && regexAfter(lead) && !blockAfter(lead, false)) top.exprBody = true;
+      if (tok.kind === "word" && lead?.text !== "default" && (lead?.text === "=>" || (regexAfter(lead) && !blockAfter(lead, false)))) top.exprBody = true;
     } else if (tok.text === "(" || tok.text === "[") {
       stack.push({ close: tok.text === "(" ? ")" : "]", ternary: 0, head: tok.text === "(" && prev?.kind === "word" && (HEADS.has(prev.text) || (prev.text === "await" && prev2?.text === "for")) });
     } else if (tok.text === "{") {
@@ -118,15 +124,21 @@ function lex(s, i, out) {
       top.exprBody = false;
     } else if (tok.text === ")" || tok.text === "]" || tok.text === "}") {
       if (out === null && tok.text === "}" && stack.length === 1) return i + 1;
-      const open = stack.length > 1 && top.close === tok.text ? stack.pop() : {};
+      // A stray closer pops nothing: the base frame has no closer.
+      const open = top.close === tok.text ? stack.pop() : {};
       tok.regex = tok.text === ")" ? !!open.head : tok.text === "}" && !!open.regex;
-      tok.block = tok.text !== "]";
+      tok.block = true;
+    } else if (tok.text === "!" && !newline && !regexAfter(prev)) {
+      // A TS non-null assertion (a! / b): the ! ends an expression, so a slash after it divides.
+      tok.regex = false;
     } else if (tok.text === "?") top.ternary++;
     else if (tok.text === ":") tok.block = top.ternary > 0 ? (top.ternary--, false) : !!top.block;
     const typeModifier = (tok.text === "-" || tok.text === "+") && ((TYPE_MODIFIER.lastIndex = i + 1), TYPE_MODIFIER.test(s));
     if (out && Object.hasOwn(SWAP, tok.text) && tok.kind !== "member" && !typeModifier) {
-      const breaks = [...s.slice(0, i).matchAll(LINE_BREAK)], last = breaks.at(-1);
-      out.push({ offset: i, from: tok.text, to: SWAP[tok.text], line: breaks.length + 1, col: i - (last ? last.index + last[0].length : 0) + 1 });
+      // Lines are counted on from the previous mutant, so a long single line stays linear.
+      for (const m of s.slice(at.offset, i).matchAll(LINE_BREAK)) at.line++, (at.start = at.offset + m.index + m[0].length);
+      at.offset = i;
+      out.push({ offset: i, from: tok.text, to: SWAP[tok.text], line: at.line, col: i - at.start + 1 });
     }
     [prev2, prev] = [prev, tok];
     i += tok.text.length;
@@ -226,11 +238,16 @@ async function judge(targets, cmd, log, warn) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"])
-    process.once(signal, () => {
-      live.kill();
-      live.restore();
-      process.exit(128 + constants.signals[signal]);
-    });
+  // However the tool ends (signal, closed stdout, any uncaught error), the tests die and every target comes back.
+  const bail = (code) => {
+    live.kill();
+    live.restore();
+    process.exit(code);
+  };
+  for (const signal of ["SIGINT", "SIGTERM", "SIGHUP", "SIGQUIT", "SIGUSR2"]) process.once(signal, () => bail(128 + constants.signals[signal]));
+  process.on("uncaughtException", (error) => {
+    try { console.error(`mutate: ${error.message}`); } catch {}
+    bail(2);
+  });
   process.exitCode = await main(process.argv.slice(2)).catch((error) => (console.error(`mutate: ${error.message}`), 2));
 }
