@@ -230,6 +230,7 @@ const after = [
   ["template with an escaped brace in a regex", "x = `<td>${s.replace(/\\{/g, '&#123;')}</td>`; a < b", "<"],
   ["regex with a class and flags", "r = /[/]a/gi < b", "<"],
   ["block comment", "/* a < b */ c > d", ">"],
+  ["block comment that opens with /*/", "/*/ a < b */ c > d", ">"],
   ["line comment", "// a < b\nc > d", ">"],
   ["member named like a keyword", "x.in / 2 + 1", "+"],
   ["the line after a hashbang", "#!/usr/bin/env node\nx < y", "<"],
