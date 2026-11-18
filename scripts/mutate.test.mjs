@@ -30,6 +30,7 @@ test("usage and file errors exit 2 before any mutant", () =>
     for (const args of [[], ["src.mjs"], ["--", "node"], ["src.mjs", "--"], ["missing.mjs", ...check("strong.check.mjs")], ["x.test.mjs", "README.md", ...check("strong.check.mjs")], ["plain.mjs", ...check("strong.check.mjs")], ["src.mjs", "--", "no-such-command-1090"], ["src.mjs", "--", ""], ["t.d.ts", ...check("strong.check.mjs")]]) {
       const r = run(dir, args);
       assert.equal(r.status, 2, `${args.join(" ")}: ${r.stdout}${r.stderr}`);
+      if (args.length < 3 || args.at(-1) === "") assert.match(r.stderr, /^usage:/, args.join(" "));
       assert.doesNotMatch(r.stdout, /survived/);
     }
   }));
@@ -144,6 +145,7 @@ const none = [
   ["template with nested braces", "`a < ${`b && ${c ? '}' : d}`} > e`"],
   ["comment inside a template interpolation", "x = `${/* } ` a && b ` */ 1}`; y = `${1 // } a < b\n}`"],
   ["hashbang", "#!/usr/bin/env -S node --no-warnings\nx"],
+  ["hashbang with operators", "#! a < b && c - d\nx"],
   ["TS mapped-type modifiers", "type M = { -readonly [k in K]-?: T[k] }; type P = { +readonly [k in K]+?: T[k] }"],
   ["boolean after an astral identifier character", "const \u{1d499}true = 1; o.\u{1d499}true"],
   ["regex at the start", "/a+b/.test(x)"],
@@ -184,6 +186,10 @@ const after = [
   ["block comment", "/* a < b */ c > d", ">"],
   ["line comment", "// a < b\nc > d", ">"],
   ["member named like a keyword", "x.in / 2 + 1", "+"],
+  ["line comment after a newline", "a\n// x\nb < c", "<"],
+  ["block comment after a newline", "a\n/* x */ b < c", "<"],
+  ["regex whose flags are longer than its tail", "r = /a+b/gimsuy < c", "<"],
+  ["object literal inside an interpolation", "x = `${ {a: 1}.a } a < b`; c > d", ">"],
 ];
 for (const [name, src, op] of after) test(`mutated after: ${name}`, () => assert.deepEqual(at(src), [last(src, op)]));
 
