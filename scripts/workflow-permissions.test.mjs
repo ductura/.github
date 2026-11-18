@@ -3,10 +3,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
-import { isAlias, isMap, isScalar, parseDocument, visit } from "yaml";
+import { isMap, isScalar, isSeq, parseDocument, visit } from "yaml";
 
 const DIR = new URL("../.github/workflows/", import.meta.url);
-const FILES = readdirSync(DIR).filter((f) => /\.ya?ml$/.test(f)).sort();
+const FILES = readdirSync(DIR).filter((f) => /\.ya?ml$/i.test(f)).sort();
 const read = (f) => readFileSync(new URL(f, DIR), "utf8");
 const keyOf = (pair) => (isScalar(pair.key) ? String(pair.key.value) : undefined);
 // GitHub reads workflow keys in any case (permissions-check.mjs does the same).
@@ -76,20 +76,29 @@ function* expressions(s) {
 // a ".", ".." or empty component in a remote uses reference. A constant part of
 // a larger expression (`inputs.a && !false`) is left to zizmor itself (DAN-1078-1b):
 // matching it here gave both false alarms and misses (self-check of #38).
-const RUNTIME = /\b(?:github|inputs|matrix|needs|steps|env|vars|secrets|jobs?|runner|strategy)\b|\b(?:always|success|failure|cancelled|hashFiles)\s*\(/i;
+// A context or function counts only where a name starts, not as a property:
+// fromJSON('{"github":1}').github stays constant (review of #38).
+const RUNTIME = /(?<![\w.-])(?:(?:github|inputs|matrix|needs|steps|env|vars|secrets|jobs?|runner|strategy)\b|(?:always|success|failure|cancelled|hashFiles)\s*\()/i;
+const items = (node) => (isMap(node) ? node.items : []);
+const pick = (node, name) => items(node).filter((p) => is(p, name)).map((p) => p.value);
+// The uses of each job and step; a key named uses under env, with or inputs is
+// not a reference (review of #38).
+const usesOf = (doc) =>
+  pick(doc.contents, "jobs").flatMap((jobs) => items(jobs)).flatMap(({ value: job }) =>
+    [...pick(job, "uses"), ...pick(job, "steps").flatMap((steps) => (isSeq(steps) ? steps.items : [])).flatMap((step) => pick(step, "uses"))]);
 export function obfuscated(text) {
+  const doc = parse(text);
   const out = [];
-  visit(parse(text), {
-    Pair(_, pair) {
-      const v = isScalar(pair.value) ? pair.value.value : undefined;
-      if (is(pair, "uses") && typeof v === "string" && !/^(?:\.\/|docker:\/\/)/.test(v) && v.split("@")[0].split("/").some((seg) => seg === "" || seg === "." || seg === ".."))
-        out.push(v);
-    },
+  for (const node of usesOf(doc)) {
+    const v = isScalar(node) ? node.value : undefined;
+    if (typeof v === "string" && !/^(?:\.\/|docker:\/\/)/.test(v) && v.split("@")[0].split("/").some((seg) => seg === "" || seg === "." || seg === ".."))
+      out.push(v);
+  }
+  visit(doc, {
     Scalar(_, node) {
       if (typeof node.value !== "string") return;
-      for (const inner of expressions(node.value)) {
+      for (const inner of expressions(node.value))
         if (!RUNTIME.test(inner.replace(/'(?:[^']|'')*'/g, "''"))) out.push(inner.trim());
-      }
     },
   });
   return out;
@@ -175,17 +184,21 @@ test("undocumented: every permission but contents: read needs a visible comment 
 
 test("obfuscated: ${{ }} that cannot depend on the run is obfuscation, in any value", () => {
   const inner = ["false", "true", "null", "0", "-1.5", "0x10", "'x'", "'it''s'", "!false", "1 == 1", "fromJSON('false')", "format('{0}', 'github')",
-    "format('{0} ${{ github }}', 'x')"];
+    "format('{0} ${{ github }}', 'x')", "fromJSON('{\"github\":true}').github", "fromJSON('{\"a\":1}').always", "format('x').secrets"];
   for (const e of ["${{false}}", "${{\n false }}", ...inner.map((c) => `\${{ ${c} }}`)]) {
     const text = `on: push\njobs:\n  a:\n    name: ${JSON.stringify(`n-${e}`)}\n    if: ${JSON.stringify(e)}\n    env: { X: ${JSON.stringify(e)} }\n    steps:\n      - if: ${JSON.stringify(e)}\n        with: { x: ${JSON.stringify(`a-${e}`)} }\n      - run: ${JSON.stringify(`echo ${e}`)}\n`;
     assert.equal(obfuscated(text).length, 6, e);
   }
   const fine = ["true && always()", "matrix.case", "inputs.flag == 'true'", "hashFiles('a')", "github.ref == 'refs/heads/main'", "env.A", "secrets.B", "strategy.job-index",
     "success()", "failure()", "cancelled()", "github.event_name != 'pull_request' && 'dependency-review' || ''", "'}}' == github.ref", "GITHUB.ref == 'x'", "Always()",
-    "env.STAGE2 == 'true'", "needs.build.outputs.ok1 == 'true'", "contains(fromJSON('[\"a\"]'), github.event_name)", "fromJSON(inputs.x)", "toJSON(needs)"];
+    "env.STAGE2 == 'true'", "needs.build.outputs.ok1 == 'true'", "contains(fromJSON('[\"a\"]'), github.event_name)", "fromJSON(inputs.x)", "toJSON(needs)", "needs.github.result", "steps.a.outputs.always", "(github.ref)"];
   for (const e of fine) assert.deepEqual(obfuscated(`on: push\njobs:\n  a:\n    if: false\n    steps:\n      - if: ${JSON.stringify(`\${{ ${e} }}`)}\n`), [], e);
-  for (const u of ["actions/checkout/./@abc", "actions/checkout/../checkout@abc", "actions/checkout//sub@abc", "actions/cache/save/@abc"])
+  for (const u of ["actions/checkout/./@abc", "actions/checkout/../checkout@abc", "actions/checkout//sub@abc", "actions/cache/save/@abc"]) {
     assert.deepEqual(obfuscated(`on: push\njobs:\n  a:\n    steps:\n      - uses: ${u}\n`), [u], u);
+    assert.deepEqual(obfuscated(`on: push\nJobs:\n  a:\n    Uses: ${u}\n  b:\n    Steps:\n      - USES: ${u}\n`), [u, u], `${u} in any case`);
+  }
+  const notRefs = "on: { workflow_call: { inputs: { uses: { default: /a//b } } } }\njobs:\n  a:\n    env: { USES: /tmp/workflow-list }\n    steps:\n      - with: { uses: ../x }\n        env: { uses: a/./b }\n";
+  assert.deepEqual(obfuscated(notRefs), []);
   assert.deepEqual(obfuscated("on: push\njobs:\n  a:\n    uses: ./.github/workflows/x.yml\n    steps:\n      - uses: actions/checkout@abc\n      - uses: ./x/./y\n      - uses: docker://a/../b:1\n"), []);
 });
 
