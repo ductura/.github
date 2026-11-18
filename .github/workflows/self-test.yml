@@ -83,7 +83,7 @@ jobs:
           - { case: critical-no-qa, risk: critical }
           - { case: below-floor, risk: critical }
           - { case: floor-stale, floor: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb }
-    permissions: { contents: read, issues: read, pull-requests: read, statuses: write }
+    permissions: { contents: read, issues: read, pull-requests: read, statuses: write } # what engineering-gate.yml needs
     uses: ./.github/workflows/engineering-gate.yml
     with:
       gate-sha: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -103,20 +103,20 @@ jobs:
       fail-fast: false
       matrix:
         case: [cdata, code-fence, comment-only, del-da, docs-only, fence-between, filled-table, filled-template, line-separator, math-cell, mixed-indent, raw-html-hidden, template, zero-rows]
-    permissions: { contents: read, pull-requests: read }
+    permissions: { contents: read, pull-requests: read } # what tests-table.yml needs
     uses: ./.github/workflows/tests-table.yml
     with:
       tool-sha: ${{ github.event.pull_request.head.sha || github.sha }}
       self-test: ${{ matrix.case }}
 
   node-ok:
-    permissions: { contents: read, packages: read }
+    permissions: { contents: read, packages: read } # what ci-node.yml needs
     uses: ./.github/workflows/ci-node.yml
     with:
       working-directory: fixtures/node-ok
 
   node-ok-multiline:
-    permissions: { contents: read, packages: read }
+    permissions: { contents: read, packages: read } # what ci-node.yml needs
     uses: ./.github/workflows/ci-node.yml
     with:
       working-directory: fixtures/node-ok
@@ -127,7 +127,7 @@ jobs:
   # A Node project whose test fails on purpose (DAN-971): ci-node.yml stays
   # green only because expect-failure asserts that the test failed.
   node-fail:
-    permissions: { contents: read, packages: read }
+    permissions: { contents: read, packages: read } # what ci-node.yml needs
     uses: ./.github/workflows/ci-node.yml
     with:
       working-directory: fixtures/node-fail
@@ -226,7 +226,8 @@ jobs:
 
   # zizmor (exact version, every wheel by sha256) over this repository's
   # workflows, offline, with the exceptions and their reasons in zizmor.yml
-  # (DAN-1078). Any finding or tool error is red.
+  # (DAN-1078). The auditor persona suppresses nothing; any finding or tool
+  # error is red.
   zizmor:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -249,9 +250,15 @@ jobs:
           python3 -m venv "$venv"
           "$venv/bin/pip" install --quiet --disable-pip-version-check --require-hashes --no-deps --only-binary :all: -r scripts/zizmor/requirements.txt
           status=0
-          env -u GH_TOKEN -u GITHUB_TOKEN -u ZIZMOR_GITHUB_TOKEN -u ZIZMOR_CONFIG \
+          out="$(env -u GH_TOKEN -u GITHUB_TOKEN -u ZIZMOR_GITHUB_TOKEN -u ZIZMOR_CONFIG \
             "$venv/bin/zizmor" --offline --config zizmor.yml --strict-collection \
-            --persona regular --format plain --color never --no-progress "$ZIZMOR_INPUT" || status=$?
+            --persona auditor --format plain --color never --no-progress "$ZIZMOR_INPUT" 2>&1)" || status=$?
+          printf '%s\n' "$out"
+          # Only zizmor.yml may set a finding aside: a suppressed one is red.
+          if [ "$status" -eq 0 ] && grep -qE '[0-9]+ suppressed' <<< "$out"; then
+            echo "::error::zizmor suppressed findings in $ZIZMOR_INPUT"
+            exit 1
+          fi
           case "$status" in
             0) ;;
             1[0-4]) echo "::error::zizmor found findings in $ZIZMOR_INPUT (exit $status)"; exit 1 ;;
@@ -395,7 +402,7 @@ jobs:
   # fixtures/lint-presets (was presets-self-test.yml; needs cannot see
   # another workflow, so every job of a pull request lives here).
   lint-presets:
-    permissions: { contents: read, packages: read }
+    permissions: { contents: read, packages: read } # what ci-node.yml needs
     uses: ./.github/workflows/ci-node.yml
     with:
       working-directory: fixtures/lint-presets

@@ -1,14 +1,19 @@
 # Must fail zizmor (DAN-1078): the pull request title, which the PR author
 # controls, is expanded by the runner straight into a shell script. Never
 # runs: it lives outside .github/workflows. Clean otherwise, so the
-# zizmor-negative job of self-test.yml can require template-injection alone.
+# zizmor-negative job of self-test.yml can require template-injection alone,
+# also under the auditor persona (name, concurrency).
 name: template-injection-fixture
 on:
   pull_request:
 permissions:
   contents: read
+concurrency:
+  group: template-injection-fixture-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   title:
+    name: title
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

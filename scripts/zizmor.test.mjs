@@ -22,9 +22,11 @@ test("zizmor is installed at an exact version with a sha256 for every file", () 
   const block = extractRun(selfTestText, "zizmor");
   assert.match(block, /--require-hashes --no-deps --only-binary :all: -r scripts\/zizmor\/requirements\.txt/);
   // The exact call: a filter flag (--min-severity, --min-confidence,
-  // --no-exit-codes, another persona or config) would hide findings.
+  // --no-exit-codes, a persona below auditor, another config) would hide
+  // findings, so only zizmor.yml may set any aside.
   const call = block.split("\n").filter((l) => /zizmor"? --|^\s+--/.test(l)).map((l) => l.trim()).join(" ");
-  assert.equal(call, '"$venv/bin/zizmor" --offline --config zizmor.yml --strict-collection \\ --persona regular --format plain --color never --no-progress "$ZIZMOR_INPUT" || status=$?');
+  assert.equal(call, '"$venv/bin/zizmor" --offline --config zizmor.yml --strict-collection \\ --persona auditor --format plain --color never --no-progress "$ZIZMOR_INPUT" 2>&1)" || status=$?');
+  assert.ok(block.includes(`if [ "$status" -eq 0 ] && grep -qE '[0-9]+ suppressed' <<< "$out"; then`), "a suppressed finding is red");
   assert.doesNotMatch(block, /--(min-severity|min-confidence|no-exit-codes|no-config|collect|no-ignores)\b/);
 });
 

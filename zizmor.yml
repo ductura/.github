@@ -9,3 +9,25 @@ rules:
   self-repository:
     ignore:
       - self-test.yml
+  # Reason: a job without `name` (and a reusable workflow's only job) shows up
+  # under its id, and the ids are the check names other repositories and the
+  # required status read (`ci-ok`, `<caller> / node`, `<caller> / gitleaks`).
+  # A `name` would be a second spelling that can drift from the id, and on a
+  # matrix job it would drop the matrix values from the check name. Listed per
+  # file, so a new workflow without names is still a finding.
+  anonymous-definition:
+    ignore:
+      - ci-node.yml
+      - ci-ok.yml
+      - dependency-review.yml
+      - drift-check.yml
+      - osv-scan.yml
+      - secret-scan.yml
+      - self-test.yml
+  # Reason: self-test.yml has no concurrency group on purpose. Every pushed
+  # head keeps its own complete run, so `ci-ok` on each head SHA is a result
+  # and never "cancelled"; review and QA cite CI per full SHA. The reusable
+  # gate workflows set their own groups.
+  concurrency-limits:
+    ignore:
+      - self-test.yml
