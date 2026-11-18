@@ -109,7 +109,7 @@ test("node CI can read @ductura/* from GitHub Packages: caller grants packages: 
   assert.match(nodeJob, /permissions: \{ contents: read, packages: read \}/);
   assert.equal(renderRepo(OPTS).get(".npmrc"), "@ductura:registry=https://npm.pkg.github.com\n");
   const ciNode = readFileSync(join(ROOT, ".github/workflows/ci-node.yml"), "utf8");
-  assert.match(ciNode, /^permissions:\n  contents: read\n  packages: read\n/m);
+  assert.match(ciNode, /^permissions:\n  contents: read\n  packages: read(?: #[^\n]*)?\n/m);
   assert.match(ciNode, /registry-url: https:\/\/npm\.pkg\.github\.com\n\s+scope: "@ductura"/);
   assert.match(ciNode, /pnpm install --frozen-lockfile\n\s+env:\n\s+NODE_AUTH_TOKEN: \$\{\{ github\.token \}\}/);
   // A caller that grants less than ci-node asks for fails to start, so every caller here must grant it too.

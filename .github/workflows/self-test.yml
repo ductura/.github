@@ -83,7 +83,7 @@ jobs:
           - { case: critical-no-qa, risk: critical }
           - { case: below-floor, risk: critical }
           - { case: floor-stale, floor: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb }
-    permissions: { contents: read, issues: read, pull-requests: read, statuses: write }
+    permissions: { contents: read, issues: read, pull-requests: read, statuses: write } # what engineering-gate.yml needs
     uses: ./.github/workflows/engineering-gate.yml
     with:
       gate-sha: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -103,20 +103,20 @@ jobs:
       fail-fast: false
       matrix:
         case: [cdata, code-fence, comment-only, del-da, docs-only, fence-between, filled-table, filled-template, line-separator, math-cell, mixed-indent, raw-html-hidden, template, zero-rows]
-    permissions: { contents: read, pull-requests: read }
+    permissions: { contents: read, pull-requests: read } # what tests-table.yml needs
     uses: ./.github/workflows/tests-table.yml
     with:
       tool-sha: ${{ github.event.pull_request.head.sha || github.sha }}
       self-test: ${{ matrix.case }}
 
   node-ok:
-    permissions: { contents: read, packages: read }
+    permissions: { contents: read, packages: read } # what ci-node.yml needs
     uses: ./.github/workflows/ci-node.yml
     with:
       working-directory: fixtures/node-ok
 
   node-ok-multiline:
-    permissions: { contents: read, packages: read }
+    permissions: { contents: read, packages: read } # what ci-node.yml needs
     uses: ./.github/workflows/ci-node.yml
     with:
       working-directory: fixtures/node-ok
@@ -127,7 +127,7 @@ jobs:
   # A Node project whose test fails on purpose (DAN-971): ci-node.yml stays
   # green only because expect-failure asserts that the test failed.
   node-fail:
-    permissions: { contents: read, packages: read }
+    permissions: { contents: read, packages: read } # what ci-node.yml needs
     uses: ./.github/workflows/ci-node.yml
     with:
       working-directory: fixtures/node-fail
@@ -136,7 +136,7 @@ jobs:
 
   # A required job that never runs; ci-ok must not count it as passed.
   node-skipped:
-    if: ${{ false }}
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -321,7 +321,7 @@ jobs:
   # fixtures/lint-presets (was presets-self-test.yml; needs cannot see
   # another workflow, so every job of a pull request lives here).
   lint-presets:
-    permissions: { contents: read, packages: read }
+    permissions: { contents: read, packages: read } # what ci-node.yml needs
     uses: ./.github/workflows/ci-node.yml
     with:
       working-directory: fixtures/lint-presets

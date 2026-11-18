@@ -225,7 +225,8 @@ test("self-test runs ci-ok over a failed fixture and a skipped job", () => {
   const jobs = jobsOf(selfTest);
   assert.deepEqual(jobs["node-fail"].with, { "working-directory": "fixtures/node-fail", scripts: "test", "expect-failure": true });
   assert.equal(jobs["node-fail"].uses, "./.github/workflows/ci-node.yml");
-  assert.equal(jobs[SKIPPED].if, "${{ false }}");
+  // A plain false: zizmor reads `${{ false }}` as obfuscation (DAN-1078).
+  assert.equal(jobs[SKIPPED].if, false);
   const red = jobs["red-aggregate"];
   assert.deepEqual(needsOf(red), ["node-fail", SKIPPED]);
   assert.equal(red.if, "${{ always() }}");
