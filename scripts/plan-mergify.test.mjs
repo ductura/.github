@@ -48,9 +48,16 @@ export const mergifyProblems = (files) => {
   return problems;
 };
 
+// docs/ductus is a verbatim archive of the Ductus docs (owner, 19. 11. 2026.); it records
+// Ductus history, not Ductura rules, so it is left out of this check.
+const ARCHIVE = join("docs", "ductus");
 const docs = (dir = "docs") =>
   readdirSync(join(ROOT, dir), { withFileTypes: true }).flatMap((e) =>
-    e.isDirectory() ? docs(join(dir, e.name)) : [[join(dir, e.name), readFileSync(join(ROOT, dir, e.name), "utf8")]],
+    e.isDirectory()
+      ? join(dir, e.name) === ARCHIVE
+        ? []
+        : docs(join(dir, e.name))
+      : [[join(dir, e.name), readFileSync(join(ROOT, dir, e.name), "utf8")]],
   );
 
 const ok = `x ${NOTE} y ${RETURN}`;
