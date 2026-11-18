@@ -33,10 +33,17 @@ function skipTemplate(s, i) {
   }
   return i;
 }
+// The end of a comment (or a hashbang at the very start) at i, or -1 when none starts there.
+function skipComment(s, i) {
+  const to = (end, extra) => (s.indexOf(end, i + 2) < 0 ? s.length : s.indexOf(end, i + 2) + extra);
+  if (s.startsWith("//", i) || (i === 0 && s.startsWith("#!"))) return to("\n", 0);
+  return s.startsWith("/*", i) ? to("*/", 2) : -1;
+}
 function skipBraces(s, i) {
   for (let depth = 0; i < s.length; ) {
     const c = s[i];
-    if (c === "'" || c === '"') i = skipQuoted(s, i);
+    if (skipComment(s, i) >= 0) i = skipComment(s, i);
+    else if (c === "'" || c === '"') i = skipQuoted(s, i);
     else if (c === "`") i = skipTemplate(s, i);
     else if (c === "}" && depth-- === 0) return i + 1;
     else i++, c === "{" && depth++;
@@ -62,8 +69,7 @@ export function mutantsOf(s) {
     const c = s[i];
     let tok;
     if (/\s/u.test(c)) { i++; continue; }
-    if (s.startsWith("//", i)) { i = s.indexOf("\n", i) < 0 ? s.length : s.indexOf("\n", i); continue; }
-    if (s.startsWith("/*", i)) { i = s.indexOf("*/", i + 2) < 0 ? s.length : s.indexOf("*/", i + 2) + 2; continue; }
+    if (skipComment(s, i) >= 0) { i = skipComment(s, i); continue; }
     if (c === "'" || c === '"' || c === "`") { i = c === "`" ? skipTemplate(s, i) : skipQuoted(s, i); prev = { kind: "str" }; continue; }
     const regexMayStart = !prev || (prev.kind === "punct" && ![")", "]", "++", "--"].includes(prev.text)) || (prev.kind === "word" && BEFORE_REGEX.has(prev.text));
     if (c === "/" && regexMayStart) { i = skipRegex(s, i); prev = { kind: "str" }; continue; }
@@ -88,6 +94,7 @@ export function mutantsOf(s) {
 // What an interrupt must undo: the running tests and the file under a mutant.
 const live = { kill: () => {}, path: null, original: null };
 // Runs argv without a shell; on POSIX the whole process group goes when it ends or times out.
+// Resolves the exit code, -1 for a kill, or "launch" when the command did not start.
 function runTests(argv, timeoutMs) {
   return new Promise((done) => {
     const group = process.platform !== "win32";
@@ -95,7 +102,7 @@ function runTests(argv, timeoutMs) {
     const kill = (live.kill = () => { try { group ? process.kill(-child.pid, "SIGKILL") : child.kill("SIGKILL"); } catch {} });
     const timer = timeoutMs ? setTimeout(kill, timeoutMs) : null;
     const end = (code) => { clearTimeout(timer); kill(); done(code); };
-    child.on("error", () => end(-1));
+    child.on("error", () => end("launch"));
     child.on("exit", (code) => end(code ?? -1));
   });
 }
@@ -114,17 +121,22 @@ export async function main(args, log = console.log, warn = console.error) {
   for (const t of targets.values()) t.mutants = mutantsOf(t.original.toString("utf8"));
   if ([...targets.values()].every((t) => t.mutants.length === 0)) return warn("mutate: no mutants in the given files"), 2;
   const started = Date.now();
-  if ((await runTests(cmd, 0)) !== 0) return warn("mutate: the tests fail without any mutant"), 2;
+  const baseline = await runTests(cmd, 0);
+  if (baseline === "launch") return warn(`mutate: cannot run ${cmd[0]}`), 2;
+  if (baseline !== 0) return warn("mutate: the tests fail without any mutant"), 2;
   const timeoutMs = 3 * (Date.now() - started) + 2000;
-  let total = 0, survived = 0;
+  let total = 0, survived = 0, launchFailed = false;
   for (const [path, { name, original, mutants }] of targets) {
     const text = original.toString("utf8");
     for (const m of mutants) {
+      if (launchFailed) break;
       total++;
       try {
         Object.assign(live, { path, original });
         writeFileSync(path, text.slice(0, m.offset) + m.to + text.slice(m.offset + m.from.length));
-        if ((await runTests(cmd, timeoutMs)) === 0) survived++, log(`survived ${name}:${m.line}:${m.col} '${m.from}' -> '${m.to}'`);
+        const code = await runTests(cmd, timeoutMs);
+        if (code === "launch") launchFailed = true;
+        else if (code === 0) survived++, log(`survived ${name}:${m.line}:${m.col} '${m.from}' -> '${m.to}'`);
       } finally {
         writeFileSync(path, original);
         live.path = null;
@@ -132,6 +144,7 @@ export async function main(args, log = console.log, warn = console.error) {
     }
   }
   for (const [path, { name, original }] of targets) if (!readFileSync(path).equals(original)) return warn(`mutate: ${name} was not restored`), 2;
+  if (launchFailed) return warn(`mutate: ${cmd[0]} did not start for a mutant; nothing is judged`), 2;
   log(`mutate: ${total} mutants, ${total - survived} killed, ${survived} survived`);
   return survived === 0 ? 0 : 1;
 }

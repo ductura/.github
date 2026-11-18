@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { mutantsOf } from "./mutate/mutate.mjs";
@@ -59,6 +59,16 @@ test("strong check: every mutant killed, exit 0", () =>
     assert.match(r.stdout, /2 mutants, 2 killed, 0 survived/);
   }));
 
+// The command starts for the baseline, then is gone: a mutant it never ran is not a kill.
+test("a command that cannot start for a mutant exits 2", { skip: process.platform === "win32" && "a POSIX shell script" }, () =>
+  inCopy({ "once.sh": `#!/bin/sh\nrm -- "$0"\nexec "${process.execPath}" strong.check.mjs\n` }, (dir) => {
+    chmodSync(join(dir, "once.sh"), 0o755);
+    const r = run(dir, ["src.mjs", "--", "./once.sh"]);
+    assert.equal(r.status, 2, r.stdout + r.stderr);
+    assert.match(r.stderr, /did not start for a mutant/);
+    assert.doesNotMatch(r.stdout, /killed/);
+  }));
+
 // i + 1 -> i - 1 never ends: the timeout kills it and the BOM/CRLF/NBSP source comes back byte for byte.
 test("a hanging mutant is killed by the timeout and the source is restored", () => {
   const src = "﻿export function spin() {\r\n\tlet i = 0; while (i < 3) i = i + 1;\r\n  return i;\r\n}\r\n";
@@ -98,6 +108,8 @@ const none = [
   ["block comment", "/* a === b */"],
   ["quotes with escapes", "x('a \\' < b', \"c \\\" + d\")"],
   ["template with nested braces", "`a < ${`b && ${c ? '}' : d}`} > e`"],
+  ["comment inside a template interpolation", "x = `${/* } ` a && b ` */ 1}`; y = `${1 // } a < b\n}`"],
+  ["hashbang", "#!/usr/bin/env -S node --no-warnings\nx"],
   ["regex at the start", "/a+b/.test(x)"],
   ["regex after =", "r = /a<b/g"],
   ["regex after return", "return /a-b/"],
