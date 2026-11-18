@@ -47,7 +47,7 @@ function documented(text, node) {
   const rest = /^[ \t]*#(.*)/.exec(text.slice(node.range[1]).split(/\r?\n/, 1)[0]);
   return rest !== null && /[\p{L}\p{N}\p{P}\p{S}]/u.test(rest[1]);
 }
-const exempt = (pair) => is(pair, "contents") && isScalar(pair.value) && pair.value.value === "read";
+const exempt = (pair) => keyOf(pair) === "contents" && isScalar(pair.value) && pair.value.value === "read";
 
 export function undocumented(text) {
   const out = [];
@@ -70,33 +70,25 @@ function* expressions(s) {
   }
 }
 
-// What zizmor reports as obfuscation: an expression that cannot depend on the
-// run (no context and no status function once string literals are out), a
-// constant part of a larger one, and "." or ".." in a uses path. A constant
-// part is !literal, a call with literal arguments only, or two literals around
-// an operator that neither a tighter operator nor the same one on the left
-// (they group left to right) takes first: `cond && 'a' || 'b'` is not one.
-const RUNTIME = /\b(?:github|inputs|matrix|needs|steps|env|vars|secrets|jobs?|runner|strategy)\b|\b(?:always|success|failure|cancelled|hashFiles)\s*\(/;
-const L = String.raw`(?:''|true|false|null|[-+]?(?:0x[0-9a-f]+|\d+(?:\.\d+)?(?:e[-+]?\d+)?))`;
-const CMP = String.raw`(?:[=!]=|[<>]=?)`;
-const PART = new RegExp(
-  [String.raw`!\s*${L}`, String.raw`\b(?!hashFiles\b)[a-z]\w*\(\s*${L}\s*(?:,\s*${L}\s*)*\)`,
-    String.raw`(?<!${CMP}\s*)${L}\s*${CMP}\s*${L}(?!\s*${CMP})`,
-    String.raw`(?<!(?:${CMP}|&&|\|\|)\s*)${L}\s*\|\|\s*${L}(?!\s*(?:${CMP}|&&))`,
-    String.raw`(?<!(?:${CMP}|&&)\s*)${L}\s*&&\s*${L}(?!\s*${CMP})`].join("|"), "i");
+// What zizmor reports as obfuscation, as far as a check without zizmor's own
+// expression evaluator can tell it exactly: an expression that cannot depend on
+// the run (no context and no status function once string literals are out), and
+// a ".", ".." or empty component in a remote uses reference. A constant part of
+// a larger expression (`inputs.a && !false`) is left to zizmor itself (DAN-1078-1b):
+// matching it here gave both false alarms and misses (self-check of #38).
+const RUNTIME = /\b(?:github|inputs|matrix|needs|steps|env|vars|secrets|jobs?|runner|strategy)\b|\b(?:always|success|failure|cancelled|hashFiles)\s*\(/i;
 export function obfuscated(text) {
   const out = [];
   visit(parse(text), {
     Pair(_, pair) {
       const v = isScalar(pair.value) ? pair.value.value : undefined;
-      if (is(pair, "uses") && typeof v === "string" && v.split("@")[0].split("/").some((seg, i) => seg === ".." || (seg === "." && i > 0)))
+      if (is(pair, "uses") && typeof v === "string" && !/^(?:\.\/|docker:\/\/)/.test(v) && v.split("@")[0].split("/").some((seg) => seg === "" || seg === "." || seg === ".."))
         out.push(v);
     },
     Scalar(_, node) {
       if (typeof node.value !== "string") return;
       for (const inner of expressions(node.value)) {
-        const bare = inner.replace(/'(?:[^']|'')*'/g, "''");
-        if (!RUNTIME.test(bare) || PART.test(bare)) out.push(inner.trim());
+        if (!RUNTIME.test(inner.replace(/'(?:[^']|'')*'/g, "''"))) out.push(inner.trim());
       }
     },
   });
@@ -163,6 +155,7 @@ test("undocumented: every permission but contents: read needs a visible comment 
     ["empty #", job("      issues: read #\n"), ["a:issues"]],
     ["only spaces, tab, NBSP, U+2003, U+3000 or DEL", job("      a: read #  \n      b: read #\t\n      c: read #\u00a0\n      d: read #\u2003\u3000\n      e: read #\u007f\n"), ["a:a", "a:b", "a:c", "a:d", "a:e"]],
     ["contents: write", job("      contents: write\n"), ["a:contents"]],
+    ["Contents: read (zizmor exempts only the lower-case key)", job("      Contents: read\n"), ["a:Contents"]],
     ["inherited names", job("      __proto__: read\n      toString: read\n      constructor: write\n"), ["a:__proto__", "a:toString", "a:constructor"]],
     ["CRLF", job("      contents: read\n      issues: write\n").replaceAll("\n", "\r\n"), ["a:issues"]],
     ["scalar read-all", W.replace("{}", "read-all"), [":read-all"]],
@@ -182,18 +175,18 @@ test("undocumented: every permission but contents: read needs a visible comment 
 
 test("obfuscated: ${{ }} that cannot depend on the run is obfuscation, in any value", () => {
   const inner = ["false", "true", "null", "0", "-1.5", "0x10", "'x'", "'it''s'", "!false", "1 == 1", "fromJSON('false')", "format('{0}', 'github')",
-    "github.ref == format('{0}', 'x')", "inputs.a && !false", "github.ref == 'x' || 1 == 1", "'a' == 'a' && github.ref",
-    "format('{0} ${{ github }}', 'x')", "'x' || 'y' || inputs.a"];
+    "format('{0} ${{ github }}', 'x')"];
   for (const e of ["${{false}}", "${{\n false }}", ...inner.map((c) => `\${{ ${c} }}`)]) {
     const text = `on: push\njobs:\n  a:\n    name: ${JSON.stringify(`n-${e}`)}\n    if: ${JSON.stringify(e)}\n    env: { X: ${JSON.stringify(e)} }\n    steps:\n      - if: ${JSON.stringify(e)}\n        with: { x: ${JSON.stringify(`a-${e}`)} }\n      - run: ${JSON.stringify(`echo ${e}`)}\n`;
     assert.equal(obfuscated(text).length, 6, e);
   }
   const fine = ["true && always()", "matrix.case", "inputs.flag == 'true'", "hashFiles('a')", "github.ref == 'refs/heads/main'", "env.A", "secrets.B", "strategy.job-index",
-    "success()", "failure()", "cancelled()", "github.event_name != 'pull_request' && 'dependency-review' || ''", "inputs.a == 'x' && 'y' || 'z'", "'}}' == github.ref", "inputs.a || 'x' || 'y'", "inputs.a && 'x' && 'y'", "inputs.a == 1 == 2"];
+    "success()", "failure()", "cancelled()", "github.event_name != 'pull_request' && 'dependency-review' || ''", "'}}' == github.ref", "GITHUB.ref == 'x'", "Always()",
+    "env.STAGE2 == 'true'", "needs.build.outputs.ok1 == 'true'", "contains(fromJSON('[\"a\"]'), github.event_name)", "fromJSON(inputs.x)", "toJSON(needs)"];
   for (const e of fine) assert.deepEqual(obfuscated(`on: push\njobs:\n  a:\n    if: false\n    steps:\n      - if: ${JSON.stringify(`\${{ ${e} }}`)}\n`), [], e);
-  for (const u of ["actions/checkout/./@abc", "actions/checkout/../checkout@abc", "./.github/../.github/workflows/x.yml"])
+  for (const u of ["actions/checkout/./@abc", "actions/checkout/../checkout@abc", "actions/checkout//sub@abc", "actions/cache/save/@abc"])
     assert.deepEqual(obfuscated(`on: push\njobs:\n  a:\n    steps:\n      - uses: ${u}\n`), [u], u);
-  assert.deepEqual(obfuscated("on: push\njobs:\n  a:\n    uses: ./.github/workflows/x.yml\n    steps:\n      - uses: actions/checkout@abc\n"), []);
+  assert.deepEqual(obfuscated("on: push\njobs:\n  a:\n    uses: ./.github/workflows/x.yml\n    steps:\n      - uses: actions/checkout@abc\n      - uses: ./x/./y\n      - uses: docker://a/../b:1\n"), []);
 });
 
 test("no workflow of this repository has an undocumented permission or obfuscation", () => {
