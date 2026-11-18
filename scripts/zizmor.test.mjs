@@ -30,6 +30,25 @@ test("zizmor is installed at an exact version with a sha256 for every file", () 
   assert.doesNotMatch(block, /--(min-severity|min-confidence|no-exit-codes|no-config|collect|no-ignores)\b/);
 });
 
+// Both jobs and every step always run on push and pull_request: an `if` or
+// `continue-on-error` would leave a green job that scanned nothing (QA, DAN-1078).
+for (const name of ["zizmor", "zizmor-negative"]) {
+  test(`${name}: the job and every step run unconditionally`, () => {
+    const job = jobs[name];
+    for (const key of ["if", "continue-on-error", "strategy", "uses", "needs"]) {
+      assert.equal(Object.hasOwn(job, key), false, `${name} has no ${key}`);
+    }
+    assert.equal(job["runs-on"], "ubuntu-latest");
+    for (const step of job.steps) {
+      for (const key of ["if", "continue-on-error"]) {
+        assert.equal(Object.hasOwn(step, key), false, `${name} step ${step.name ?? step.uses} has no ${key}`);
+      }
+    }
+    assert.equal(runs(name).length, 1, `${name} has exactly one run step`);
+    assert.equal(runs(name)[0].shell, "bash");
+  });
+}
+
 test("the zizmor job scans .github/workflows with its block", () => {
   const [step] = runs("zizmor");
   assert.equal(step.env?.ZIZMOR_INPUT, ".github/workflows");
