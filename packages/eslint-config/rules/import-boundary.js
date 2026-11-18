@@ -1,4 +1,4 @@
-// Source: ductura/server scripts/lint-rules/import-boundary.ts (DAN-719), without types.
+// Source: ductura/Institution_server scripts/lint-rules/import-boundary.ts (DAN-719), without types.
 import path from "node:path";
 
 /** The literal text of an import source, or null when it is not a static string. */

@@ -112,7 +112,7 @@ test("checker accepts ductura.org, package names, repo paths and prose", () => {
     "ductura/.github",
     "Ductura/server",
     "Repozitorij organizacije Ductura. Zajedni\u010Dki plan",
-    "https://github.com/ductura/server",
+    "https://github.com/ductura/Institution_server",
     "topologija, window.top, .top { }",
   ];
   for (const s of good) {

@@ -5,7 +5,7 @@ Kanonski plan migracije: [PLAN-MIGRACIJE.md](https://github.com/ductura/.github/
 Stanje: 14. 11. 2026. · **Samo plan.** Svaka stavka plana cijele aplikacije i plana prvog vala ima **jedan** repozitorij ili paket.
 Uključene vlasnikove odluke 14. 11.:
 - **O** (Ductus#87 c.6880835493, dopuna c.6880861260): O-1 pilot na jednom sustavu, izbor 20. 12. 2026.; O-2 VS-1 s potpisom u istom odgovoru samo nad sintetičkim podacima, VS-1b bezuvjetan; O-3 uski rez servera iza S-0.19. Vidi PLAN-MIGRACIJE §4a-1, §4c, §4d i §8a.
-- **A** („Prihvaćam tvoje ova tri prijedloga”): A1 jedan web repo `ductura/web`, A2 prijenos s testovima, A3 ugovor API-ja prvi.
+- **A** („Prihvaćam tvoje ova tri prijedloga”): A1 jedan web repo `ductura/Institution_front_web_chrome`, A2 prijenos s testovima, A3 ugovor API-ja prvi.
 - **B** (#87 c.6870353871, „Ok, može sve, sviđa mi se”): B1 ugovor kao izvor koda, B2 `ductura/.github`, B3 modularni monolit, B4 zajednički paket lažnih zamjena, B5 katalog komponenti, B6 gate prema riziku zadnji.
 
 **Repozitoriji (5 + 1 pomoćni):** `server`, `preloader`, `web`, `desktop-windows`, `desktop-macos`, pomoćni `.github`. `web-mobile` i `web-other` arhiviraju se nakon vlasnikove potvrde plana. Izvan Ductura: **Ductus** (zadaci koji ostaju u starom repou).
@@ -21,7 +21,7 @@ Uključene vlasnikove odluke 14. 11.:
 | `@ductura/parity` (scenariji S-1H.8/1..6) | web `packages/parity` | GitHub Packages | web, desktop |
 | `@ductura/tsconfig`, `eslint-config`, `prettier-config` | `.github` `packages/` | GitHub Packages | svi TS repoi |
 
-Koraci U1–U11 su nazivi iz [plan servera](https://github.com/ductura/server/blob/main/docs/PLAN.md) §5 (PRIJEDLOG; ID dodjeljuje orkestrator). Koraci 2.c1–2.c9 nemaju ID (PRIJEDLOG; ID u fazi 0.3).
+Koraci U1–U11 su nazivi iz [plan servera](https://github.com/ductura/Institution_server/blob/main/docs/PLAN.md) §5 (PRIJEDLOG; ID dodjeljuje orkestrator). Koraci 2.c1–2.c9 nemaju ID (PRIJEDLOG; ID u fazi 0.3).
 
 ## 1. Plan servera i weba: koraci
 

@@ -6,7 +6,7 @@ Ductura je alat za pisanje studentskih radova koji čuva povijest nastanka tekst
 
 | Repozitorij | Što sadrži |
 |---|---|
-| [`server`](https://github.com/ductura/server) | zajednički API: prijava, ovlasti, baza i pozadinski poslovi |
+| [`Institution_server`](https://github.com/ductura/Institution_server) | zajednički API: prijava, ovlasti, baza i pozadinski poslovi |
 | [`.github`](https://github.com/ductura/.github) | zajednički CI workflowi, preseti alata i predlošci |
 
 Ostali repozitoriji (web, aplikacije za računalo i preloader) dodaju se kad počne njihov rad.

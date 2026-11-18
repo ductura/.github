@@ -2,7 +2,7 @@
 // from the changed paths and the repository's own .github/risk-paths.json,
 // whose format is scripts/new-repo/templates/common/risk-paths.json. The
 // highest matching rule wins; a path no rule matches gets the table default.
-// The glob semantics follow ductura/server scripts/engineering/risk-floor.ts
+// The glob semantics follow ductura/Institution_server scripts/engineering/risk-floor.ts
 // (DAN-722, 351b158), matched by dynamic programming instead of a RegExp.
 // Rules: Ductus docs/ENGINEERING_SYSTEM.md §5.
 // Bad input throws; the caller turns any error into `critical` (fails closed).
