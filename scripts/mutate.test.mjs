@@ -282,6 +282,7 @@ const after = [
   ["block comment after a newline", "a\n/* x */ b < c", "<"],
   ["regex whose flags are longer than its tail", "r = /a+b/gimsuy < c", "<"],
   ["regex that ends with an operator", "r = /a+/ < c", "<"],
+  ["regex followed by an operator without a space", "r = /ab/<c", "<"],
   ["object literal inside an interpolation", "x = `${ {a: 1}['`'] } a < b`; c > d", ">"],
   ["object divided inside an interpolation", "x = `${ {a: 1} / 2 }`; c > d", ">"],
 ];
