@@ -159,6 +159,12 @@ Doslovna kopija Ductusa na grane za migraciju:
 - **Nema reviewa ni QA-a po PR-u.** Vrata su lokalni test orkestratora.
 - Preostale stavke starih valova 1–10 prelaze u ovu fazu.
 
+**Dopuna 19. 11. 2026. (Daniel, 23:05: „Može sva 3 da”):**
+
+- Zadaci kreću i kad baza repoa još nije zelena. U repo s crvenom bazom spajaju se samo zadaci `ZEL-*`, koji bazu popravljaju. Ostali gotovi PR-ovi čekaju na popisu `_raspored/cekaju-zelenu.txt` i spajaju se redom kad baza pozeleni.
+- Web zadaci ne čekaju serverske rukovatelje. Grade se prema ugovorima `/api/v1` s lažnim podacima u testovima. Gdje ugovora još nema, u kodu stoji `TODO(ugovor)`. Serverska ovisnost zapisana je u `srvDeps` i provjerava se u fazi 3.
+- **Iznimka od „nema reviewa”:** PR koji dira kritični dio dobiva jedan neovisni review na točnom headu prije spajanja u granu. Kritični dijelovi su prijava i sesije (AAI@EduHr, D-09), RLS, dokazi i forenzika (B-8) te predaja. Tako faza 4 ne otkriva te greške tek na kraju.
+
 ### Faza 3. Lokalna integracija
 
 - Server, baza i frontovi rade zajedno. Prijava je lažni OIDC.
@@ -693,7 +699,7 @@ Datum: 19. 11. 2026. Izvori: `INVENTAR-editor.md` (oznaka **E§**), `INVENTAR-st
 ## Pravila koja vrijede za svaki val
 
 - Ekrani i prozori su funkcionalno isti kao u prototipu. Editor je isti i po funkciji i po izgledu („papir i grafit”).
-- Provjere tek na kraju: nema reviewa ni QA-a. Prije spajanja u granu ide samo lokalno: install, typecheck, testovi i build.
+- Provjere tek na kraju: nema reviewa ni QA-a, osim jednog reviewa kritičnih PR-ova (dopuna faze 2, 19. 11.). Prije spajanja u granu ide lokalno: install, typecheck, testovi i build.
 - Svi frontovi koriste `@ductura/ui`. Novi UI element prvo ide u `ui` (DAN-1111), tek onda u web.
 - Front je Next.js i podatke dobiva samo preko Institution_server `/api/v1`. Front ne piše izravno u tablice.
 - Svaka nova tablica dobiva RLS i retke u pgTAP matrici pristupa, u istom PR-u.
