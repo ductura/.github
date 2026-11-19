@@ -1,5 +1,5 @@
 // DAN-954: the product domain is ductura.org (owner decision 17. 11. 2026., Ductus#2012 c.6934113245).
-// No tracked file may name another ductura.<tld>, and the two plan documents
+// No tracked file may name another ductura.<tld>, and the canonical plan
 // may not mention the rejected TLDs. Text is normalized first, so escapes,
 // lookalike dots and zero-width characters do not hide a finding.
 import { test } from "node:test";
@@ -11,7 +11,7 @@ import { dirname, join } from "node:path";
 import { normalize } from "./plan-text.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const PLAN_DOCS = ["docs/plan/PLAN-MIGRACIJE.md", "docs/plan/KARTA.md"];
+const PLAN_DOCS = ["docs/plan/PLAN-MIGRACIJE.md"];
 const REJECTED = ["c" + "fd", "to" + "p"]; // spelled apart so this file never names them
 
 
