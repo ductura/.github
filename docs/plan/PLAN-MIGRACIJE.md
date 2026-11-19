@@ -1,6 +1,6 @@
 # Ductura: plan migracije na sedam repozitorija
 
-Stanje: 14. 11. 2026. (dopunjeno odlukom vlasnika O-1 do O-3, Ductus#87 c.6880835493) · Sastavio orkestrator · **Samo plan.** Ništa nije otvoreno ni izgrađeno: nema organizacije, repozitorija, grana, PR-ova, issuea ni Linear tiketa.
+Stanje: 19. 11. 2026. · Sastavio orkestrator · Redoslijed rada je od 19. 11. 2026. u pet faza (odjeljak „Pet faza”). Ostatak dokumenta je od 14. 11. (dopunjen odlukom vlasnika O-1 do O-3, Ductus#87 c.6880835493). Gdje se razilazi s odjeljkom „Pet faza”, vrijedi on.
 
 **Tvoja odluka, 14. 11. 2026.:**
 
@@ -28,6 +28,87 @@ Vlasnik je 14. 11. odobrio sljedeće ispravke (Ductus#87, c.6879745570 i c.68793
 8. **Nazivi repozitorija:** `web-chrome` je preimenovan u `web` (u §2d je to već zamijenjeno). `web-mobile` i `web-other` su arhivirani, pa se u ostatku dokumenta tri web repozitorija čitaju kao jedan repozitorij `web`.
 9. **Odluka vlasnika O-1, O-2, O-3 (14. 11., Ductus#87 c.6880835493, dopuna c.6880861260):** pilot na jednom sustavu (§4d), VS-1 u dva koraka s novom stavkom VS-1b i tvrdnjom VS-1.13 (§4a-1), uski rez servera iza S-0.19 (§4c), novi odjeljak „Rizici” R-1 do R-10 (§8a). Gdje se ostatak dokumenta s tim razilazi, vrijedi ta odluka. Točke 4 i 5 odluke (niža revizija na poslužitelju, pravila rada za ductura/*) nisu dio ovog plana; točka 4 je odlučena (varijanta A, Ductus#87 c.6880906459) i zapisana u §8a kao R-8.
 10. **Domena je `ductura.org`** (odluka vlasnika 17. 11. 2026., Ductus#2012 c.6934113245): zamjenjuje prijašnji primjer i izbor između dvije domene (§1c, KARTA §3 i §4). V-0 ostaje otvoren zbog adrese e-pošte, pa R-4 i V-5 i dalje čekaju njegov konačan oblik.
+11. **Pet faza (odluka vlasnika 19. 11. 2026., koordinacija Ductus#2028):** zamjenjuju valove 1–10 i vrata „review i QA po PR-u” za migraciju. Vidi odjeljak „Pet faza” niže.
+
+---
+
+## Pet faza (od 19. 11. 2026.)
+
+Koordinacija: Ductus#2028.
+
+**Odluka vlasnika, 19. 11. 2026.:** Daniel je predložio dvije promjene plana, pa je rekao:
+
+> „možeš napravi oboje što sam im predložio, odabrati.”
+
+Time je odobreno:
+
+1. Plan migracije piše se u pet faza umjesto u valovima 1–10.
+2. Za fazu 4 vrata su zeleni CI i **jedan** ciljani pregled kritičnih dijelova po repozitoriju, umjesto reviewa i QA-a po svakom PR-u.
+
+O frontovima je Daniel 19. 11. rekao:
+
+> „Sve treba biti na next.js od fronta”
+
+### Pregled
+
+| Faza | Što | Vrata |
+|---|---|---|
+| 1. Kopija | Doslovna kopija Ductusa na grane za migraciju. | Gotovo. |
+| 2. Osposobljavanje na granama | Svaki repo: tsc 0 grešaka, zeleni testovi, gradnja. | Orkestrator testira lokalno i spaja u granu. |
+| 3. Lokalna integracija | Server, baza i frontovi zajedno, lažni OIDC; tokovi redom. | Svi tokovi prolaze. |
+| 4. Grana → `main` | Repo po repo; Preloader zadnji. | Zeleni CI i jedan ciljani pregled kritičnih dijelova. |
+| 5. Objava | Serveri na Renderu, frontovi na Vercelu. | Samo na Danielovu riječ. |
+
+### Faza 1. Kopija (gotovo)
+
+Doslovna kopija Ductusa na grane za migraciju:
+
+- `migracija/kopija-ductus-front`
+- `migracija/kopija-ductus-backend`
+- `migracija/kopija-ductus-testovi-server`
+- `migracija/nextjs`: frontovi Preloader, Institution_web_mobile i Web_other.
+
+### Faza 2. Osposobljavanje na granama
+
+- Svaki repo ima tsc bez grešaka, zelene testove i uspješnu gradnju (`next build` ili pokretanje servera).
+- Svi frontovi su na Next.js. Podaci idu samo preko Institution_servera `/api/v1`, nikad iz baze.
+- Pisci otvaraju PR prema grani migracije. Orkestrator testira lokalno i spaja u granu.
+- **Nema reviewa ni QA-a po PR-u.** Vrata su lokalni test orkestratora.
+- Preostale stavke starih valova 1–10 prelaze u ovu fazu.
+
+### Faza 3. Lokalna integracija
+
+- Server, baza i frontovi rade zajedno. Prijava je lažni OIDC.
+- Tokovi redom: student piše → sinkronizacija → predaja → nastavnik vidi i pregledava → administrator ustanove.
+- Migracija je gotova tek kad ti tokovi prolaze.
+
+### Faza 4. Grana → `main`, repo po repo
+
+- Vrata su **zeleni CI i jedan ciljani pregled kritičnih dijelova** u tom repou. Nema reviewa i QA-a po svakom PR-u.
+- Kritični dijelovi koje pregled pokriva:
+  - dokazi i forenzika (B-8),
+  - predaja,
+  - prijava AAI@EduHr (D-09, D-16),
+  - RLS.
+- **Preloader ide zadnji.** Njegov `main` objavljuje ductura.org. Prije toga treba zamijeniti `.invalid` hostove.
+
+### Faza 5. Objava
+
+- Serveri idu na Render, frontovi na Vercel.
+- Samo na Danielovu riječ.
+
+### Što se ne mijenja
+
+- Proizvodna pravila, odluke i rokovi ostaju: kontrolne točke 30. 11. i 15. 1., proba 22. 2. 2027.
+- U Ductusu se ništa novo ne gradi.
+
+### Povijesna bilješka: valovi 1–10
+
+Valovi 1–10 (S-1A do S-1I) nisu građeni zadatak po zadatak. Preuzeti su kopijom (faza 1). Preostale stavke prelaze u fazu 2. Raniji redoslijed A–E (§4) i vremenska procjena (§4b) vrijede samo kao povijest.
+
+### Valovi 11–18 (funkcije M1–M11)
+
+Valovi 11–18 kreću **nakon faze 3**. Grade se izravno u Ducturinim repozitorijima istim ritmom: PR, lokalni test, spajanje.
 
 ---
 
@@ -39,7 +120,8 @@ Vlasnik je 14. 11. odobrio sljedeće ispravke (Ductus#87, c.6879745570 i c.68793
 - Zajednički kod dijelimo **verzioniranim paketima**, ne osmim repozitorijem. Editor i sinkronizacija imaju **jednu** implementaciju (`@ductura/editor-core`), a server objavljuje klijent API-ja (`@ductura/contracts`).
 - Desktop je tanka izvorna ljuska oko istog web paketa. Editor se nikad ne piše iznova.
 - Rano gradimo **vertikalni presjek**: prijava, otvaranje rada, spremanje rečenice i osvježavanje, kroz preloader, web-chrome i server.
-- Prvo server (val 0 i dalje). Zatim preloader i web-chrome. Zatim web-mobile i web-other. Desktop na kraju.
+- Redoslijed rada od 19. 11. 2026. je pet faza (odjeljak „Pet faza”). Redci u nastavku o valovima 1–10, o fazama A–E i o reviewu i QA-u po PR-u opisuju raniji plan.
+- Raniji redoslijed bio je: prvo server (val 0 i dalje), zatim preloader i web-chrome, zatim web-mobile i web-other, desktop na kraju.
 - Mjerimo od prvih zadataka koliko nas razdvajanje košta (§8, prijedlog 17).
 - Ductus ostaje živ dok novi web ne preuzme glavni tok. Onda ga zamrzavamo (ne prije izbora sustava za pilot 20. 12. 2026., §4d), a kasnije zaključavamo samo za čitanje.
 
@@ -174,7 +256,9 @@ Pravilo za svaki prijenos: PR navodi izvorni SHA Ductusa, isti testovi prolaze p
 
 ---
 
-## 4. Redoslijed i faze
+## 4. Redoslijed i faze (raniji plan A–E, povijest)
+
+**Od 19. 11. 2026. vrijedi odjeljak „Pet faza”.** Tablica niže je raniji plan s fazama A–E i valovima 1–10; ostaje zbog poveznica iz ostalih dokumenata (V-1b, „Faza E · aktivacija desktop razvoja”). Odjeljci §4a do §4c pisani su za taj redoslijed. Proizvodna pravila iz njih (VS-1b kao uvjet za rad sa stvarnim podacima, R-1 do R-10) ostaju na snazi dok orkestrator i Daniel ne odluče drukčije.
 
 | Faza | Što | Ulaz | Izlaz | Tvoje radnje |
 |---|---|---|---|---|
@@ -217,7 +301,9 @@ Uz tvrdnje VS-1 (numeracija VS-1.x prema DAN-760) vrijede dvije dopune iz iste o
 
 **Prihvat VS-2.** Isti student u novom mobilnom kontekstu kroz isti web otvara rad iz VS-1 i s poslužitelja dobiva istu potvrđenu reviziju i rečenicu. Rezultat navodi uređaj ili emulaciju i preglednički motor. Produkcijski AAI, objava desktop paketa i prijelaz postojećih studentskih radova imaju zasebne uvjete prihvata.
 
-### 4b. Vremenska crta (procjena, NEPROVJERENO)
+### 4b. Vremenska crta (procjena, NEPROVJERENO; raniji plan A–E, povijest)
+
+Procjena vrijedi za raniji plan A–E. Za pet faza vrijede kontrolne točke 30. 11. i 15. 1. i proba 22. 2. 2027.
 
 Migracija počinje onog dana kad postoji **V-1** (organizacija i repozitoriji). Dan 1 je prvi radni dan nakon toga.
 
@@ -267,7 +353,7 @@ Isti za svih sedam. Razlike su samo u putanjama i vrstama testova.
 | CI | Lint, typecheck, **funkcionalni testovi** i **testovi pomoćnih funkcija** kao odvojeni poslovi; skeniranje tajni; pregled ovisnosti; `ci-ok` pada ako padne bilo koji potreban posao. Akcije prikvačene na SHA. |
 | Funkcionalni test | Onaj iz tvoje tablice, npr. server „vlastiti dokument da, tuđi ne” (S-1H.3), preloader „Chrome na Macu otvara Chrome i nudi macOS paket”. |
 | Test pomoćnih funkcija | Unit testovi uz kod, npr. server „prazan i neispravan ID”, mobile „izračun prostora uz tipkovnicu”. |
-| Gate | Isti kao Ductus: risk razine po putanjama, `Agent-Review:` i `QA-Agent:` na aktualnom headu, Codex review na točnom headu, dvije različite aplikacije za `critical`; spajanje po pravilu iz §7. |
+| Gate | Isti kao Ductus: risk razine po putanjama, `Agent-Review:` i `QA-Agent:` na aktualnom headu, Codex review na točnom headu, dvije različite aplikacije za `critical`; spajanje po pravilu iz §7. **Za migraciju (faze 1–4) ne vrijedi:** vrata su opisana u odjeljku „Pet faza” (faza 2: lokalni test orkestratora; faza 4: zeleni CI i jedan ciljani pregled kritičnih dijelova po repozitoriju). |
 | CODEOWNERS | Pokriva sve `critical` putanje. |
 | `CLAUDE.md`, `AGENTS.md`, `.claude/rules/` | Tanki adapteri. Nijedno novo pravilo. Upućuju na kanonske dokumente. |
 | README | Na hrvatskom: što repo radi, kako se pokreće, kako se testira, što nikad ne sadrži. |
@@ -297,7 +383,7 @@ Pravi uređaji (iPhone, iPad, Android) za fazu D: Playwright emulacija ne zamjen
 
 ## 7. Gate, botovi i orkestracija na sedam repozitorija
 
-**Gate.** Workflow gatea i skripte (`risk-floor`, provjera verdikata) pišu se u `.github` (S-0.10-a/b, T-0.2), ne u serveru. Svaki repo ih poziva punim SHA-om `.github` repoa (`@<40 znakova> # gate-v1`; oznaka je samo komentar, nikad sam poziv, kako traži `README.md` tog repoa) i daje samo svoju tablicu putanja za risk. Retci verdikta ostaju isti (`Agent-Review:`, `Review-Head:`, `Review-Verdict:`, `QA-*`), a format agenta ostaje `runtime:slot:role`.
+**Gate (raniji plan; za migraciju vrijede vrata iz odjeljka „Pet faza”: bez reviewa i QA-a po PR-u u fazama 2 i 4).** Workflow gatea i skripte (`risk-floor`, provjera verdikata) pišu se u `.github` (S-0.10-a/b, T-0.2), ne u serveru. Svaki repo ih poziva punim SHA-om `.github` repoa (`@<40 znakova> # gate-v1`; oznaka je samo komentar, nikad sam poziv, kako traži `README.md` tog repoa) i daje samo svoju tablicu putanja za risk. Retci verdikta ostaju isti (`Agent-Review:`, `Review-Head:`, `Review-Verdict:`, `QA-*`), a format agenta ostaje `runtime:slot:role`.
 
 **Redoslijed V-2 i obveznih statusa (ispravak 14. 11.):** S-0.9 (u serveru) i S-0.10-b (u `.github`, pozvan iz servera) prvo dokažu prolaz i očekivani pad svakog posla; zatim V-2 dopisuje točna emitirana imena u obvezne statuse. Postojeća zaštita (`test`) ostaje dok se u serveru ne dokaže prolaz i očekivani pad.
 
@@ -433,7 +519,9 @@ Rizici uz odluku vlasnika 14. 11. (Ductus#87 c.6880835493). Svaki ima jednog nos
 
 ---
 
-## 10. Prva dva tjedna
+## 10. Prva dva tjedna (raniji plan, povijest)
+
+Raspored niže pisan je za raniji plan A–E. Za pet faza vidi odjeljak „Pet faza”.
 
 Pretpostavka: početak u ponedjeljak 17. 11., nakon prezentacije. Dokumenti i spike mogu i ranije.
 
