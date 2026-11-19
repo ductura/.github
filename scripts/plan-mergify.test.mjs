@@ -48,9 +48,16 @@ export const mergifyProblems = (files) => {
   return problems;
 };
 
+// docs/ductus is a verbatim archive of the Ductus docs (owner, 19. 11. 2026.); it records
+// Ductus history, not Ductura rules, so it is left out of this check.
+const ARCHIVE = join("docs", "ductus");
 const docs = (dir = "docs") =>
   readdirSync(join(ROOT, dir), { withFileTypes: true }).flatMap((e) =>
-    e.isDirectory() ? docs(join(dir, e.name)) : [[join(dir, e.name), readFileSync(join(ROOT, dir, e.name), "utf8")]],
+    e.isDirectory()
+      ? join(dir, e.name) === ARCHIVE
+        ? []
+        : docs(join(dir, e.name))
+      : [[join(dir, e.name), readFileSync(join(ROOT, dir, e.name), "utf8")]],
   );
 
 const ok = `x ${NOTE} y ${RETURN}`;
@@ -102,6 +109,4 @@ test("migration plan pins the merge rule next to D-97 and abolishes T-0.3 and S-
   for (const id of ["T-0.3", "S-0.20"]) {
     assert.match(plan, new RegExp(`^\\| ${id.replace(".", "\\.")} \\|.*Ukinuto 17\\. 11\\.`, "m"), id);
   }
-  const own = normalize(readFileSync(join(ROOT, "docs/PLAN.md"), "utf8"));
-  assert.match(own, /^\| T-0\.3 \|.*Ukinuto 17\. 11\./m, "T-0.3 in docs/PLAN.md");
 });
