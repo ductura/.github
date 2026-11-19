@@ -109,6 +109,4 @@ test("migration plan pins the merge rule next to D-97 and abolishes T-0.3 and S-
   for (const id of ["T-0.3", "S-0.20"]) {
     assert.match(plan, new RegExp(`^\\| ${id.replace(".", "\\.")} \\|.*Ukinuto 17\\. 11\\.`, "m"), id);
   }
-  const own = normalize(readFileSync(join(ROOT, "docs/PLAN.md"), "utf8"));
-  assert.match(own, /^\| T-0\.3 \|.*Ukinuto 17\. 11\./m, "T-0.3 in docs/PLAN.md");
 });

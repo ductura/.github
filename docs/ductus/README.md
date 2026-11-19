@@ -8,7 +8,7 @@ Poveznice unutar arhive upućuju na putanje u Ductus repozitoriju i ovdje ne mor
 
 ## Napomena
 
-Kopirane su sve datoteke iz `docs/`. `DECISIONS.md`, `backend/program.md` i `backend/prijava-i-ovlasti.md` sadrže službene javne adrese (Srce, archive.org) kao i u Ductus repozitoriju.
+Izvorne kopije nalaze se u povijesti repozitorija. Aktivne obveze su objedinjene u [kanonskom planu Ducture](../plan/PLAN-MIGRACIJE.md). `DECISIONS.md`, [povijesni program backenda](../plan/PLAN-MIGRACIJE.md#povijesni-program-backenda) i `backend/prijava-i-ovlasti.md` sadrže službene javne adrese (Srce, archive.org) kao i u Ductus repozitoriju.
 
 ## Provjere
 

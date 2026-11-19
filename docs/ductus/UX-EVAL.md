@@ -41,8 +41,8 @@ Evaluacija više ne bira između D-06 i D-39. Provjerava razumijevanje prihvaće
 
 [PRODUCT.md §12](PRODUCT.md) ima mjerilo **Razumijevanje: „Student točno odgovara tko što vidi”**, s pragom „Definirati prije pilota (GO uvjet)”. Ovaj protokol daje postupak i zapis za to mjerilo. Prag ne postavlja.
 
-- Pragove razumijevanja i korisnosti postavljaju FPZG i evaluator i upisuju ih u [DECISIONS.md](DECISIONS.md) prije etape A ([PROGRAM.md](PROGRAM.md) O04, PRIJEDLOG). Dok prag nije upisan, rezultat se izvještava brojem sudionika i nazivnikom, bez ocjene „prošlo” ili „nije prošlo”.
-- Kanal ankete i pohrane odgovora iz evaluacije u pilotu ([PROGRAM.md](PROGRAM.md) O06) nije odlučen. Ovaj dokument ga ne pretpostavlja. Vrijedi samo C-22: odgovori se čuvaju odvojeno od evidencije pisanja.
+- Pragove razumijevanja i korisnosti postavljaju FPZG i evaluator i upisuju ih u [DECISIONS.md](DECISIONS.md) prije etape A ([PROGRAM.md](https://github.com/ductura/.github/blob/265ea93a2e14a22902e17d259e31304278c30982/docs/ductus/PROGRAM.md) O04, PRIJEDLOG). Dok prag nije upisan, rezultat se izvještava brojem sudionika i nazivnikom, bez ocjene „prošlo” ili „nije prošlo”.
+- Kanal ankete i pohrane odgovora iz evaluacije u pilotu ([PROGRAM.md](https://github.com/ductura/.github/blob/265ea93a2e14a22902e17d259e31304278c30982/docs/ductus/PROGRAM.md) O06) nije odlučen. Ovaj dokument ga ne pretpostavlja. Vrijedi samo C-22: odgovori se čuvaju odvojeno od evidencije pisanja.
 - Etape pilota prema §12: **A** tehnička proba sa sintetičkim radovima, **B** nastava, **C** evaluacija. Krug ovog protokola provodi se prije odluke o prelasku u B, na buildu koji se pilotira. Raniji krug na demo buildu dopušten je i koristan, ali ne zamjenjuje krug na pilotnom buildu.
 - Evaluacija u etapi C je zasebna. Ovaj dokument ne određuje njezin sadržaj.
 
