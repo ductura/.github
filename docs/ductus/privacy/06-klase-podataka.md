@@ -2,7 +2,7 @@
 
 > **Ovo je radni nacrt, nije pravni savjet.** Rokove čuvanja potvrđuju FPZG i službenik za zaštitu podataka (D-30 je PRIJEDLOG, Owner queue Q-16, D-264 Q11).
 
-Zadatak: DAN-297, M10.1-P01. Popis je napravljen nad `main` na `d791364e` (8. 11. 2026.), kako traži D-271 MQ01. Imao je 30 klasa; klasa 31 (prijave problema, DAN-431) dodana je poslije. Svaka klasa pripada točno jednoj od 8 kategorija iz C-21 (`docs/ARCHITECTURE.md` §3, D-271 MQ03). Rok se potvrđuje po klasi, a ne po kategoriji.
+Zadatak: DAN-297, M10.1-P01. Popis je napravljen nad `main` na `d791364e` (8. 11. 2026.), kako traži D-271 MQ01. Imao je 30 klasa; klasa 31 (prijave problema, DAN-431) dodana je poslije. Klasa 32 (ritam unosa, korak P-1) dodana je 20. 11. 2026. kao planirana; vidi odjeljak 5. Svaka klasa pripada točno jednoj od 8 kategorija iz C-21 (`docs/ARCHITECTURE.md` §3, D-271 MQ03). Rok se potvrđuje po klasi, a ne po kategoriji.
 
 Ovaj popis ne odlučuje ni o jednom roku i na njemu se ništa ne gradi. Tablica `data_class`, tablica `erasure` i poslovi brisanja (M10.0-S1, M10.2) nastaju tek uz potvrđene rokove.
 
@@ -61,6 +61,7 @@ Test `src/domain/privacy/data-class-inventory.test.ts` čita odjeljke 2 i 3. Pad
 | 29 | Kopije baze i bucketa | Kopije | PITR, dnevni dump, replika i verzije bucketa (BACKEND §4.7) | Nastanak kopije | otvoreno (D-30 PRIJEDLOG, Q-16); vlastiti rok po vrsti kopije (D-12); PITR 3 dana je tehnička postavka, ne rok | planirano |
 | 30 | Lokalni dnevnik na uređaju | Lokalni zapis na uređaju | Rad bez mreže (Dexie) | Sinkronizacija; odjava | otvoreno (D-30 PRIJEDLOG, Q-16); zapis živi do sinkronizacije, rok trajanja odlučuje se prije pilota (D-118, D-122) | izgrađeno u pregledniku, bez tablice |
 | 31 | Prijave problema | Sesije | Opis problema i zatvoreni tehnički kontekst koje korisnik šalje podršci, bez teksta rada (DAN-431) | Prijava poslana | otvoreno (D-30 PRIJEDLOG, Q-16) | izgrađeno; kategorija za potvrdu |
+| 32 | Ritam unosa | Evidencija | Razmaci između uzastopnih unosa u milisekundama, najviše 130 po naletu tipkanja, samo za prikaz u izvještaju „Podrijetlo teksta” (P-1, PRODUCT §5 pravilo 4) | Predaja; kraj rada | otvoreno (D-30 PRIJEDLOG, Q-16); prijedlog P-1 u `07`; ne dulje od klase 21 | planirano; čeka potvrdu dopune Ustava P-1, D-55 i DPIA |
 
 ## 3. Tablice po klasama
 
@@ -148,3 +149,21 @@ Popis pokriva tablice, a ne pojedine stupce. Provjeru po stupcu i ugovor brisanj
 | `identity_sessions` | 1, 3 |
 
 Pravna osnova, način brisanja i istek u kopijama, koje FA §20.1 traži po klasi, ovdje nisu određeni. Odlučuju ih ustanova i pravnik (`01-tokovi-podataka.md`, `05-otvorena-pitanja.md`).
+
+## 5. Klasa 32: ritam unosa (P-1)
+
+Nova klasa iz koraka P-1 (`docs/ductus/PRODUCT.md` §5, „Podrijetlo teksta (P-1)”). Ništa se ne gradi dok Daniel ne potvrdi tekst dopune Ustava (`docs/ductus/USTAV-DOPUNA-P1.md`). Sa stvarnim studentima čeka pravno mišljenje (D-55) i DPIA (`05`, t. 29 do 33).
+
+- **Što je:** razmaci između uzastopnih unosa u milisekundama, uz nalet tipkanja (nalet se zatvara nakon 4 s bez unosa). Najviše 130 vrijednosti po naletu. Ne bilježi se koja je tipka pritisnuta ni koliko je držana.
+- **Kad nastaje:** samo dok student nije isključio bilježenje ritma. U prototipu je bilježenje uključeno po zadanom; to je otvoreno pitanje (`05`, t. 29). Isključenje zaustavlja novo bilježenje.
+- **Svrha:** samo prikaz u izvještaju „Podrijetlo teksta”, za odabrani dio teksta: graf razmaka, trajanje, broj znakova i najduža stanka.
+- **Tko vidi:** student i mentor, odnosno nastavnik zadatka. Isti prikaz za oboje. Administrator ustanove i ostale uloge ne vide.
+- **Što se s njom ne radi:** ne računa se brzina kao mjera osobe, obrazac ni usporedba s drugim radovima ili studentima. Ne služi prepoznavanju ni potvrdi osobe. Ne ulazi u pragove, sažetak procesa, izvoz ni predaju.
+- **Odvojenost:** zasebno od vremena po promjeni (klasa 22) i od odsječaka (klasa 21). Vezana je uz zapis hashom, kao klasa 22 (D-56 uvjet 3), pa se briše po svom roku bez rušenja lanca.
+- **Rok:** otvoreno (D-30 PRIJEDLOG, Q-16). Prijedlog je u `07`.
+
+Ostali podaci iz P-1 nisu nova klasa:
+- postotci sastava i stanje pragova računaju se pri prikazu iz oznaka u tekstu (klasa 13) i odsječaka (klasa 21) i ne spremaju se; ako se ikad budu spremali, dobivaju klasu;
+- pragovi su konfiguracija fakulteta (klasa 10);
+- oznaka `aitext` je dio teksta rada (klase 13 i 21);
+- zapis podudaranja s odgovorom pomoćnika pripada zapisu AI pomoćnika (klasa 24), a razgovor koji se uz podudaranje sam priloži pripada izjavi (klasa 17).

@@ -38,6 +38,16 @@
 27. `[Ustanova]` FPZG čl. 9. traži ispis razgovora vođenog s alatom; D-41 automatski prilaže samo razgovore iz kojih je tekst prenesen u rad. Prihvaća li FPZG izjavu s dijelom razgovora kad student ne doda ostale? `[ODLUKA]`
 28. `[Vlasnik, Ustanova]` Katalog namjena (D-64): „objašnjenje pojma” navodi razina 1 u D-64 i PRODUCT §8, a D-80 točka (1) kaže da izlazi iz zadanog skupa jer ga nema u FPZG čl. 8; dokumenti ne kažu je li dostupan na razini 2 ili je uklonjen. Uz D-194 t. 4 („sve namjene”) otvoreno je i ostaje li razina 2 (brainstorming, generiranje primjera) samo uz izričito nastavnikovo uključivanje te što o njoj kaže FPZG čl. 8. st. 4. `[ODLUKA]`
 
+### Korak P-1: Podrijetlo teksta (dodano 20. 11. 2026.)
+
+Pitanja iz koraka P-1 (`docs/ductus/PRODUCT.md` §5, „Podrijetlo teksta (P-1)”; klasa 32 u `06`). Blokiraju ritam unosa i izvještaj „Podrijetlo teksta” sa stvarnim studentima, ne demo. Do odgovora samo demo i izmišljeni podaci.
+
+29. `[Pravnik]` Je li ritam unosa (razmaci između uzastopnih unosa u milisekundama, po naletu tipkanja) biometrijski podatak po čl. 4. t. 14. GDPR-a ili posebna kategorija po čl. 9., kad se nikad ne koristi za prepoznavanje ni potvrdu osobe? Je li bilježenje razmjerno svrsi? Smije li biti uključeno po zadanom, kao u prototipu, ili čl. 25. GDPR-a traži da bude isključeno po zadanom? `[ODLUKA]`
+30. `[Pravnik]` Akt o UI: jesu li postotci, pragovi i podudaranje od osam riječi, kao unaprijed zadana pravila bez modela, izvan definicije UI sustava (čl. 3. t. 1.)? Ako nisu, primjenjuje li se Prilog III. t. 3 (b) ili (d)? Veza s t. 16 i 25. `[ODLUKA]`
+31. `[Ustanova, Pravnik]` Pravna osnova i svrha za klasu 32 i za izvještaj „Podrijetlo teksta”. Je li izvještaj s pragovima „automatizirano pojedinačno odlučivanje” po čl. 22. GDPR-a? Prijedlog: nije, jer ne donosi odluku, ne blokira predaju i ne ulazi u ocjenu. Kako se to dokazuje u DPIA? `[ODLUKA]`
+32. `[Ustanova, DPO]` Rok čuvanja klase 32 (prijedlog P-1 u `07`). Briše li studentovo isključenje ritma već zabilježeni ritam, ili samo zaustavlja novo bilježenje (tako radi prototip)? `[ODLUKA]`
+33. `[Ustanova]` Smije li se izvještaj „Podrijetlo teksta”, s postotcima i stanjem pragova, koristiti u stegovnom postupku ili pri ocjenjivanju (veza s t. 8)? Prihvaća li FPZG da se razgovor uz podudaranje s pomoćnikom sam priloži izjavi, bez studentove radnje (D-58), uz čl. 9. (veza s t. 27)? Tko na fakultetu zadaje pragove i smije li ih nastavnik mijenjati po zadatku? `[ODLUKA]`
+
 ## C. Rupe u izvedbi koje ne traže odluku, za orkestratora
 
 | Rupa | Dokaz u repou | Vrsta |
@@ -61,4 +71,5 @@ Dopuna GO uvjetima iz `docs/PROGRAM.md`; ništa ovdje ne mijenja tu tablicu.
 - Zapisana proba povrata baze i bucketa; pgTAP matrica za sve nove tablice rada i evidencije.
 - Odluka D-04 i zamjenski postupak; postupak povrede podataka i osoba koja smije zaustaviti pilot.
 - Za AI pomoćnika (D-194): ugovor o obradi s ustanovom i popis podizvršitelja s AI pružateljima, ugovor o obradi pravne osobe operatera sa svakim pružateljem, zapis stvarne regije obrade za probne pozive, DPIA i pravno mišljenje (D-55, D-151) koji pokrivaju asistenta, transkripciju i alate pružatelja, obavijest S3 i obavijest o privatnosti s imenovanim pružateljima, test da zahtjev pružatelju ne sadrži identitet ni procesne podatke (pravila 13 i 16) i da isključeni pružatelji i modeli nisu dostupni.
+- Za P-1 (ritam unosa i izvještaj „Podrijetlo teksta”): potvrđen tekst dopune Ustava (`docs/ductus/USTAV-DOPUNA-P1.md`), pravno mišljenje o t. 29 do 31, DPIA s klasom 32 i obavijest koja navodi ritam, pragove i izvještaj; do tada se ritam bilježi samo u demou i testovima s izmišljenim podacima.
 - Za D-142 i D-143 (prikaz uživo, vrijeme po promjeni): pravno mišljenje (D-55), koje pokriva i Prilog III. točku 3(d) Akta o UI, i DPIA prije pilota sa stvarnim studentima; do tada se vrijeme po promjeni bilježi samo u demou i testovima s izmišljenim podacima, inače izričita potvrda da je isključeno iz pilota. Tvrdnja o AZOP-ovim kriterijima za obveznu DPIA ostaje neprovjerena dok se ne provjeri na AZOP-ovu popisu (`02`).

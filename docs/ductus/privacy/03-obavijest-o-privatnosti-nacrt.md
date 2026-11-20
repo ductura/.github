@@ -10,6 +10,7 @@
 - Izgrađeni su samo prijava, sesije, upis u kolegij i potvrda obavijesti. Ostalo u odjeljku 3 (rad, događaji u radu, predaje, komentari, tko je otvorio rad), reprodukcija, izvoz i brisanje opisani su kao ciljno stanje i ne smiju se objaviti kao postojeći dok nisu izgrađeni.
 - Obavijest o privatnosti ne zamjenjuje obavijest o praćenju koja je prvi ekran svakog zadatka (PRODUCT §5 pr. 6); ona je ugrađena u nju (PROGRAM, GO uvjeti). Potvrda koju student daje nije privola i ne smije se tako prikazivati (PRODUCT §6, student 3).
 - Dok potvrda ne veže otisak teksta ove obavijesti, ne može se tvrditi da je student potvrdio upravo ovaj tekst `[IZVEDBA]`.
+- Odlomci označeni `[PLANIRANO, P-1]` ovise o koraku P-1 (`docs/ductus/PRODUCT.md` §5, „Podrijetlo teksta (P-1)”): objavljuju se tek kad Daniel potvrdi tekst dopune Ustava (`docs/ductus/USTAV-DOPUNA-P1.md`), kad stigne pravno mišljenje (`05`, t. 29 do 31) i DPIA, i kad je dio izgrađen. Dodaci P-1 od 20. 11. 2026. provjereni su funkcijom `findForbiddenTerms` iz Ductusovog `scripts/forbidden-terms/terms.ts` (`0cdb0f1`), bez pogodaka; provjeru treba ponoviti pri svakoj izmjeni. Tekst namjerno ne piše postotke uz podrijetlo: iznimka Rječnika vrijedi samo u izvještaju.
 - Odlomci označeni `[VARIJANTA]` ili `[PLANIRANO]` ovise o odlukama D-142 do D-144 i ne smiju se objaviti prije izgradnje prikaza uživo i reprodukcije. Prije pilota sa stvarnim studentima trebaju pravno mišljenje (D-55) i DPIA; do tada se vrijeme po promjeni bilježi samo u demou i testovima s izmišljenim podacima, pa obavijest sa stvarnim studentima ne smije tvrditi da se bilježi dok to ne vrijedi.
 
 ---
@@ -34,16 +35,19 @@ Ductus bilježi kako rad nastaje i olakšava razgovor o radu. Zaključak o vaše
 - **Nastava.** Upis u kolegij, potvrda ove obavijesti i vrijeme potvrde, predaje, komentari i prijedlozi nastavnika, produljenja roka.
 - **Tko je otvorio vaš rad.** Vidite tko je i kada otvorio vaš rad.
 - `[PLANIRANO, D-143, tek nakon pravnog mišljenja (D-55) i DPIA-e za pilot sa stvarnim studentima: svaka promjena dokumenta (unos ili brisanje znaka, lijepljenje, uvoz, prijenos iz AI pomoćnika, izmjena nastavnika) sprema se redom i s vremenom promjene, isključivo za prikaz uživo i reprodukciju rada. Odnosi se na sve zadatke, ne samo na mentorske radove. Najavljuje se prije pisanja, nikad unatrag.]`
+- `[PLANIRANO, P-1: **Ritam unosa.** Dok ga ne isključite, uz svaki nalet tipkanja bilježe se razmaci između uzastopnih unosa, u milisekundama. Ne bilježi se koju ste tipku pritisnuli. Ritam se prikazuje samo u izvještaju „Podrijetlo teksta”, za dio teksta koji odaberete: graf razmaka, trajanje, broj znakova i najduža stanka. Ritam ne služi prepoznavanju osobe i ne uspoređuje se s drugim studentima.]`
+- `[PLANIRANO, P-1: **Oznake u tekstu.** Tekst koji prenesete iz AI pomoćnika u Ducturi nosi oznaku sa svrhom, modelom i vremenom. Ako se osam ili više riječi zaredom podudara s odgovorom pomoćnika u Ducturi, to mjesto dobiva oznaku podudaranja, a taj se razgovor sam prilaže izjavi. Vidite što je priloženo. Usporedba ne obuhvaća alate izvan Ducture.]`
 
 ### 4. Što ne bilježimo
 
-Koju ste tipku pritisnuli i koliko dugo ste je držali. Brzinu tipkanja i stanke kao mjeru. Druge aplikacije i kartice preglednika. Što je u međuspremniku izvan teksta koji zalijepite u rad. Kameru, mikrofon i zaslon. Razgovore s alatima umjetne inteligencije, osim ako ih sami priložite izjavi. U evidenciji nema IP adrese ni podataka o uređaju.
+Koju ste tipku pritisnuli i koliko dugo ste je držali. Brzinu tipkanja i stanke kao mjeru vas. `[PLANIRANO, P-1: stanke se vide samo u prikazu ritma unosa iz odjeljka 3, a ritam možete isključiti.]` Druge aplikacije i kartice preglednika. Što je u međuspremniku izvan teksta koji zalijepite u rad. Kameru, mikrofon i zaslon. Razgovore s alatima umjetne inteligencije, osim ako ih sami priložite izjavi. U evidenciji nema IP adrese ni podataka o uređaju.
 
 ### 5. Tko što vidi i od kada
 
 - Vi uvijek vidite točno ono što vidi nastavnik ili mentor.
 - `[PLANIRANO, D-142 i D-144: Mentor i nastavnik zadatka vide vaš rad dok nastaje, od prvog dana i za sve zadatke, i prikaz im se osvježava dok pišete. Vidi se samo ono što je u editoru Ducture, ništa izvan njega. Prikaz služi praćenju nastanka rada i komentarima tijekom pisanja, nikad ocjeni ni rangiranju. Vidite isti prikaz svog rada. Mogu vidjeti i tekst koji ćete kasnije obrisati.]`
 - `[PLANIRANO, D-143: Mentor može pokrenuti reprodukciju kako je rad nastajao, znak po znak, uključujući tekst koji ste obrisali, lijepljenja, uvoze i izmjene. Vidite istu reprodukciju i vidite kad ju je mentor gledao; uz trenutak reprodukcije možete dodati napomenu. Vrijeme se koristi samo kao brzina reprodukcije: ne računaju se brzina tipkanja, stanke ni ritam. Ima li reprodukciju i nastavnik kolegija ili samo mentor: otvoreno u D-143 (D-154 u PR-u #480 predlaže samo mentora, koji je nastavnik zadatka).]`
+- `[PLANIRANO, P-1: **Izvještaj „Podrijetlo teksta”.** Vi i mentor, odnosno nastavnik zadatka, vidite isti izvještaj. On pokazuje sastav teksta po vrsti zabilježenog podrijetla (tipkano u Ducturi, zalijepljeno, uvezeno, iz pomoćnika, podudaranje), usporedbu s pragovima koje postavlja fakultet, ritam unosa i popis događaja. Izvještaj opisuje kako je tekst nastao u Ducturi. Ne govori tko je napisao rad i nije presuda o korištenju AI-ja. Prekoračen prag ne sprječava predaju, ne pokreće postupak i nije ocjena. Pragove vidite prije prve rečenice i ne mijenjaju se unatrag. Druge uloge izvještaj ne vide.]`
 - Administrator ustanove vidi tko je kada pristupio kojem radu, ali ne vidi sadržaj rada.
 - Održavatelj Ductusa ne čita sadržaj radova, osim zabilježenog pristupa podrške uz pristanak ustanove i u skladu s ugovorom o obradi `[planirano, PRODUCT §3: ugovor, zapis pristupa i ovlast operatera ne postoje; ODLUKA]`.
 
@@ -68,6 +72,7 @@ Svaka vrsta podataka ima svoj rok, a kad rok istekne, podaci se brišu. `[Ciljno
 | Evidencija nastanka rada | `[otvoreno; prijedlog: kao predani rad; klasa 21]` |
 | Vrijeme po promjeni | `[VARIJANTA, D-143: otvoreno, kraće od ostale evidencije; klasa 22]` |
 | Razgovori s AI pomoćnikom i zapis prijenosa | `[PLANIRANO, D-194: otvoreno, uz Q-10; klasa 24]` |
+| Ritam unosa | `[PLANIRANO, P-1: otvoreno; prijedlog: do kraja akademske godine zadatka, nikad dulje od evidencije nastanka rada; klasa 32]` |
 | Zapis o tome tko je otvorio vaš rad | `[otvoreno; prijedlog: dulje od predanog rada; klasa 25]` |
 | Promjene ovlasti nastavnika i administratora | `[otvoreno; klasa 26]` |
 | Paket za izvoz | 24 sata, koliko vrijedi poveznica `[određeno, D-173, D-273 MQ08; klasa 20; izvoz nije izgrađen]` |
@@ -92,7 +97,7 @@ Imate pravo na pristup svojim podacima, ispravak, brisanje, ograničenje obrade,
 
 ### 10. Što student može učiniti uz svaki zapis
 
-Uz evidenciju možete dodati napomenu; napomene se samo dodaju, a ispravak je nova napomena koja upućuje na staru. Uz lijepljeni tekst možete odabrati oznaku izvora, ali ne morate.
+Uz evidenciju možete dodati napomenu; napomene se samo dodaju, a ispravak je nova napomena koja upućuje na staru. Uz lijepljeni tekst možete odabrati oznaku izvora, ali ne morate. `[PLANIRANO, P-1: Bilježenje ritma unosa isključujete i ponovno uključujete u izvještaju „Podrijetlo teksta”. Nastavnik to ne može učiniti umjesto vas.]`
 
 ### 11. Izmjene obavijesti
 

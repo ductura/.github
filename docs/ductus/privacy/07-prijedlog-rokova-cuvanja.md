@@ -19,6 +19,7 @@ Zadatak: DAN-297, M10.1-P02. Prilog ide uz jedan zahtjev FPZG-u (D-264 Q09, pake
 3. Koliki je rok za prigovor na predaju, od kojeg ovisi klasa 27 (odjeljak 5)?
 4. Koliki je rok čuvanja dokaza prvog administratora (odjeljak 4)?
 5. Kojih rokova nema (stupac „Nepoznato”): tko ih predlaže?
+6. Prihvaća li se prijedlog za klasu 32 (ritam unosa, P-1), i briše li isključenje ritma već zabilježeni ritam (`05`, t. 32)?
 
 ## 3. Klase
 
@@ -54,8 +55,11 @@ Zadatak: DAN-297, M10.1-P02. Prilog ide uz jedan zahtjev FPZG-u (D-264 Q09, pake
 | 28 | Evidencija brisanja | | | rok | db (planirano, M10.0-S1) |
 | 29 | Kopije baze i bucketa | | | rok po vrsti kopije (D-12) | kopije |
 | 30 | Lokalni dnevnik na uređaju | | | rok trajanja prije pilota (D-118, D-122) | preglednik |
+| 32 | Ritam unosa (P-1) | | PRIJEDLOG P-1: do kraja akademske godine zadatka, a nikad dulje od klase 21 | potvrda roka; briše li isključenje ritma već zabilježeno (`05`, t. 32) | db (planirano), kopije |
 
 Zbroj: određeno 3 klase (3, 20, 23), prijedlog 8 klasa (8, 13, 16, 18, 19, 21, 25, 27), za preostalih 19 klasa rok je nepoznat (među njima rezervirana klasa 12). Nijedan rok nije odobren.
+
+Klasa 32 (ritam unosa) dodana je 20. 11. 2026. u koraku P-1 i nije u gornjem zbroju. Njezin prijedlog je nov: nije preuzet iz `docs/ARCHITECTURE.md` §3 ni D-272, nego iz koraka P-1, uz usporedbu s prijedlogom za klasu 13 i s D-131. Kao i svi ostali, nije odobren rok i ne primjenjuje se u kodu. Klasa 31 nije u ovom prilogu.
 
 ## 4. Dokaz prvog administratora (D-262 Q04, D-264 Q11)
 
