@@ -54,14 +54,14 @@ Za svaku odredbu: sadašnje stanje kako ga repo navodi, pa predloženi novi teks
 **Sada (prema pravilu 4 i D-143, v1.4):** Ne bilježi se koja je tipka pritisnuta ni koliko je držana. Svaka promjena dokumenta sprema se s redoslijedom i vremenom, samo za prikaz uživo i reprodukciju. Iz vremena se nikad ne računa brzina, pauze, ritam ni bilo kakva mjera.
 
 **Predloženo, dodaje se:**
-> Uz to se smije bilježiti ritam unosa: razmaci između uzastopnih unosa, dok ga student ne isključi. Ne bilježi se koja je tipka pritisnuta. Ritam je zasebna klasa podataka s vlastitim rokom čuvanja. Prikazuje se samo u izvještaju „Podrijetlo teksta”, kao graf razmaka, trajanje, broj znakova i najduža stanka. Iz ritma se ne računa nikakva druga mjera, ne uspoređuju se osobe i ne prepoznaje se ni potvrđuje osoba. Nastavnik ne može uključiti ni isključiti bilježenje ritma. Vrijeme po promjeni i dalje služi samo prikazu uživo i reprodukciji.
+> Uz to se smije bilježiti ritam unosa: razmaci između uzastopnih unosa. Bilježenje je po zadanom uključeno; nastavnik zadatka ga za zadatak može isključiti, a student ga ne može isključiti. Ne bilježi se koja je tipka pritisnuta. Ritam je zasebna klasa podataka s vlastitim rokom čuvanja. Prikazuje se samo u izvještaju „Podrijetlo teksta”, kao graf razmaka, trajanje, broj znakova i najduža stanka. Iz ritma se ne računa nikakva druga mjera, ne uspoređuju se osobe i ne prepoznaje se ni potvrđuje osoba. Student uvijek vidi je li bilježenje ritma uključeno. Vrijeme po promjeni i dalje služi samo prikazu uživo i reprodukciji.
 
 ### C-3 Obavijest
 
 **Sada (prema pravilu 6 i 14):** Student prije početka rada zna što nastavnik vidi i od kada. Pravila zadatka koja je potvrdio ne smiju se naknadno proširiti.
 
 **Predloženo, dodaje se:**
-> Obavijest prije prve rečenice navodi i da se bilježi ritam unosa, kako se isključuje, koje pragove fakultet postavlja i da mentor, odnosno nastavnik zadatka, vidi izvještaj „Podrijetlo teksta”. Pragovi koje je student potvrdio ne mijenjaju se unatrag.
+> Obavijest prije prve rečenice navodi i bilježi li se u tom zadatku ritam unosa, da ga može isključiti samo nastavnik zadatka, koje pragove fakultet postavlja i da mentor, odnosno nastavnik zadatka, vidi izvještaj „Podrijetlo teksta”. Pragovi koje je student potvrdio ne mijenjaju se unatrag.
 
 ### Popis „Nikad” (v1.4)
 
@@ -100,6 +100,14 @@ Za svaku odredbu: sadašnje stanje kako ga repo navodi, pa predloženi novi teks
 3. Ritam se u prototipu bilježi po zadanom, a student ga isključuje. Ostaje li tako, ili je po zadanom isključen?
 4. Oznaka podudaranja u pilotu: ostaje li D-268 O6 (isključena do U-4)? Prototip je također drži isključenom po zadanom.
 5. Smije li nastavnik mijenjati pragove po zadatku? Prototip ima gumb „Promijeni pragove” uz napomenu „U Ducturi ih zadaje fakultet.”
+
+### Odgovori (Daniel, 21. 11. 2026.)
+
+1. **Doslovna potvrda:** Daniel je odluku prepustio („Ti odredi”). Prijedlog: odredbe iz odjeljaka 3 i 4 ostaju kako su napisane, osim izmjena iz odgovora 3 do 5 niže. Tekst u Ustav na Google Driveu i dalje upisuje Daniel (odjeljak 7); bez toga se ništa ne gradi.
+2. **Broj verzije:** Daniel je odluku prepustio. Prijedlog: P-1 je **v1.7**, a P-2 (`USTAV-DOPUNA-P2.md`) **v1.8**, jer su v1.5 (D-202) i v1.6 (D-260) već rezervirane.
+3. **Ritam po zadanom:** „Po zadanom je isključen, ritam isključuje nastavnik ako želi”; pojašnjeno 21. 11. 2026. kao **(b)**: bilježenje ritma je po zadanom uključeno, student ga ne može isključiti, a nastavnik zadatka ga za zadatak može isključiti. Izmijenjeni su C-14 i C-3 gore. Pravno mišljenje i DPIA (N-3) moraju posebno procijeniti pravnu osnovu, jer student ne može odbiti bilježenje podatka koji P-1 naziva novom vrstom osobnih podataka (`privacy/05`, t. 29 do 33). Ako pravno mišljenje to ne dopusti, vraća se studentov prekidač.
+4. **Oznaka podudaranja u pilotu:** uključena. Mijenja D-268 O6 (isključena do U-4) i točku 4 u `PRODUCT.md` §5, „Kad vrijedi”.
+5. **Nastavnik mijenja pragove po zadatku:** da. Pragovi koje je student potvrdio i dalje se ne mijenjaju unatrag (pravilo 14); promjena vrijedi samo za radove koji još nisu počeli.
 
 ## 7. Kako se potvrđuje
 
