@@ -94,6 +94,21 @@ Poprečne cjeline obuhvaćaju M0 temelje i CI, M1 AAI identitet, M2 ustanove, M3
 - **Redoslijed valova 16–22 (prijedlog orkestratora, vlasnik ga može promijeniti):** 16, zatim 17, zatim 18 s valom 15, zatim 19, zatim 21 po fakultetima. Val 20 ide uz 17 gdje je moguće, a val 22 kreće čim Srce potpiše dogovor. U red pisaca ništa od toga ne ide prije pilota.
 - **Prepoznavanje alata za automatizirano pisanje [K-1]:** vlasnik 21. 11. 2026. želi bilježiti i sadržaj tipki u editoru Ducture kako bi se prepoznale aplikacije koje automatski tipkaju tekst. Vlasnik je 21. 11. 2026. doslovno potvrdio Ustav v1.9 (P-3, Drive 1LNP-EXlCCpDP9zmEo97zu_tYE0gyYhcBbQ0rDe7yroY): tipke se bilježe samo u polju za pisanje u editoru Ducture, kao zasebna klasa podataka koja se briše nakon izračuna oznake „za pregled”, a najkasnije 30 dana nakon predaje. Služe samo pravilima N-4 i nikad se ne prikazuju kao zapis tipki. Sa stvarnim studentima tek nakon novog pravnog mišljenja i DPIA, a dotad samo u demou s izmišljenim podacima. U red pisaca ne ide prije pilota.
 
+### Dodaci pilotu (odluka vlasnika 21. 11. 2026.)
+
+Vlasnik je 21. 11. 2026. sve stavke P-D1 do P-D8 uvrstio u pilot. Grade se na postojećoj predaji, potvrdi, zadatku i obavijestima, bez novih repoa i bez promjene Ustava.
+
+| Oznaka | Dodatak | Granice |
+|---|---|---|
+| P-D1 | Probni zadatak za studente | Prije prvog pravog roka student prolazi prijavu, editor, Izjavu, predaju i potvrdu na zadatku bez ocjene. Probna predaja se jasno označava, ne ulazi u ocjenu ni izvoz i ne ide u Merlin. |
+| P-D2 | Skupno preuzimanje predaja | Nastavnik zadatka preuzima ZIP sa svim predajama (PDF ili .docx i potvrda svake predaje). Isti pristup kao za pojedinačnu predaju, zapis u dnevnik pristupa, poveznica s ograničenim trajanjem. |
+| P-D3 | Povlačenje i ponovna predaja prije roka | Odobrio vlasnik 21. 11. 2026. Student smije povući predaju i predati ponovno dok rok traje. Svaka predaja i svako povlačenje ostaju zapisani s vlastitom potvrdom; nastavnik vidi zadnju važeću predaju i povijest. Nakon roka povlačenje nije moguće. Nastavnik ga za zadatak smije isključiti, a zadano je uključeno. |
+| P-D4 | Kopiranje zadatka | Nastavnik kopira svoj zadatak (iz prošle godine ili drugog kolegija) kao novu verziju na kolegiju kojem ima pristup. Kopiraju se upute, rokovi i postavke, nikad predaje ni podaci studenata. |
+| P-D5 | Stranica stanja sustava | Javno pokazuje samo dostupnost i najavljeno održavanje, bez osobnih podataka. Zapis prekida može poslužiti kao dokaz za produljenje roka. |
+| P-D6 | Mjerila uspjeha pilota | Samo zbirni tehnički brojevi (uspjele i neuspjele predaje, greške spremanja, zahtjevi za pomoć), bez sadržaja teksta i bez identiteta osobe, nikad po studentu. Obuhvaća se DPIA-om pilota. Služi odluci nakon pilota. |
+| P-D7 | Vraćanje vlastitog teksta na raniju verziju | Student vraća svoj tekst na ranije zabilježeno stanje. Vraćanje je nova revizija s vlastitim potpisom; povijest se ne briše i reprodukcija (val 9) ostaje točna. |
+| P-D8 | Popis tipkovničkih prečaca u editoru | Uz val 6 i WCAG 2.2 AA; otvara se s tipkovnice i čitač zaslona ga čita. |
+
 ## Izvori, prednost i održavanje
 
 U nastavku ostaju izvorne odredbe migracije i katalog tehničkih zadataka iz ukinutih zasebnih planova. Oznake faza, SKU-ovi paketa, povijesne procjene i stanja u izvornim redcima treba tumačiti uz aktualnu odluku, stvarnu granu i izvršni zadatak. Putanje iz starih ugovora potvrđuju se prije pisanja. Primjer je API registar u `server/contracts` s TypeBoxom i vektorima te ponovnom generacijom OpenAPI-ja. [Odobreni opseg API ugovora](https://github.com/danielrisavi77-create/Ductus/issues/2028#issuecomment-7022752457)
