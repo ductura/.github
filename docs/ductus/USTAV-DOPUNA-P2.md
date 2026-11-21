@@ -69,13 +69,24 @@ Pragovi za R-2, R-3 i R-4 se ne izmišljaju: postavljaju se iz uzoraka (odjeljak
 ## 7. Što P-2 ne može
 
 - Ne vidi ništa izvan Ducture: tekst koji student prepiše s drugog uređaja, tipkajući sam, izgleda kao pisanje osobe. To ostaje posao razgovora i usmene provjere (D-55, kontrolna točka uživo).
-- R-1 vidi samo automatizaciju koju preglednik sam prijavi.
+- R-1 vidi samo automatizaciju koju preglednik sam prijavi. U red-team testu R-1 okida i zato što testno okruženje (Playwright) samo postavlja tu vrijednost: to je svojstvo testa, ne dokaz da zaštita radi. Red-team rezultat za R-1 se zato ne iskazuje kao „uhvaćeno”, a zapis stvarnog scenarija pokusa nikad ne smije biti ulaz pravila.
 - Napad koji se prilagodi objavljenim pravilima može ih zaobići. Pravila se zato objavljuju kao granice za pregled, ne kao jamstvo, a red-team test se nakon svake promjene pravila ponovno pokreće.
 
 ## 8. Pitanja za Daniela i odgovori (21. 11. 2026.)
 
 1. Potvrđuješ li pravila R-1 do R-4 i granice iz odjeljka 4? **Da.**
 2. Je li R-1 dovoljan za demo dok se ne skupe uzorci, a R-2 do R-4 tek nakon kalibracije? **Da.**
-3. Koliko pogrešnih oznaka na uzorcima osoba prihvaćaš? **Daniel nije znao odrediti; prijedlog:** najviše 1 od 100 sesija pisanja osoba smije dobiti ijednu oznaku R-2 do R-4. Mjeri se po sesiji, ne po naletu, jer student oznaku doživljava po radu. Ako uzorci pokažu da se to ne može postići, pravilo se ne uključuje, a ne popušta se prag. Broj potvrđuje Daniel prije uključenja R-2 do R-4.
+3. Koliko pogrešnih oznaka na uzorcima osoba prihvaćaš? **Daniel nije znao odrediti; prijedlog:** najviše 1 od 1000 sesija pisanja osoba smije dobiti ijednu oznaku R-2 do R-4. Mjeri se po sesiji, ne po naletu, jer student oznaku doživljava po radu. Razlog za stroži broj: uz 1 na 100 i 10.000 predaja bilo bi oko 99 pogrešno označenih poštenih radova, pa bi većina oznaka mogla biti pogrešna i uz naizgled visoku točnost. Ako uzorci pokažu da se to ne može postići, pravilo se ne uključuje, a ne popušta se prag. Broj potvrđuje Daniel prije uključenja R-2 do R-4.
 4. Smije li fakultet isključiti pojedino pravilo? **Da.**
 5. Tko vidi oznaku? **Samo nastavnik zadatka, odnosno mentor kod kojeg student piše rad**, i student (pravilo 5). Isto kao izvještaj P-1.
+
+## 9. Pitanja za pravno mišljenje (uz N-3 iz P-1)
+
+1. **Akt o umjetnoj inteligenciji, Prilog III.** Prilog navodi sustave za praćenje i otkrivanje zabranjenog ponašanja studenata tijekom testova. P-2 ne koristi model, ali automatski označava način unosa za pregled. Spada li Ductura s P-2 u tu kategoriju, i koje obveze iz toga slijede?
+2. **GDPR čl. 22.** Oznaka ne donosi odluku i ne blokira ništa (odjeljak 4). Je li to dovoljno da obrada nije odluka koja se temelji isključivo na automatiziranoj obradi?
+3. **GDPR čl. 35 (DPIA).** Ritam unosa je po zadanom uključen i student ga ne može isključiti (P-1, odgovor 3). Koja je pravna osnova, i treba li studentu dati mogućnost prigovora?
+4. **Biometrija.** Pravila uspoređuju ritam s fiksnim pragom, a ne s profilom osobe. Potvrđuje li pravno mišljenje da to nije obrada biometrijskih podataka u smislu čl. 9?
+
+## 10. Razdvojena pitanja (načelo)
+
+Ductura razlikuje četiri pitanja i ne miješa ih: (1) kako je tekst ušao u dokument, (2) je li primljeni zapis naknadno promijenjen, (3) uz koji je račun rad nastajao i (4) tko je osmislio sadržaj. P-2 odgovara samo na dio prvog pitanja. Na četvrto Ductura ne odgovara; to ostaje nastavniku i razgovoru sa studentom. Način unosa, autorstvo sadržaja i dopuštenost pomoći ocjenjuju se odvojeno: diktat je program koji unosi studentove misli, a ručno prepisivanje AI teksta je čovjek koji tipka tuđe.
