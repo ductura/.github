@@ -72,10 +72,10 @@ Pragovi za R-2, R-3 i R-4 se ne izmišljaju: postavljaju se iz uzoraka (odjeljak
 - R-1 vidi samo automatizaciju koju preglednik sam prijavi.
 - Napad koji se prilagodi objavljenim pravilima može ih zaobići. Pravila se zato objavljuju kao granice za pregled, ne kao jamstvo, a red-team test se nakon svake promjene pravila ponovno pokreće.
 
-## 8. Pitanja za Daniela uz potvrdu
+## 8. Pitanja za Daniela i odgovori (21. 11. 2026.)
 
-1. Potvrđuješ li pravila R-1 do R-4 i granice iz odjeljka 4?
-2. Je li R-1 dovoljan za demo dok se ne skupe uzorci, a R-2 do R-4 tek nakon kalibracije?
-3. Koliko pogrešnih oznaka na uzorcima osoba prihvaćaš (na primjer najviše 1 na 100 naleta)?
-4. Smije li fakultet isključiti pojedino pravilo?
-5. Vidi li oznaku i mentor koji nije nastavnik zadatka, ili samo nastavnik zadatka (kao izvještaj P-1)?
+1. Potvrđuješ li pravila R-1 do R-4 i granice iz odjeljka 4? **Da.**
+2. Je li R-1 dovoljan za demo dok se ne skupe uzorci, a R-2 do R-4 tek nakon kalibracije? **Da.**
+3. Koliko pogrešnih oznaka na uzorcima osoba prihvaćaš? **Daniel nije znao odrediti; prijedlog:** najviše 1 od 100 sesija pisanja osoba smije dobiti ijednu oznaku R-2 do R-4. Mjeri se po sesiji, ne po naletu, jer student oznaku doživljava po radu. Ako uzorci pokažu da se to ne može postići, pravilo se ne uključuje, a ne popušta se prag. Broj potvrđuje Daniel prije uključenja R-2 do R-4.
+4. Smije li fakultet isključiti pojedino pravilo? **Da.**
+5. Tko vidi oznaku? **Samo nastavnik zadatka, odnosno mentor kod kojeg student piše rad**, i student (pravilo 5). Isto kao izvještaj P-1.

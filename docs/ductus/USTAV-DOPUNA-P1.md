@@ -101,6 +101,19 @@ Za svaku odredbu: sadašnje stanje kako ga repo navodi, pa predloženi novi teks
 4. Oznaka podudaranja u pilotu: ostaje li D-268 O6 (isključena do U-4)? Prototip je također drži isključenom po zadanom.
 5. Smije li nastavnik mijenjati pragove po zadatku? Prototip ima gumb „Promijeni pragove” uz napomenu „U Ducturi ih zadaje fakultet.”
 
+### Odgovori (Daniel, 21. 11. 2026.)
+
+1. **Doslovna potvrda:** Daniel je odluku prepustio („Ti odredi”). Prijedlog: odredbe iz odjeljaka 3 i 4 ostaju kako su napisane, osim izmjena iz odgovora 3 do 5 niže. Tekst u Ustav na Google Driveu i dalje upisuje Daniel (odjeljak 7); bez toga se ništa ne gradi.
+2. **Broj verzije:** Daniel je odluku prepustio. Prijedlog: P-1 je **v1.7**, a P-2 (`USTAV-DOPUNA-P2.md`) **v1.8**, jer su v1.5 (D-202) i v1.6 (D-260) već rezervirane.
+3. **Ritam po zadanom:** „Po zadanom je isključen, ritam isključuje nastavnik ako želi.” **OTVORENO, traži pojašnjenje** (vidi niže). U svakom slučaju mijenja se rečenica u C-14 „Nastavnik ne može uključiti ni isključiti bilježenje ritma” i obavijest u C-3.
+4. **Oznaka podudaranja u pilotu:** uključena. Mijenja D-268 O6 (isključena do U-4) i točku 4 u `PRODUCT.md` §5, „Kad vrijedi”.
+5. **Nastavnik mijenja pragove po zadatku:** da. Pragovi koje je student potvrdio i dalje se ne mijenjaju unatrag (pravilo 14); promjena vrijedi samo za radove koji još nisu počeli.
+
+**Pitanje 3, pojašnjenje.** Odgovor se može čitati na dva načina:
+- (a) bilježenje ritma je po zadanom isključeno, a nastavnik ga za zadatak može uključiti;
+- (b) bilježenje je po zadanom uključeno, student ga ne može isključiti, a nastavnik ga može isključiti.
+Za (b) pravno mišljenje i DPIA (N-3) moraju posebno procijeniti pravnu osnovu, jer student tada ne može odbiti bilježenje podatka koji P-1 sam naziva novom vrstom osobnih podataka (`privacy/05`, t. 29 do 33).
+
 ## 7. Kako se potvrđuje
 
 Daniel upisuje tekst u Ustav na Google Driveu i potvrdu ostavlja komentarom na GitHubu. Nakon toga se status ovog dokumenta mijenja zasebnim docs PR-om, uz poveznicu na komentar. Bez te potvrde nijedan dio P-1 ne ulazi u kod.
