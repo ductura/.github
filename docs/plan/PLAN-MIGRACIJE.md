@@ -72,8 +72,18 @@ Valovi su skupine značajki unutar pet faza. Ugovori, server i web mogu se pripr
 | 10 | Bogati sadržaj, stranice, shema v4, uvoz i izvoz | Sljedivost verzije i istih bajtova preko spremanja, predaje i izvoza. |
 | 11 | Provjere teksta, etape, konzultacije, Merlin, produljenje | Odobren D-260 opseg nakon pilota. Primijeniti zasebne institucionalne odluke za rokove, pristup i izvoz. |
 | 12 | AI pomoćnik | Ograničen važećim pravilima, dopuštenom obradom podataka, zasebnom odlukom i dokazom konkretne korisničke radnje. |
+| 13 | Prezentacije: vlastiti editor slajdova | Nakon pilota. Isti temelji kao tekstni editor: lokalni dnevnik, revizija, potpis, predaja, potvrda i izvoz (`.pptx`, PDF). Radi se u postojećim repoima (paket u webu, rute na serveru), bez novog repoa. |
+| 14 | Tablice: vlastiti editor tablica | Nakon pilota. Isti temelji kao val 13, izvoz `.xlsx` i CSV. Formule su determinističke i pokrivene testovima. Postojeći repoi. |
+| 15 | Statistička analiza (u stilu jamovija ili SPSS-a) | Nakon pilota. Zaseban repo i servis za izračune (Python ili R) otvara se tek kad val krene; web prikazuje rezultate samo kroz `/api/v1`. Rezultat je ponovljiv iz istih podataka i iste verzije analize. Kod pod AGPL ili GPL licencom (npr. jamovi) ne kopira se bez odluke vlasnika o licenci. |
 
 Poprečne cjeline obuhvaćaju M0 temelje i CI, M1 AAI identitet, M2 ustanove, M3 evidenciju, M4 Lektu i akademska pravila, M5 editor, M6 suradnju, M7 predaju, M8 uvoz/izvoz, M9 pomoćnika, M10 privatnost, podatke i izvršenje prava, te M11 GO uvjete. Životni ciklus produkcije obuhvaća observability, backup, redovne vježbe povrata, incidentne postupke, ažuriranje paketa, pristupačnost i korisničku podršku. Za svaki dio vrijedi isti testirani ugovor, provjerljiv prihvat i status prema postojećem Linear zadatku.
+
+### Proširenja nakon pilota (odluka vlasnika 21. 11. 2026.)
+
+- **Repoi:** do pilota nema novih repoa. Prezentacije i tablice (valovi 13 i 14) idu u postojeće repoe. Novi repo dobivaju samo dijelovi s drugim jezikom ili zasebnim pokretanjem: statistički servis (val 15) i servis za provjeru podudarnosti s hrvatskim korpusom (dio vala 11: indeks korpusa, otisci teksta, usporedba). Oba se otvaraju tek kad njihov val krene.
+- **Provjera podudarnosti:** gradi se kao vlastita provjera podudarnosti s izvorima (Ustav v1.6 C-6 b), samo za izvore iz D-260 t. 5 i tek nakon pravnog mišljenja i DPIA. Ne nosi ime tuđeg proizvoda.
+- **AI detektor:** nije u planu. Ustav v1.6–v1.8 ne dopušta model ni klasifikator autorstva. Dopuštena je samo oznaka podudaranja s AI odgovorom (C-6 c), uvijek s napomenom „nije dokaz autorstva”. Promjena traži novu odluku vlasnika o Ustavu i novo pravno mišljenje.
+- **Priprema ugovora:** kad val 5 bude spojen, jedan nekritičan SRV zadatak dodaje neobavezno polje `documentKind` (zadano `text`) u ugovore revizije, podrijetla teksta i izvoza. Polje je aditivno i ne lomi postojeće klijente, a valovi 13 i 14 zato ne trebaju mijenjati postojeće ugovore. Prije toga se ne stavlja u red.
 
 ## Izvori, prednost i održavanje
 
