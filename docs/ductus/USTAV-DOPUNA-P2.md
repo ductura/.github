@@ -33,7 +33,7 @@ Pragovi za R-2, R-3 i R-4 se ne izmišljaju: postavljaju se iz uzoraka (odjeljak
 - Oznaka ne blokira predaju (pravilo 11), ne šalje obavijest, ne pokreće postupak, ne ulazi u ocjenu, izvoz, predajni paket ni sažetak procesa.
 - Nema zbroja oznaka u ocjenu, rangiranja ni usporedbe studenata.
 - Ritam se i dalje ne koristi za prepoznavanje ili potvrdu osobe (biometrija ostaje na popisu „Nikad”). Pravila R-2 i R-4 uspoređuju ritam s fiksnim pragom, ne s profilom osobe.
-- Ako je student isključio bilježenje ritma, R-2 i R-4 se ne računaju, a izvještaj to kaže. Isključen ritam nije razlog za oznaku.
+- Ako je nastavnik zadatka isključio bilježenje ritma (P-1, C-14), R-2 i R-4 se ne računaju, a izvještaj to kaže. Isključen ritam nije razlog za oznaku.
 - Pomoćne tehnologije (diktat, zaslonska tipkovnica, uređaji za prebacivanje) već se bilježe kao `keyless-input` i nisu predmet R-1 do R-4. Student s prilagodbom (`work_accommodation`) može imati isključena pravila koja bi ga pogrešno označila; to odlučuje fakultet, a ne nastavnik.
 
 ## 5. Uzorci pisanja osoba (preduvjet za R-2 do R-4)
