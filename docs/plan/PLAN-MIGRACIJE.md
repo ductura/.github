@@ -72,8 +72,42 @@ Valovi su skupine značajki unutar pet faza. Ugovori, server i web mogu se pripr
 | 10 | Bogati sadržaj, stranice, shema v4, uvoz i izvoz | Sljedivost verzije i istih bajtova preko spremanja, predaje i izvoza. |
 | 11 | Provjere teksta, etape, konzultacije, Merlin, produljenje | Odobren D-260 opseg nakon pilota. Primijeniti zasebne institucionalne odluke za rokove, pristup i izvoz. |
 | 12 | AI pomoćnik | Ograničen važećim pravilima, dopuštenom obradom podataka, zasebnom odlukom i dokazom konkretne korisničke radnje. |
+| 13 | Prezentacije: vlastiti editor slajdova | Nakon pilota. Isti temelji kao tekstni editor: lokalni dnevnik, revizija, potpis, predaja, potvrda i izvoz (`.pptx`, PDF). Radi se u postojećim repoima (paket u webu, rute na serveru), bez novog repoa. |
+| 14 | Tablice: vlastiti editor tablica | Nakon pilota. Isti temelji kao val 13, izvoz `.xlsx` i CSV. Formule su determinističke i pokrivene testovima. Postojeći repoi. |
+| 15 | Statistička analiza (u stilu jamovija ili SPSS-a) | Nakon pilota. Zaseban repo i servis za izračune (Python ili R) otvara se tek kad val krene; web prikazuje rezultate samo kroz `/api/v1`. Rezultat je ponovljiv iz istih podataka i iste verzije analize. Kod pod AGPL ili GPL licencom (npr. jamovi) ne kopira se bez odluke vlasnika o licenci. |
+| 16 | Završni i diplomski rad od teme do Dabra | Nakon pilota. Prijedlog teme, odobrenje mentora, etape, povjerenstvo, termin obrane i pohrana u Dabar s metapodacima. Gradi na mentorstvu, predaji i potvrdi. Pohrana u Dabar traži dogovor sa Srcem i ustanovom. |
+| 17 | Rubrike, banka komentara i fakultetski predlošci | Nakon pilota. Kriteriji ocjenjivanja vidljivi studentu prije predaje, ponovno upotrebljivi komentari nastavnika, predlošci fakulteta i provjera formata prije predaje (proširenje M4 Lekte). Rubrika ne ocjenjuje automatski. |
+| 18 | Upitnici i kvalitativno kodiranje | Nakon pilota, uz val 15. Upitnik šalje podatke izravno u statistički servis; kodiranje intervjua i bilješki. Samo izmišljeni podaci u testovima, osobni podaci ispitanika po DPIA-i. |
+| 19 | Dnevnik stručne prakse, grupni rad i recenzija među studentima | Nakon pilota. Dnevnik prakse koji mentor potpisuje; grupni rad s doprinosom iz zabilježenih događaja (C-6 a), bez rangiranja i sankcija; anonimna recenzija koju uključuje nastavnik. |
+| 20 | Hrvatski jezični alati i pristupačnost | Nakon pilota. Pravopis i gramatika, nazivlje (Struna), hrvatski stilovi citiranja, uvoz iz Hrčka i CROSBI-ja po DOI-ju; čitanje naglas na hrvatskom, font za disleksiju, način čitanja. Tuđi servisi samo uz njihov pristanak ili licencu. |
+| 21 | Paketi po područjima | Nakon pilota, redom kojim fakulteti ulaze u pilot. Društvene znanosti (upitnici, kodiranje), STEM (LaTeX, bilježnice s kodom, programski zadaci s testovima u izoliranom okruženju), pravo (Narodne novine, sudska praksa, predlošci, simulirano suđenje), medicina (prikaz slučaja, provjera podataka o pacijentima), jezici (usporedni prijevod, glosari, prijevodna memorija), arhitektura (portfelj sa slikama), učiteljski i kineziološki (pripreme za sat, portfelj prakse). |
+| 22 | Povezivanje s ISVU-om i Studomatom | Nakon pilota, odluka vlasnika 21. 11. 2026. Popisi kolegija i upisanih studenata iz ISVU-a, izvoz ocjena natrag u ISVU, poveznica iz Studomata. Samo službenim sučeljem i ugovorom sa Srcem i ustanovom, nikad struganjem stranica ni tuđim lozinkama. Prijava i dalje samo AAI@EduHr. Izvoz ocjena uvijek potvrđuje nastavnik. Prije početka: dogovor sa Srcem, DPIA i pravna osnova obrade. |
 
 Poprečne cjeline obuhvaćaju M0 temelje i CI, M1 AAI identitet, M2 ustanove, M3 evidenciju, M4 Lektu i akademska pravila, M5 editor, M6 suradnju, M7 predaju, M8 uvoz/izvoz, M9 pomoćnika, M10 privatnost, podatke i izvršenje prava, te M11 GO uvjete. Životni ciklus produkcije obuhvaća observability, backup, redovne vježbe povrata, incidentne postupke, ažuriranje paketa, pristupačnost i korisničku podršku. Za svaki dio vrijedi isti testirani ugovor, provjerljiv prihvat i status prema postojećem Linear zadatku.
+
+### Proširenja nakon pilota (odluka vlasnika 21. 11. 2026.)
+
+- **Repoi:** do pilota nema novih repoa. Prezentacije i tablice (valovi 13 i 14) idu u postojeće repoe. Novi repo dobivaju samo dijelovi s drugim jezikom ili zasebnim pokretanjem: statistički servis (val 15) i servis za provjeru podudarnosti s hrvatskim korpusom (dio vala 11: indeks korpusa, otisci teksta, usporedba). Oba se otvaraju tek kad njihov val krene.
+- **Provjera podudarnosti:** gradi se kao vlastita provjera podudarnosti s izvorima (Ustav v1.6 C-6 b), samo za izvore iz D-260 t. 5 i tek nakon pravnog mišljenja i DPIA. Ne nosi ime tuđeg proizvoda.
+- **AI detektor:** nije u planu. Ustav v1.6–v1.8 ne dopušta model ni klasifikator autorstva. Dopuštena je samo oznaka podudaranja s AI odgovorom (C-6 c), uvijek s napomenom „nije dokaz autorstva”. Promjena traži novu odluku vlasnika o Ustavu i novo pravno mišljenje.
+- **Priprema ugovora:** kad val 5 bude spojen, jedan nekritičan SRV zadatak dodaje neobavezno polje `documentKind` (zadano `text`) u ugovore revizije, podrijetla teksta i izvoza. Polje je aditivno i ne lomi postojeće klijente, a valovi 13 i 14 zato ne trebaju mijenjati postojeće ugovore. Prije toga se ne stavlja u red.
+- **Redoslijed valova 16–22 (prijedlog orkestratora, vlasnik ga može promijeniti):** 16, zatim 17, zatim 18 s valom 15, zatim 19, zatim 21 po fakultetima. Val 20 ide uz 17 gdje je moguće, a val 22 kreće čim Srce potpiše dogovor. U red pisaca ništa od toga ne ide prije pilota.
+- **Prepoznavanje alata za automatizirano pisanje [K-1]:** vlasnik 21. 11. 2026. želi bilježiti i sadržaj tipki u editoru Ducture kako bi se prepoznale aplikacije koje automatski tipkaju tekst. Vlasnik je 21. 11. 2026. doslovno potvrdio Ustav v1.9 (P-3, Drive 1LNP-EXlCCpDP9zmEo97zu_tYE0gyYhcBbQ0rDe7yroY): tipke se bilježe samo u polju za pisanje u editoru Ducture, kao zasebna klasa podataka koja se briše nakon izračuna oznake „za pregled”, a najkasnije 30 dana nakon predaje. Služe samo pravilima N-4 i nikad se ne prikazuju kao zapis tipki. Sa stvarnim studentima tek nakon novog pravnog mišljenja i DPIA, a dotad samo u demou s izmišljenim podacima. U red pisaca ne ide prije pilota.
+
+### Dodaci pilotu (odluka vlasnika 21. 11. 2026.)
+
+Vlasnik je 21. 11. 2026. sve stavke P-D1 do P-D8 uvrstio u pilot. Grade se na postojećoj predaji, potvrdi, zadatku i obavijestima, bez novih repoa i bez promjene Ustava.
+
+| Oznaka | Dodatak | Granice |
+|---|---|---|
+| P-D1 | Probni zadatak za studente | Prije prvog pravog roka student prolazi prijavu, editor, Izjavu, predaju i potvrdu na zadatku bez ocjene. Probna predaja se jasno označava, ne ulazi u ocjenu ni izvoz i ne ide u Merlin. |
+| P-D2 | Skupno preuzimanje predaja | Nastavnik zadatka preuzima ZIP sa svim predajama (PDF ili .docx i potvrda svake predaje). Isti pristup kao za pojedinačnu predaju, zapis u dnevnik pristupa, poveznica s ograničenim trajanjem. |
+| P-D3 | Povlačenje i ponovna predaja prije roka | Odobrio vlasnik 21. 11. 2026. Student smije povući predaju i predati ponovno dok rok traje. Svaka predaja i svako povlačenje ostaju zapisani s vlastitom potvrdom; nastavnik vidi zadnju važeću predaju i povijest. Nakon roka povlačenje nije moguće. Nastavnik ga za zadatak smije isključiti, a zadano je uključeno. |
+| P-D4 | Kopiranje zadatka | Nastavnik kopira svoj zadatak (iz prošle godine ili drugog kolegija) kao novu verziju na kolegiju kojem ima pristup. Kopiraju se upute, rokovi i postavke, nikad predaje ni podaci studenata. |
+| P-D5 | Stranica stanja sustava | Javno pokazuje samo dostupnost i najavljeno održavanje, bez osobnih podataka. Zapis prekida može poslužiti kao dokaz za produljenje roka. |
+| P-D6 | Mjerila uspjeha pilota | Samo zbirni tehnički brojevi (uspjele i neuspjele predaje, greške spremanja, zahtjevi za pomoć), bez sadržaja teksta i bez identiteta osobe, nikad po studentu. Obuhvaća se DPIA-om pilota. Služi odluci nakon pilota. |
+| P-D7 | Vraćanje vlastitog teksta na raniju verziju | Student vraća svoj tekst na ranije zabilježeno stanje. Vraćanje je nova revizija s vlastitim potpisom; povijest se ne briše i reprodukcija (val 9) ostaje točna. |
+| P-D8 | Popis tipkovničkih prečaca u editoru | Uz val 6 i WCAG 2.2 AA; otvara se s tipkovnice i čitač zaslona ga čita. |
 
 ## Izvori, prednost i održavanje
 
