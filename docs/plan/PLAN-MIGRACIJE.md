@@ -399,6 +399,7 @@ Ovo nastavlja „Pet faza” i `PLAN.md` §5. Svaki korak ima vrata koja provjer
 - **Orkestrator** spaja u valovima po 2, sinkronizira grane i otvara PR-ove grana→`main`.
 - Granice: RAM ≥ 4 GB, teški testovi samo u CI-ju, bez slabljenja `ci-ok` i axea, VIZ tek u V3.
 - **F4:** dok PR grana→`main` za neki repo čeka „Spoji n”, u tu granu ulaze samo popravci nalaza pregleda, pa pregledani SHA ostaje SHA koji se spaja. Prije F4 svaki repo treba 3 zelena `ci-ok` zaredom na bazi.
+- **Pravilo „3 zelena zaredom”:** broje se zadnja 3 završena runa CI-ja na integracijskoj grani, a svaki mora imati zeleni posao `ci-ok`. Run koji je otkazan (zamijenio ga je noviji) ne broji se. Svaki drugi ishod je crven, i kad posla `ci-ok` nema. Provjera: `node scripts/ci-nestabilni.mjs --repo ductura/<repo> --branch <integracijska grana>` (dodaj `--strogo` za izlaz 1 kad pravilo nije ispunjeno). Ista skripta ispisuje nestabilne poslove: pad i prolaz na istom SHA. Skripta ništa ne mijenja i ne slabi `ci-ok` ni axe.
 
 #### Odluke D1–D8 (orkestrator po Danielovu „Ti odluči za D1-D8”, 22. 11. 2026.)
 
