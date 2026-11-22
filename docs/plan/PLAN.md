@@ -47,6 +47,7 @@ Stari Next kod (`src/app`) je zamrznut i briše se kad INT-10 bude zelen. Ostali
 3. Paralelno, bez ovisnosti: INT-11 (stanje „potvrđeno” iz stvarnog primitka; nakon VIZ-E1), INT-12 (parseri nad vektorima ugovora), SRV-1521 (predložak etapa).
 4. Preostale funkcije pilota po `STANJE.md` (P-1 podrijetlo teksta, P-D1…P-D8).
 5. Tek tada VIZ dorada po prototipu.
+6. Zatim F4 (grana → `main`), proba i objava po odjeljku „Faze nakon V2” u `PLAN-MIGRACIJE.md` (plan 22. 11. 2026.).
 
 ## 6. Odluke (orkestrator po Danielovu „ti odluči”, 22. 11. 2026.)
 
@@ -72,6 +73,7 @@ Stari Next kod (`src/app`) je zamrznut i briše se kad INT-10 bude zelen. Ostali
 |---|---|
 | Q-10 / D-194: AI pružatelj | 15. 12. 2026. |
 | Opseg nakon probe (mobile, Web_other, desktop) | nakon 22. 2. 2027. |
+| D1–D5, D7, D8: domena, staging, računi i tajne, redoslijed i način spajanja u `main`, pravno mišljenje i DPIA, licence (`PLAN-MIGRACIJE.md`, „Faze nakon V2”) | prije F4, probe ili F5 |
 
 ## 9. Ubrzani razvoj (kako)
 
