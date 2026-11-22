@@ -342,6 +342,81 @@ Ovo je prijedlog, a ne odluka vlasnika:
 6. **Uži opseg do probe 22. 2. 2027.:** samo Institution_server i Institution_front_web_chrome (te Preloader koliko treba za ulaz). ZEL-M1, ZEL-O1, WO-01 i DWIN-1301 su zadržani (`opseg-nakon-probe`). Institution_web_mobile, Web_other i desktop dolaze nakon probe, osim onoga što proba traži.
 7. **Kraći plan.** Trenutno stanje je u `STANJE.md` (generira ga `_raspored/stanje-plana.mjs` iz `red.json`). Povijesni dijelovi 4 i 10 premješteni su u `PLAN-ARHIVA.md`. Danielove otvorene odluke su na jednom mjestu, u `STANJE.md`.
 
+### Faze nakon V2 (plan 22. 11. 2026., Daniel: „Da”)
+
+Ovo nastavlja „Pet faza” i `PLAN.md` §5. Svaki korak ima vrata koja provjerava stroj. Novi zadaci čekaju svoja vrata kroz `drzi` u `red.json`, pa ih raspored ne pokreće prerano.
+
+#### Redoslijed
+
+1. **Zatvoriti V1 i V2:** zeleni `ci-ok` na WEB i SRV bazi; A01–A05 na istim SHA, tablica na Ductus#2052.
+2. **F3b, A06–A10 na stvarnom stogu** (graditelj): restart, oporavak potpisa, predaja V1/V2, ovlasti, dvije kartice. Usporedno idu preostale funkcije pilota po `STANJE.md` (P-1, P-D1…P-D8).
+3. **V3, izgled:** VIZ zadaci, snimke na 390/768/1100/1280 px, ručna WCAG matrica (DAN-428, DAN-755). Server ne čeka V3.
+4. **F4, grana → `main`:** Institution_server, zatim Institution_front_web_chrome, Preloader zadnji. Svaki repo na „Spoji n”.
+5. **Proba 22. 2. 2027.** na stagingu, samo izmišljeni podaci.
+6. **F5, objava i pilot:** samo na Danielovu riječ, uz pravno mišljenje i DPIA.
+7. **Nakon pilota:** valovi 13–22; mobile, Web_other i desktop prema opsegu nakon probe.
+
+| Datum | Što mora biti istina |
+|---|---|
+| 30. 11. 2026. | V1, V2 i F3b |
+| 15. 12. 2026. | Danielova odluka o AI pružatelju (Q-10) |
+| 20. 12. 2026. | Izbor ustanove za pilot (O-1) |
+| 15. 1. 2027. | Funkcije pilota u `packages/app`, V3 i F4 za server i WEB |
+| 22. 2. 2027. | Proba |
+
+#### Vrata po fazi
+
+| Faza | Ulaz | Izlaz |
+|---|---|---|
+| F3b | V2 zelen | A06–A10 PROLAZ na istim SHA, tablica na #2052 |
+| V3 | V1 + V2 | Snimke bez odstupanja većih od praga (VIZ-PRAG), axe zelen, matrica DAN-755 potpisana |
+| F4 | V1, V2, F3b i V3 za taj repo | Zeleni CI na PR-u grana→`main`, ciljani kritični pregled bez otvorenih nalaza, „Spoji n” |
+| Proba | F4 za SRV, WEB i Preloader | A01–A10 na stagingu, oporavak (DAN-889) izmjeren |
+| F5 | Proba, Danielova odluka, pravno mišljenje i DPIA | Produkcija radi, stranica stanja javna, pilot odobren posebno |
+
+#### Novi zadaci u `red.json`
+
+| id | repo | tko | drzi | što |
+|---|---|---|---|---|
+| INT-17 | WEB | graditelj | V2 | A06: restart servera i svjež preglednik vraćaju isti `documentId`, reviziju i hash |
+| INT-18 | SRV | graditelj | V2 | A07: izgubljeni odgovor i prekid radnika daju jednu reviziju i jednu potvrdu |
+| INT-19 | SRV | graditelj | V2 | A09: tuđi rad i druga ustanova odbijeni kroz HTTP i stvarnu DB ulogu |
+| INT-20 | WEB | graditelj | V2 | A10: dvije kartice, odjava A, B ne vidi A-ov dnevnik |
+| VIZ-SNIMKE | WEB | oblak | V3 | Snimke prototip↔app na četiri širine za sve rute |
+| VIZ-WCAG | WEB | graditelj | V3 | Ručna matrica DAN-755 |
+| F4-SYNC-SRV, F4-SYNC-WEB | SRV, WEB | orkestrator | F4 | Spojiti `main` u integracijsku granu (6 i 2 commita), CI zelen |
+| F4-PREGLED-SRV, F4-PREGLED-WEB | SRV, WEB | neovisni pregled | F4 | Ciljani pregled: AAI i sesije, RLS, dokazi (B-8), predaja |
+| F4-PR-SRV, F4-PR-WEB | SRV, WEB | orkestrator | F4 | PR grana→`main`, čeka „Spoji n” |
+| F4-PRE-HOST | Preloader | oblak | F4-PRE | Stvarni hostovi umjesto `.invalid`, nakon odluke D1 |
+| P-STAGING | SRV | orkestrator + Daniel | P | Staging, samo izmišljeni podaci |
+| P-OPORAVAK | SRV | graditelj | P | DAN-889 na stagingu, RPO/RTO izmjeren |
+| OBJ-KONFIG | SRV, WEB | orkestrator | F5 | Konfiguracija objave bez tajni; tajne upisuje Daniel |
+
+#### Način rada
+
+- **Graditelj** dokazuje tok na stvarnom stogu (F3b, lokalni A01–A10 na SHA koji ide u `main`, oporavak).
+- **Pisci u oblaku** rade kod i popravke nalaza, najviše 40 živih, jedan zadatak = jedan PR.
+- **Orkestrator** spaja u valovima po 2, sinkronizira grane i otvara PR-ove grana→`main`.
+- Granice: RAM ≥ 4 GB, teški testovi samo u CI-ju, bez slabljenja `ci-ok` i axea, VIZ tek u V3.
+- **F4:** dok PR grana→`main` za neki repo čeka „Spoji n”, u tu granu ulaze samo popravci nalaza pregleda, pa pregledani SHA ostaje SHA koji se spaja. Prije F4 svaki repo treba 3 zelena `ci-ok` zaredom na bazi.
+
+#### Odluke D1–D8 (orkestrator po Danielovu „Ti odluči za D1-D8”, 22. 11. 2026.)
+
+| # | Pitanje | Odluka |
+|---|---|---|
+| D1 | Domena i usmjeravanje | Jedna domena `ductura.org` s podputanjama (`/`, `/c/`, `/api/v1/`), kao §1c. Jedan kolačić sesije i jedna AAI registracija. Domena je već registrirana (Daniel, 22. 11.). |
+| D2 | Staging | Render + Vercel preview, samo izmišljeni podaci, zasebna baza. Bez deploya dok Daniel ne otvori račune (D3). |
+| D3 | Računi i tajne | Račune (Render, Vercel, baza, S3) i tajne otvara i upisuje Daniel. Orkestrator piše samo konfiguraciju bez tajni i ne stvara račune. |
+| D4 | Redoslijed u `main` | Institution_server, zatim Institution_front_web_chrome, Preloader zadnji. Nikad dva repoa odjednom. |
+| D5 | Način spajanja grana→`main` | Merge commit, bez squasha: čuva se povijest i veza commita sa zadacima i dokazima. |
+| D6 | Q-10 / D-194: AI pružatelj | **Ostaje Danielu** (pravilo: pružatelja i model bira samo Daniel). Rok 15. 12. 2026.; do tada je pomoćnik kostur. |
+| D7 | Pravno mišljenje i DPIA | Obavezni prije stvarnih studenata (F5). Proba 22. 2. 2027. ide samo s izmišljenim podacima. Narudžbu radi Daniel; orkestrator priprema popis obrada i tokova podataka. |
+| D8 | Licence | Jedan zadatak popisuje licence svih ovisnosti, fontova i prototipa prije F5; nalazi idu Danielu na potvrdu. |
+
+#### Čišćenje (svaka stavka tek na Danielovo „da”)
+
+SRV grana `migracija/kopija-ductus-testovi-server`; WEB #61, #62, #418, #434; SRV #347; Preloader #37, #40, #46, #47; Aplication_front #2; `.github` #26, #38, #41–#43, #48–#50. Revizije pariteta (WEB #340, #341, #343) čekaju V3, a red-team prijedlozi (WEB #261, SRV #511) odluku o P-2.
+
 ## 0. Ukratko
 
 - Sedam repozitorija u organizaciji `Ductura`. Svaki ima svoj `main`, svoj CI, svoje testove i isti gate.
