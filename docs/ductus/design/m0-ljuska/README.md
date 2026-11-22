@@ -6,7 +6,7 @@ Snimke stvarne aplikacije na `main` `061fce2d` (PR #1431), cijela stranica, svij
 
 - Produkcijska gradnja (`pnpm build`), `next start` s `DUCTUS_LOCAL_DEMO_JOURNAL=1`, `DUCTUS_DEPLOYMENT=local`; `APP_DATABASE_URL` je samo lažni niz (baza nije spojena).
 - Playwright Chromium (`@playwright/test` 1.63.0 iz repoa), Linux, DPR 1, hr-HR, `fullPage`, visina prozora 900 px.
-- Tema je cijeli dokument (Z-13a): `localStorage["ductura.theme"]` = `light` ili `dark`; `data-theme` na `<html>` izmjeren je u svakoj snimci.
+- Tema je cijeli dokument (Z-13a): `localStorage["ductura-theme"]` = `light` ili `dark`; `data-theme` na `<html>` izmjeren je u svakoj snimci.
 - Na `/rad` i `/` snimke „svijetla” imaju Bijeli list, a „tamna” Tamni list (prekidač lista). Dodatno `rad-tamna-bijeli-list-*` prikazuje zadanu kombinaciju (tamna ljuska, bijeli list).
 - **Nije snimljeno:** stanje nakon prijave (lažni OIDC). Traži Docker stog (`pnpm stack:*`), a u ovom okruženju nema Dockera. Snimljene rute su `/` (javna naslovnica), `/prijava` i `/rad` (lokalni uređivač bez prijave). Prijavljena naslovnica i studentski/nastavnički ekrani ostaju za sesiju sa stogom.
 - **Referenca:** snimke su uspoređene s pisanom specifikacijom DESIGN-SYSTEM (izmjereni `--ground` `#242422` / `#f3f2ee`, list `#fcfbf8`, tinta) i pregledom slika. Odobrene PNG reference ljuske `/rad` nema u repou (`screenshots-v3` je povijesna bordo/bakar paleta, `m3-` i `m4-reference` ne pokrivaju ljusku), pa usporedba slika uz sliku nije izvedena; to je nepotpun dio provjere, ne tvrdnja „izgleda isto”.

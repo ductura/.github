@@ -10,9 +10,9 @@ validator provjerava oblik i veličinu, a ne tvrdi da može dokazati redakciju t
 ## Ugovor i granice
 
 `validate_request(raw)` prihvaća isključivo običan `dict` s devet polja:
-`schema_version=ductura.dev_route.v1`, `project_id=Ductus`, neprazan
+`schema_version=ductura-dev_route.v1`, `project_id=Ductus`, neprazan
 `project_task_id`, `source_commit` od točno 40 malih heksadekadskih znakova,
-`language` (`hr`, `en`, `mixed`), `purpose=ductura.dev_route`, `summary`, `paths`,
+`language` (`hr`, `en`, `mixed`), `purpose=ductura-dev_route`, `summary`, `paths`,
 `labels`. Sažetak ima najviše 4096 UTF-8 bajtova; ID zadatka najviše 128.
 Liste imaju najviše 128 stavki, putanja 1024 i oznaka 256 UTF-8 bajtova po stavci.
 Odbijaju se pogrešni tipovi, surogati Unicodea, nepoznata/nedostajuća polja,
@@ -63,7 +63,7 @@ Oznake u `labels` su signal samo ako su točno jedno od šest imena domena.
 `tests/` uklanjaju se samo kad ostatak počinje s `src/`, `app/api/` ili `scripts/`;
 inače test nema signal putanje. Kolocirani `src/domain/document/schema.test.ts`
 zadržava svoju domenu. `tests/unit/runner.test.ts` ostaje nejasan.
-`RulesPolicy.version=ductura.dev_route.rules.v1`; `rules_hash` obuhvaća tablice,
+`RulesPolicy.version=ductura-dev_route.rules.v1`; `rules_hash` obuhvaća tablice,
 omotače testova i semantiku odluke. Pravila nemaju poziv modela ni mutaciju ulaza.
 
 ## Adapter i budući backend
@@ -120,9 +120,9 @@ from scripts.engineering.laya.baseline import RulesPolicy, route_by_rules
 from scripts.engineering.laya.adapter import route_task
 
 request = validate_request({
-    "schema_version": "ductura.dev_route.v1", "project_id": "Ductus",
+    "schema_version": "ductura-dev_route.v1", "project_id": "Ductus",
     "project_task_id": "SYNTHETIC-DOCS-42", "source_commit": "a" * 40,
-    "language": "hr", "purpose": "ductura.dev_route", "summary": "Sintetički opis.",
+    "language": "hr", "purpose": "ductura-dev_route", "summary": "Sintetički opis.",
     "paths": ["docs/engineering/laya.md"], "labels": [],
 })
 decision = route_by_rules(request, RulesPolicy())
