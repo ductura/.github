@@ -278,6 +278,57 @@ Spojeni u grane. Paket `val14-18.json` (79 zadataka) ušao je u red 21. 11. 2026
 3. Faza 4: „Spoji n” repo po repo u `main`.
 4. Faza 5: objava na Danielovu riječ.
 
+### Dopuna 22. 11. 2026. (večer): odluke od 20. 11. i cilj za 30. 11.
+
+Ovaj odjeljak samo zapisuje odluke koje već vrijede u radu. Novo pravilo ne uvodi. Daniel je dopunu odobrio 22. 11. („da, napravi dopunu plana”).
+
+#### Stanje u brojkama (red.json, 22. 11. navečer)
+
+Red ima 524 zadatka: 496 spojeno, 13 u PR-u, 11 čeka ovisnost, 4 zadržana.
+
+**Ispravak tablice faza:** faza 2 nije potpuno zatvorena za WEB. Baza `migracija/kopija-ductus-front` ima crveni CI (`client`, `ui`, pa i `ci-ok`). Bazu popravlja graditeljev PR #416 (CI i osnovne snimke kataloga). Faza 2 za WEB zatvara se kad je `ci-ok` na bazi zelen.
+
+#### 1. Funkcije usporedno s fazom 3
+
+Pravilo „valovi 11–18 kreću nakon faze 3” u praksi je zamijenjeno. Funkcije po prototipu grade se usporedno s fazom 3, prema ugovorima `/api/v1`:
+
+- ekrani N-xx,
+- etape i razgovor (WEB-1520/1530),
+- nastavnički izvori (SRV-2133S).
+
+Serverska ovisnost i dalje se provjerava u fazi 3 (`srvDeps`).
+
+#### 2. Cilj „identično prototipu” (Daniel, 22. 11.)
+
+- Frontovi trebaju izgledati i raditi kao prototipovi u `_prototipovi`. Rasponi su do 640, 641–1050, 1051–1250 i iznad 1250 px.
+- Tome služi traka `VIZ-*`.
+- **Redoslijed:** prvo sve funkcije i rute po planu, a završni dizajn i snimke na kraju.
+- `globals.css` ostaje zaključan. Odstupanja idu u `*.module.css` ili u varijantu `@ductura/ui`.
+
+#### 3. Podjela posla (Daniel, 22. 11.)
+
+| Tko | Radi |
+|---|---|
+| Graditelj (lokalno) | Sve što traži upaljenu aplikaciju: e2e i `next build` na stvarnoj bazi, LOK-* zadaci, usporedba s prototipom snimkama, vizualna provjera VIZ-* PR-ova označenih „DJELOMIČNO”. |
+| Pisci u oblaku | WEB-*, SRV-* i VIZ-* kod koji ne treba upaljenu aplikaciju. Jedan zadatak, jedan PR. |
+| Orkestrator | Raspoređivanje, odgovori piscima, sitni popravci (sukobi, izvadak ugovora, CI baze), guranje PR-ova do spajanja. |
+
+#### 4. Vrata CI-ja za WEB (Daniel, 22. 11.)
+
+Daniel je rekao: „Ako ove 3 promjene ne usporavaju razvoj aplikacije, da napravi te 3 stvari.” Te tri stvari su:
+
+1. **Test čitača ugovora u klijentu.** Gotovo: ZEL-W19, WEB #429.
+2. **CI po putanjama.** To je ZEL-W20, koji čeka #416. `ci-ok` mora ostati jednako strog.
+3. **Zaštita grane** `migracija/kopija-ductus-front` s obveznim `ci-ok`, ne-strogo. Uključuje se nakon #416, kad je baza zelena.
+
+#### 5. Cilj za kontrolnu točku 30. 11. (prijedlog orkestratora)
+
+Ovo je prijedlog, a ne odluka vlasnika:
+
+1. Faza 2 zatvorena za sve repoe, uključujući zeleni `ci-ok` na WEB bazi.
+2. U fazi 3 lokalno prolazi tok student piše → sinkronizacija → predaja → nastavnik vidi predaju. To su scenariji A01–A05 na stvarnom stogu (INT-08, INT-09).
+3. Funkcije po prototipu imaju spojene rute i podatke. Dizajn VIZ-* ne mora biti završen.
+
 ---
 
 ## 0. Ukratko
