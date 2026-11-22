@@ -1,0 +1,3 @@
+# Repo je LF. Testovi usporeduju datoteke bajt po bajt (npr. PULL_REQUEST_TEMPLATE.md),
+# pa checkout na Windowsima s core.autocrlf=true ne smije pretvoriti redove u CRLF.
+* text=auto eol=lf
