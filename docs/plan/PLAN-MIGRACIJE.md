@@ -269,12 +269,12 @@ Valovi 1–11: svih 70 ID-jeva iz kataloga spojeno, osim gore navedenih odgoda.
 
 #### Valovi 13–20
 
-Spojeni u grane. Paket `val14-18.json` (79 zadataka) čeka Danielov „da” prije ulaska u red.
+Spojeni u grane. Paket `val14-18.json` (79 zadataka) ušao je u red 21. 11. 2026. i svih 79 je spojeno (ispravak: ranija rečenica da čeka „da” bila je netočna). Kanonski plan spojen kao PR #52 (22. 11.).
 
 #### Što ostaje
 
 1. Faza 3: izvršiti A01–A10 na stvarnom stogu (INT-08, INT-09) i popraviti što padne.
-2. Odluke vlasnika: Q-10/D-194 (AI pružatelj), P-1 stavke, nacrti N-14/N-15, „da” za val14-18.
+2. Odluke vlasnika: Q-10/D-194 (AI pružatelj; bira Daniel), potvrda teksta P-1 (nacrt `docs/plan/P-1-NACRT.md`), nacrti N-14/N-15.
 3. Faza 4: „Spoji n” repo po repo u `main`.
 4. Faza 5: objava na Danielovu riječ.
 
