@@ -1754,6 +1754,7 @@ Tehničke stavke i kriteriji iz [izvorne revizije](https://github.com/ductura/.g
 | T-0.2 | Reusable workflowi: CI osnova s `ci-ok`, tajne, ovisnosti, gate | U2, S-0.9; S-0.10-a/b se pišu **ovdje**, ne u serveru, i nema izdvajanja iz servera | critical |
 | — (novo, PRIJEDLOG ID) | Preseti `@ductura/tsconfig`, `eslint-config`, `prettier-config` na GitHub Packages | U2 | standard |
 | T-0.3 | **Ukinuto 17. 11.** (spajanje po pravilu iz `docs/plan/PLAN-MIGRACIJE.md` §7) | — | — |
+| S-0.20 | **Ukinuto 17. 11.** Spajanje ide po pravilu iz §7. | — | — |
 | T-0.4 | Generator novog repoa | S-0.6, T-0.2 | standard |
 | T-0.7 | Tjedna provjera razilaženja postavki (samo čitanje) | T-0.2 | standard |
 | U11 (server plan; PRIJEDLOG ID) | **Gate prema riziku uz ugovorne testove**: npr. PR koji mijenja `server/contracts/**` je najmanje `critical` i traži zelene ugovorne testove preloadera i weba nad novom verzijom; PR koji ne dira ugovor, a prolazi ugovorne testove, zadržava risk iz tablice putanja | zadnje: nakon ugovora (U4 … U10) i S-1H.8 | critical; **zaseban PR pravila, vlasnik potvrđuje** (pravilo gatea mijenja `docs/ENGINEERING_SYSTEM.md`) |
