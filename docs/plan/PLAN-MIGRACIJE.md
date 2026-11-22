@@ -404,7 +404,7 @@ Ovo nastavlja „Pet faza” i `PLAN.md` §5. Svaki korak ima vrata koja provjer
 
 | # | Pitanje | Odluka |
 |---|---|---|
-| D1 | Domena i usmjeravanje | Jedna domena `ductura.org` s podputanjama (`/`, `/c/`, `/api/v1/`), kao §1c. Jedan kolačić sesije i jedna AAI registracija. |
+| D1 | Domena i usmjeravanje | Jedna domena `ductura.org` s podputanjama (`/`, `/c/`, `/api/v1/`), kao §1c. Jedan kolačić sesije i jedna AAI registracija. Domena je već registrirana (Daniel, 22. 11.). |
 | D2 | Staging | Render + Vercel preview, samo izmišljeni podaci, zasebna baza. Bez deploya dok Daniel ne otvori račune (D3). |
 | D3 | Računi i tajne | Račune (Render, Vercel, baza, S3) i tajne otvara i upisuje Daniel. Orkestrator piše samo konfiguraciju bez tajni i ne stvara račune. |
 | D4 | Redoslijed u `main` | Institution_server, zatim Institution_front_web_chrome, Preloader zadnji. Nikad dva repoa odjednom. |
