@@ -1,0 +1,48 @@
+# 04 Podizvršitelji i atributi prijave
+
+> **Ovo je radni nacrt, nije pravni savjet.** Popis odražava što predlažu dokumenti; ništa nije ugovoreno ni odabrano.
+
+**Samo pravnik ili ustanova odlučuje:** je li pojedini subjekt podizvršitelj, zajednički voditelj ili samostalni primatelj; treba li pisano odobrenje ustanove (čl. 28. st. 2. GDPR-a); koji je mehanizam prijenosa izvan EU-a; je li lokacija obrade dovoljna kad matična grupa dobavljača ima sjedište izvan EU-a.
+
+## 1. Podizvršitelji kako ih predlažu dokumenti
+
+Cijeli dobavljački sloj je **PRIJEDLOG D-08, uvjetan**: potvrda tek nakon B0.1 i B0.2, a trošak je premašivao D-66 i stane u proračun D-199 t. 2 (ARCHITECTURE §9, BACKEND §1, §7). Država sjedišta dobavljača i njegove matične grupe nije navedena u dokumentima; upisuje se iz ugovora i DPA-a, ne iz ovog nacrta. Ništa iz tablice nije izgrađeno: `package.json` nema klijente za pohranu objekata, KMS, e-poštu ni praćenje grešaka. Stupac „Klase” navodi brojeve klasa iz `06-klase-podataka.md` koje subjekt obrađuje; rok nijedne klase nije odlučen osim onih u `07` §3 (D-30 PRIJEDLOG, Q-16).
+
+| Subjekt | Namjena | Što može vidjeti | Lokacija obrade u dokumentima | Provjeriti | Status | Klase (DATA-CLASS, `06`) |
+| --- | --- | --- | --- | --- | --- | --- |
+| UpCloud | VM (web, worker) i upravljana PostgreSQL baza s PITR-om | Sve u bazi, uključujući kontrolne točke s punim tekstom rada | "EU" (BACKEND §3) | Država, grupa, DPA | PRIJEDLOG D-08 | Sve klase iz baze: 1 do 11, 13 do 19, 21 (metapodaci), 22, 24 do 28; PITR je klasa 29 |
+| Scaleway | Privatni bucket s odsječcima (po hashu) i e-pošta (TEM) | Sadržaj odsječaka; adrese primatelja e-pošte | Nije navedena | Država, grupa, DPA | PRIJEDLOG D-08 | Bucket: 21 (sadržaj), 23, 20 ako izvozni paket živi u bucketu (nije određeno); verzije objekata su klasa 29. E-pošta: adrese nemaju klasu u `06`, dodjeljuje se kad tok postoji `[ODLUKA]` |
+| AWS (samo KMS, eu-central-1) | Potpis potvrda i kontrolnih točaka | Samo prefiksirani digest (D-92) odnosno tekst kontrolne točke (D-71), bez sadržaja i identifikatora | eu-central-1 (ARCHITECTURE §9) | Pripadnost grupi izvan EU-a | PRIJEDLOG D-08, D-71 potvrđena | 27: za potvrde samo prefiksirani digest (D-92); za dnevnu C2SP kontrolnu točku puni RAW tekst kontrolne točke (D-71, D-93: korijen i `tree_size`, bez sadržaja rada). 28: potpis kontrolne točke brisanja (D-272 MQ07); što točno ulazi u KMS nije određeno `[ODLUKA]`. Sadržaj rada ne vidi |
+| Drugi dobavljač za kopije (Hetzner Object Storage "ili sl.") | Dnevna replika bucketa i šifrirani dump (`age`) | Šifrirani sadržaj; ključ drži vlasnik | Nije određena | Odabir dobavljača, DPA | PRIJEDLOG (BACKEND §4.7) | 29 (dump: klase iz baze; replika: klase iz bucketa) |
+| Dobavljač bucketa s potpisanim kontrolnim točkama brisanja | Zaseban bucket samo za upis (D-272 MQ07, `01` §D) | Potpisane kontrolne točke brisanja, bez sadržaja rada | Nije određena | Odabir dobavljača (Scaleway ili drugi), DPA | Nije odabrano `[ODLUKA]` | 28 (evidencija brisanja) |
+| Neon | Rezerva za bazu (ARCHITECTURE §9) | Kao baza | Nije navedena | Treba li uopće ostati u popisu | PRIJEDLOG, rezerva | Kao UpCloud, samo ako postane baza |
+| TSA (DigiCert i Sectigo; FINA kad postoji obrt) | RFC 3161 vremenski žig dnevne kontrolne točke | Samo hash kontrolne točke | Nije navedena | Je li to obrada osobnih podataka | D-72, val 2 | 27 (samo hash kontrolne točke) |
+| Javna objava korijena: javni repozitorij (GitHub) i neovisni primatelji (e-pošta koordinatoru ustanove, Internet Archive ili Software Heritage) | Provjerljivost kontrolnih točaka | Potpisani korijen i ukupni broj potvrda (D-93), bez sadržaja | Nije navedena | Je li broj potvrda i korijen osobni podatak | D-72, D-93, val 2; GitHub je u PROGRAM GO popisu | 27; je li to osobni podatak, otvoreno (`07` §5) |
+| GlitchTip EU ili Sentry EU | Praćenje grešaka bez tijela zahtjeva | Metapodaci greške; ne smije sadržavati tekst rada (BACKEND §4.9) | "EU" | Odabir; je li canary test dokaz | PRIJEDLOG, nije odabrano | Nijedna klasa iz `06`; ne smije nositi 13, 14 ni 21 (BACKEND §4.9). Klasa za sigurnosne i tehničke zapise nije predložena `[ODLUKA]` |
+| Vanjski uptime monitor | Alarm dostupnosti (BACKEND §4.9) | Samo javnu adresu | Nije određena | Odabir | Nije odabrano | Nijedna (samo javna adresa) |
+
+**AI pružatelji (D-194, mijenja D-77):** ugrađeni AI pomoćnik je u pilotu, pa svaki AI pružatelj koji student može pokrenuti postaje podizvršitelj i ulazi u popis tek kad ga ustanova odobri (čl. 28. st. 2. GDPR-a). Nijedan još nije izabran ni ugovoren. Isključeni su pružatelj s kineskim sjedištem, model koji je razvila kineska tvrtka (i kad ga poslužuje europski pružatelj) i obrada na kineskim serverima (D-194 t. 2). Za svakog pružatelja treba upisati: ugovornu stranu i matičnu grupu, zemlju obrade i stvarnu regiju, čuvanje sadržaja, treniranje, popis njegovih podizvršitelja, mehanizam prijenosa i dobna ograničenja korisnika. Tko drži račun i potpisuje ugovor o obradi s pružateljem je otvoreno (PRIJEDLOG D-194 t. 6: pravna osoba operatera). OpenRouter nije izabran. Pružatelj koji bi radio samo kao posrednik (npr. OpenRouter) dodatni je podizvršitelj `[ODLUKA]`.
+
+| Subjekt | Namjena | Što može vidjeti | Lokacija obrade u dokumentima | Provjeriti | Status | Klase (DATA-CLASS, `06`) |
+| --- | --- | --- | --- | --- | --- | --- |
+| AI pružatelj (još nije izabran) | Obrada odlomka koji student pošalje pomoćniku; moguće zvuk za transkripciju i alati pružatelja (D-194 t. 4) | Odabrani odlomak i poslužiteljske upute; po zadanom bez identiteta studenta | Nije određena | Država, grupa, regija, čuvanje, treniranje, DPA, podizvršitelji, dob korisnika | PRIJEDLOG, D-194 t. 6 i 7 | Odlomak iz 13 ili 14 kad ga student pošalje; zapis prijenosa je 24 i ostaje kod Ductusa |
+
+**Ne ulaze u popis u pilotu:** GitHub i Linear kao razvojni alati (prema `CLAUDE.md` u njih ne idu stvarni osobni podaci); AAI@EduHr (Srce), koji je izvor identiteta, a ne izvršitelj Ductusa, i čiju uslugu registrira ustanova (ARCHITECTURE §4); Caddy (softver na VM-u). Sam Ductus (izvršitelj, fizička osoba) je u `05` kao otvoreno pitanje.
+
+## 2. Atributi prijave
+
+Protokol: OIDC Authorization Code s PKCE-om prema AAI@EduHr (D-09, `docs/PRODUCT.md` §4). Odobravanje atributa ide kroz registraciju usluge koju podnosi ustanova (BACKEND §4.3); nije provedeno.
+
+| Atribut | Što kaže PRODUCT §4 | Što radi kod na `main` | Svrha | Napomena |
+| --- | --- | --- | --- | --- |
+| `openid`, `sub` | Traži se | Čita se i sprema (`identity.user_account.oidc_subject`) | Provjera ID tokena i userinfo odgovora | Uz `hrEduPersonUniqueID` do potvrde Srca koji je trajan |
+| `hrEduPersonUniqueID` | Traži se; identitet korisnika, nikad e-pošta | Čita se i sprema | Ključ računa uz izdavatelja | Oblik `lokalni@realm` provjerava se pri svakoj prijavi |
+| `hrEduPersonHomeOrg` | Traži se | Čita se; bira ustanovu. Sirova vrijednost **ne sprema se**, ali se ustanova trajno veže uz račun (`user_account.institution_id`) | Odabir ustanove, upis samo za istu ustanovu | Nepoznata ustanova daje odbijenu prijavu |
+| `hrEduPersonAffiliation` | Traži se; `djelatnik` znači samo da osoba može dobiti ulogu | **Ne čita se** | Predviđeno za potvrdu uloge nastavnika | Uloge potvrđuje administrator; je li atribut potreban `[ODLUKA]` |
+| `email` | "Po potrebi" | Ne čita se, ne sprema | Moguće obavijesti | Prijava radi i bez njega; potreba nije utvrđena `[ODLUKA]` |
+| `profile` (opseg) | Nije na popisu | **Zatražen:** `scope: "openid profile"` (`src/server/auth/oidc.ts`) | Nije naveden | Razlika od PRODUCT §4; što AAI pod tim opsegom pušta, nije provjereno; kod ne sprema ništa osim gornjeg `[IZVEDBA]` |
+| `given_name` i `family_name`, inače `givenName` i `sn` | Nije na popisu | Čita se prvi potpuni par, nikad pomiješan; vrijednost mora biti niz znakova (polje znači da imena nema). Spremaju se u `identity.person_name` samo kad su oba ispravna; inače se spremljeno ime briše, prijava se ne odbija (B-11a) | Nastavnik zajedničkog kolegija vidi ime i prezime studenta u brzom putu (B-11b), kroz RPC, uz zapis u `audit.access_log` | Odlučeno D-170 O1 (ugovor #757); tok podataka u `01` odjeljak A. Točni nazivi atributa i njihovo odobrenje idu kroz registraciju usluge (BACKEND §4.3) |
+| Ime za prikaz | Nije na popisu | Ne čita se, ne sprema | | Ime se ne razdvaja iz njega (D-170 O1) |
+| OIB | Ne traži se | Ne traži se | | Ostaje pravilo `[PRAVILO]` |
+
+Prijedlog najmanjeg skupa za razgovor sa Srcem i ustanovom (nije odluka): `openid`, `hrEduPersonUniqueID`, `hrEduPersonHomeOrg`, i `hrEduPersonAffiliation` samo ako se potvrda uloga ne rješava drukčije; atributi za ime i prezime, koje traži D-170 O1 (pod kojim ih imenom i opsegom AAI pušta, `given_name`/`family_name` uz opseg `profile` ili `givenName`/`sn`, nije provjereno `[IZVEDBA]`); bez `email`.
