@@ -73,7 +73,7 @@ Stari Next kod (`src/app`) je zamrznut i briše se kad INT-10 bude zelen. Ostali
 |---|---|
 | Q-10 / D-194: AI pružatelj | 15. 12. 2026. |
 | Opseg nakon probe (mobile, Web_other, desktop) | nakon 22. 2. 2027. |
-| D1–D5, D7, D8: domena, staging, računi i tajne, redoslijed i način spajanja u `main`, pravno mišljenje i DPIA, licence (`PLAN-MIGRACIJE.md`, „Faze nakon V2”) | prije F4, probe ili F5 |
+| Računi i tajne za staging i objavu (D3), narudžba pravnog mišljenja i DPIA (D7); ostale odluke D1–D8 su u `PLAN-MIGRACIJE.md`, „Faze nakon V2” | prije probe / F5 |
 
 ## 9. Ubrzani razvoj (kako)
 

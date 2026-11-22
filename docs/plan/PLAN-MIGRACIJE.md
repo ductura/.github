@@ -400,18 +400,18 @@ Ovo nastavlja „Pet faza” i `PLAN.md` §5. Svaki korak ima vrata koja provjer
 - Granice: RAM ≥ 4 GB, teški testovi samo u CI-ju, bez slabljenja `ci-ok` i axea, VIZ tek u V3.
 - **F4:** dok PR grana→`main` za neki repo čeka „Spoji n”, u tu granu ulaze samo popravci nalaza pregleda, pa pregledani SHA ostaje SHA koji se spaja. Prije F4 svaki repo treba 3 zelena `ci-ok` zaredom na bazi.
 
-#### Odluke koje čekaju Daniela (preporuka orkestratora)
+#### Odluke D1–D8 (orkestrator po Danielovu „Ti odluči za D1-D8”, 22. 11. 2026.)
 
-| # | Pitanje | Preporuka | Do kada |
-|---|---|---|---|
-| D1 | Domena i usmjeravanje | Jedna domena `ductura.org` s podputanjama (§1c) | prije F4-PRE-HOST |
-| D2 | Staging | Render + Vercel preview, izmišljeni podaci, zasebna baza | prije P-STAGING |
-| D3 | Računi i tajne | Otvara ih Daniel; orkestrator piše samo konfiguraciju | prije P-STAGING |
-| D4 | Redoslijed u `main` | Server, WEB, Preloader | prije F4 |
-| D5 | Način spajanja grana→`main` | Merge commit (čuva povijest) | prije F4 |
-| D6 | Q-10: AI pružatelj | Bira samo Daniel | 15. 12. 2026. |
-| D7 | Pravno mišljenje i DPIA | Naručiti prije probe | prije F5 |
-| D8 | Licence | Jedan popis licenci svih ovisnosti, Daniel potvrđuje | prije F5 |
+| # | Pitanje | Odluka |
+|---|---|---|
+| D1 | Domena i usmjeravanje | Jedna domena `ductura.org` s podputanjama (`/`, `/c/`, `/api/v1/`), kao §1c. Jedan kolačić sesije i jedna AAI registracija. |
+| D2 | Staging | Render + Vercel preview, samo izmišljeni podaci, zasebna baza. Bez deploya dok Daniel ne otvori račune (D3). |
+| D3 | Računi i tajne | Račune (Render, Vercel, baza, S3) i tajne otvara i upisuje Daniel. Orkestrator piše samo konfiguraciju bez tajni i ne stvara račune. |
+| D4 | Redoslijed u `main` | Institution_server, zatim Institution_front_web_chrome, Preloader zadnji. Nikad dva repoa odjednom. |
+| D5 | Način spajanja grana→`main` | Merge commit, bez squasha: čuva se povijest i veza commita sa zadacima i dokazima. |
+| D6 | Q-10 / D-194: AI pružatelj | **Ostaje Danielu** (pravilo: pružatelja i model bira samo Daniel). Rok 15. 12. 2026.; do tada je pomoćnik kostur. |
+| D7 | Pravno mišljenje i DPIA | Obavezni prije stvarnih studenata (F5). Proba 22. 2. 2027. ide samo s izmišljenim podacima. Narudžbu radi Daniel; orkestrator priprema popis obrada i tokova podataka. |
+| D8 | Licence | Jedan zadatak popisuje licence svih ovisnosti, fontova i prototipa prije F5; nalazi idu Danielu na potvrdu. |
 
 #### Čišćenje (svaka stavka tek na Danielovo „da”)
 
