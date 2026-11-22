@@ -171,7 +171,7 @@ O frontovima je Daniel 19. 11. rekao:
 | Faza | Što | Vrata |
 |---|---|---|
 | 1. Kopija | Doslovna kopija Ductusa na grane za migraciju. | Gotovo. |
-| 2. Osposobljavanje na granama | Svaki repo: tsc 0 grešaka, zeleni testovi, gradnja. | Orkestrator testira lokalno i spaja u granu. |
+| 2. Osposobljavanje na granama | Svaki repo: tsc 0 grešaka, zeleni testovi, gradnja. | Gotovo (22. 11.). |
 | 3. Lokalna integracija | Server, baza i frontovi zajedno, lažni OIDC; tokovi redom. | Svi tokovi prolaze. |
 | 4. Grana → `main` | Repo po repo; Preloader zadnji. | Zeleni CI i jedan ciljani pregled kritičnih dijelova. |
 | 5. Objava | Serveri na Renderu, frontovi na Vercelu. | Samo na Danielovu riječ. |
@@ -232,6 +232,51 @@ Valovi 1–10 (S-1A do S-1I) nisu građeni zadatak po zadatak. Preuzeti su kopij
 ### Valovi 11–18 (funkcije M1–M11)
 
 Valovi 11–18 kreću **nakon faze 3**. Grade se izravno u Ducturinim repozitorijima istim ritmom: PR, lokalni test, spajanje.
+
+### Stanje izvedbe (22. 11. 2026.)
+
+Ovaj odjeljak bilježi što je stvarno spojeno u grane za migraciju. Izvor je `_raspored/red.json` (413 zadataka) i `raspored.mjs`. Ništa od ovoga nije u `main` ni na produkciji.
+
+#### Faze
+
+| Faza | Stanje |
+|---|---|
+| 1. Kopija | Gotovo. |
+| 2. Osposobljavanje na granama | Gotovo. Svi ZEL zadaci spojeni (zadnji SRV #609, 22. 11.). |
+| 3. Lokalna integracija | Kod spojen: INT-01…INT-07 i LOK-2. **Scenariji A01–A10 još nisu izvršeni na stvarnom stogu** (server + baza + frontovi + lažni OIDC). „faza3 100/100” mjeri samo pokrivenost ugovora. Završni prolaz: INT-09 (PRE, stog iza edgea :8000, u tijeku) i INT-08 (WEB, `test:sistem` u CI-ju za INT-02…05, čeka LOK-WEB-1, WEB #335). |
+| 4. Grana → `main` | Nije počelo. Treba Danielov „Spoji n” po repou, Preloader zadnji. |
+| 5. Objava | Nije počelo. Samo na Danielovu riječ. |
+
+#### Valovi 0–12 (katalog)
+
+| Val | Sadržaj | Stanje |
+|---|---|---|
+| 0 | Kopija i temelji | Gotovo (faza 1). |
+| 1 | Jezgra editora, potpisana potvrda | Spojeno. |
+| 2 | Student: ljuska, prijava, upis kodom, obavijesti | Spojeno. |
+| 3 | Radni prostor, Izjava, predaja, potvrda | Spojeno. |
+| 4 | Nastavnik i administrator | Spojeno. |
+| 5 | Nastavnik vidi predaju | Spojeno. |
+| 6 | Izgled editora | Spojeno. |
+| 7 | Citati i izvori (shema v3) | Spojeno. |
+| 8 | Suradnja mentora | Spojeno. |
+| 9 | Zapis procesa | Spojeno, osim P-1: Karta podrijetla i ritam unosa (odgođeno). |
+| 10 | Bogati sadržaj, stranice (shema v4), izvoz | Spojeno. |
+| 11 | Provjere teksta, etape, konzultacije, Merlin, produljenje | Spojeno, osim P-1: pragovi i naziv obrasca Izjave; N-14 i N-15 čekaju nacrt. |
+| 12 | Pomoćnik | Spojen kostur bez stvarnog AI pružatelja. Pružatelj, `aitext` i oznaka podudaranja čekaju Q-10/D-194 (rok 15. 12.). |
+
+Valovi 1–11: svih 70 ID-jeva iz kataloga spojeno, osim gore navedenih odgoda.
+
+#### Valovi 13–20
+
+Spojeni u grane. Paket `val14-18.json` (79 zadataka) čeka Danielov „da” prije ulaska u red.
+
+#### Što ostaje
+
+1. Faza 3: izvršiti A01–A10 na stvarnom stogu (INT-08, INT-09) i popraviti što padne.
+2. Odluke vlasnika: Q-10/D-194 (AI pružatelj), P-1 stavke, nacrti N-14/N-15, „da” za val14-18.
+3. Faza 4: „Spoji n” repo po repo u `main`.
+4. Faza 5: objava na Danielovu riječ.
 
 ---
 
