@@ -20,7 +20,7 @@ Danielova odluka 23. 11. 2026. („Može da”): uz paritet s prototipom detaljn
 | 4 | Nastavnik: kolegiji i zadaci | NF-4 | Odlučeno 23. 11. |
 | 5 | Nastavnik: pregled rada, sažetak, karta podrijetla, reprodukcija | NF-5 | Odlučeno 23. 11. |
 | 6 | Mentorstvo i konzultacije | NF-6 | Odlučeno 23. 11. |
-| 7 | Operater i administracija | NF-7 | U radu |
+| 7 | Operater i administracija | NF-7 | Odlučeno 23. 11. |
 
 Dijelovi idu jedan po jedan, da Daniel svaki pročita i odluči prije sljedećeg.
 
@@ -161,4 +161,27 @@ Server (SRV zadaci): nastavnik otvara mentorstvo i obavijest studentu; termin: t
 
 Otvoreno prije gradnje: MK-12 i MK-14 kroz pravni pregled; tekstovi kroz skener zabranjenih izraza (MK-17).
 
-Redoslijed: NF-6-PROTO (nakon NF-5-PROTO), SRV zadaci za mentorstvo; gradnja čeka PAR2-N. Sljedeći pregled: NF-7 (operater i administracija).
+Redoslijed: NF-6-PROTO (nakon NF-5-PROTO), SRV zadaci za mentorstvo; gradnja čeka PAR2-N.
+
+### NF-7, operater i administracija (23. 11. 2026.)
+
+Pregled: `docs/nalazi/nove-funkcije-7-operater-administracija.md` (WEB #568). Daniel: „1. zaslon u pilotu da 2. Da 3. Treba uvoz popisa iz Merlina ili ISVU, ali neka kod opcija ostane 4. Za pilot da 5. Treba riješiti prije da 6. Da 7. Ručna obavijest 8. Neka uđe, probleme riješava ovisno o pitanjju”.
+
+Odgovori na pitanja:
+
+1. Operater dobiva zaslon u aplikaciji u pilotu (OA-1): ruta za mjerila pilota s postojećom komponentom; uloga `network_engineer` više ne završava na „Račun bez uloge”.
+2. Brisanje i ispravak podataka u pilotu idu izvan aplikacije, uz statičnu uputu „Moja prava” u pomoći (OA-5, za pilot). Zaslon za zahtjeve ispitanika (OA-4) dolazi nakon pravnog mišljenja i DPIA (nakon pilota).
+3. Uvoz popisa studenata iz Merlina ili ISVU-a ulazi u pilot (OA-10), uz pregled prije potvrde; upis kodom ostaje kao druga mogućnost. Format datoteke se ne izmišlja: treba primjer izvoza (izmišljeni podaci) i SRV ugovor.
+4. Dnevnik radnji administratora i operatera ulazi u pilot (OA-3): samo čitanje, bez osobnih podataka studenata.
+5. Rokovi čuvanja za vrste podataka gdje piše „Rok još nije određen” moraju biti određeni prije početka pilota. Rokove određuje fakultet (Daniel, 23. 11.: „1. Fakultet”).
+6. Asistent na razini fakulteta: prekidač ostaje u konfiguraciji (OC-1), administrator ga samo vidi (OA-9, za pilot); pružatelj i model se ne imenuju.
+7. Obavijest o prekidu u pilotu je ručna, uz javnu stranicu stanja; operater ne upisuje poruku u aplikaciji (OA-8 nakon pilota).
+8. Popis prijava problema ulazi u pilot (OA-7). Tko rješava ovisi o vrsti prijave: prijava se usmjerava po kategoriji (npr. tehnički problem operateru, pitanje o kolegiju ili zadatku nastavniku, račun i uloge administratoru fakulteta), uz stanje „zaprimljeno/riješeno”.
+
+Ostale stavke, po preporuci pregleda, Daniel potvrdio 23. 11. („2. Da”): OA-2 „Postavke fakulteta”, OA-6 stanje zahtjeva izvoza bez duplikata i OA-12 isti obrazac zaslona administracije za pilot; OA-11 nova akademska godina nakon pilota. Ne gradi se: kvota 50/100/200 i kvačice pružatelja iz prototipa, nadzor po osobi, rangiranje.
+
+Server (SRV zadaci): dnevnik radnji administratora i operatera (čitanje); prijave problema: čitanje, kategorija i usmjeravanje, stanje; uvoz popisa studenata s pregledom prije potvrde; izložiti za čitanje „asistent uključen na fakultetu”; obrasci fakulteta za čitanje; stanja zahtjeva izvoza i upozorenje na dupli zahtjev; što smije `network_engineer` (RLS).
+
+Otvoreno prije gradnje: fakultet određuje rokove čuvanja za vrste podataka bez roka (pitanje 5); tekst „Moja prava” kroz pravni pregled i skener zabranjenih izraza; format izvoza iz Merlina i ISVU-a.
+
+Redoslijed: NF-7-PROTO (skica zaslona operatera i administracije u prototipu, INVENTAR), SRV zadaci za administraciju; gradnja čeka PAR2-N. Svih sedam dijelova pregleda je odlučeno.
