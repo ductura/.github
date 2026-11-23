@@ -354,7 +354,7 @@ Ovo nastavlja „Pet faza” i `PLAN.md` §5. Svaki korak ima vrata koja provjer
 
 1. **Zatvoriti V1 i V2:** zeleni `ci-ok` na WEB i SRV bazi; A01–A05 na istim SHA, tablica na Ductus#2052.
 2. **F3b, A06–A10 na stvarnom stogu** (graditelj): restart, oporavak potpisa, predaja V1/V2, ovlasti, dvije kartice. Usporedno idu preostale funkcije pilota po `STANJE.md` (P-1, P-D1…P-D8).
-3. **V3, izgled:** VIZ zadaci, snimke na 390/768/1100/1280 px, ručna WCAG matrica (DAN-428, DAN-755). Server ne čeka V3.
+3. **V3, izgled i paritet funkcija:** VIZ zadaci, snimke na 390/768/1100/1280 px u svijetloj i tamnoj temi, ručna WCAG matrica (DAN-428, DAN-755), nove revizije pariteta funkcija. Detalji u `V3-VIZ.md`. Server ne čeka V3.
 4. **F4, grana → `main`:** Institution_server, zatim Institution_front_web_chrome, Preloader zadnji. Svaki repo na „Spoji n”.
 5. **Proba 22. 2. 2027.** na stagingu, samo izmišljeni podaci.
 6. **F5, objava i pilot:** samo na Danielovu riječ, uz pravno mišljenje i DPIA.
@@ -373,7 +373,7 @@ Ovo nastavlja „Pet faza” i `PLAN.md` §5. Svaki korak ima vrata koja provjer
 | Faza | Ulaz | Izlaz |
 |---|---|---|
 | F3b | V2 zelen | A06–A10 PROLAZ na istim SHA, tablica na #2052 |
-| V3 | V1 + V2 | Snimke bez odstupanja većih od praga (VIZ-PRAG), axe zelen, matrica DAN-755 potpisana |
+| V3 | V1 + V2 | Svih šest uvjeta iz `V3-VIZ.md`: svaki ekran ≤ 2 % u obje teme (ili zapisan razlog), `vrata=true`, axe zelen, matrica DAN-755, revizije PAR2 bez otvorenih „nedostaje” osim odgođenih |
 | F4 | V1, V2, F3b i V3 za taj repo | Zeleni CI na PR-u grana→`main`, ciljani kritični pregled bez otvorenih nalaza, „Spoji n” |
 | Proba | F4 za SRV, WEB i Preloader | A01–A10 na stagingu, oporavak (DAN-889) izmjeren |
 | F5 | Proba, Danielova odluka, pravno mišljenje i DPIA | Produkcija radi, stranica stanja javna, pilot odobren posebno |
@@ -386,8 +386,10 @@ Ovo nastavlja „Pet faza” i `PLAN.md` §5. Svaki korak ima vrata koja provjer
 | INT-18 | SRV | graditelj | V2 | A07: izgubljeni odgovor i prekid radnika daju jednu reviziju i jednu potvrdu |
 | INT-19 | SRV | graditelj | V2 | A09: tuđi rad i druga ustanova odbijeni kroz HTTP i stvarnu DB ulogu |
 | INT-20 | WEB | graditelj | V2 | A10: dvije kartice, odjava A, B ne vidi A-ov dnevnik |
-| VIZ-SNIMKE | WEB | oblak | V3 | Snimke prototip↔app na četiri širine za sve rute |
-| VIZ-WCAG | WEB | graditelj | V3 | Ručna matrica DAN-755 |
+| VIZ-SNIMKE | WEB | oblak | V3 | Snimke prototip↔app na četiri širine za sve rute (spojeno) |
+| VIZ-WCAG | WEB | graditelj | V3 | Ručna matrica DAN-755 (spojeno, #548); popravci kao VIZ-WCAG-POPRAVAK |
+| VIZ-TAMNA | WEB | oblak | V3 | Prolaz tamne teme, parovi za ekrane bez para, tablica pokrivenosti |
+| PAR2-S, PAR2-E, PAR2-N | WEB | oblak | V3 | Nove revizije pariteta funkcija (samo dokumentacija) |
 | F4-SYNC-SRV, F4-SYNC-WEB | SRV, WEB | orkestrator | F4 | Spojiti `main` u integracijsku granu (6 i 2 commita), CI zelen |
 | F4-PREGLED-SRV, F4-PREGLED-WEB | SRV, WEB | neovisni pregled | F4 | Ciljani pregled: AAI i sesije, RLS, dokazi (B-8), predaja |
 | F4-PR-SRV, F4-PR-WEB | SRV, WEB | orkestrator | F4 | PR grana→`main`, čeka „Spoji n” |
@@ -420,7 +422,7 @@ Ovo nastavlja „Pet faza” i `PLAN.md` §5. Svaki korak ima vrata koja provjer
 
 #### Čišćenje (svaka stavka tek na Danielovo „da”)
 
-SRV grana `migracija/kopija-ductus-testovi-server`; WEB #61, #62, #418, #434; SRV #347; Preloader #37, #40, #46, #47; Aplication_front #2; `.github` #26, #38, #41–#43, #48–#50. Revizije pariteta (WEB #340, #341, #343) čekaju V3, a red-team prijedlozi (WEB #261, SRV #511) odluku o P-2.
+SRV grana `migracija/kopija-ductus-testovi-server`; WEB #61, #62, #418, #434; SRV #347; Preloader #37, #40, #46, #47; Aplication_front #2; `.github` #26, #38, #41–#43, #48–#50. Stare revizije pariteta (WEB #340, #341, #343) pretvorene su u zadatke WEB-21xx (56 od 57 spojeno), a zamjenjuju ih PAR2-S/E/N; nacrti se mogu zatvoriti. Red-team prijedlozi (WEB #261, SRV #511) odluku o P-2.
 
 
 ### Dopuna 23. 11. 2026.: staging s migracijskih grana (odluka Daniel)
