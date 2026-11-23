@@ -168,6 +168,8 @@ Dopuna 24. 11. 2026. (pregled SRV #668, Daniel: „Oboje je dobro da”):
 - Mentor i administrator smiju studentu postaviti obrazac na „predan”, uključujući službeni obrazac izjave o izvornosti; promjena se bilježi s tim tko ju je napravio.
 - Kad mentorstvo završi, obrasce, suglasnost i faze čita samo administrator fakulteta; student i mentor ih više ne vide.
 
+Dopuna 24. 11. 2026. (pregled SRV #667, Daniel: „1 da”): zapisnik konzultacija i dopune piše samo mentor za sve radove, ne samo u mentorstvu; student zapisnik samo čita.
+
 ### NF-7, operater i administracija (23. 11. 2026.)
 
 Pregled: `docs/nalazi/nove-funkcije-7-operater-administracija.md` (WEB #568). Daniel: „1. zaslon u pilotu da 2. Da 3. Treba uvoz popisa iz Merlina ili ISVU, ali neka kod opcija ostane 4. Za pilot da 5. Treba riješiti prije da 6. Da 7. Ručna obavijest 8. Neka uđe, probleme riješava ovisno o pitanjju”.
