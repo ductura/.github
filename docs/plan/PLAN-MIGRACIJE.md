@@ -229,9 +229,11 @@ Doslovna kopija Ductusa na grane za migraciju:
 
 Valovi 1–10 (S-1A do S-1I) nisu građeni zadatak po zadatak. Preuzeti su kopijom (faza 1). Preostale stavke prelaze u fazu 2. Raniji redoslijed A–E (§4) i vremenska procjena (§4b) vrijede samo kao povijest.
 
-### Valovi 11–18 (funkcije M1–M11)
+### Paketi zadataka 11–18 (funkcije M1–M11)
 
-Valovi 11–18 kreću **nakon faze 3**. Grade se izravno u Ducturinim repozitorijima istim ritmom: PR, lokalni test, spajanje.
+**Napomena o nazivu (23. 11. 2026.):** „val” u nazivima paketa (`val1112.json`, `val13.json`, `val14-18.json`) i u ID-jevima zadataka (SRV-13xx…18xx, WEB-13xx…18xx) znači skupinu zadataka za funkcije M1–M11 za pilot. To nisu proizvodni valovi 13–22 iz tablice „Funkcionalni opseg proizvoda”. Valovi 13–22 (prezentacije, tablice, statistika, završni rad, rubrike, upitnici, praksa, jezični alati, paketi po područjima, ISVU) idu nakon pilota i od njih ništa nije u redu pisaca.
+
+Paketi 11–18 kreću **nakon faze 3**. Grade se izravno u Ducturinim repozitorijima istim ritmom: PR, lokalni test, spajanje.
 
 ### Stanje izvedbe (22. 11. 2026.)
 
@@ -267,9 +269,9 @@ Ovaj odjeljak bilježi što je stvarno spojeno u grane za migraciju. Izvor je `_
 
 Valovi 1–11: svih 70 ID-jeva iz kataloga spojeno, osim gore navedenih odgoda.
 
-#### Valovi 13–20
+#### Paketi zadataka 13–18 (funkcije M1–M11)
 
-Spojeni u grane. Paket `val14-18.json` (79 zadataka) ušao je u red 21. 11. 2026. i svih 79 je spojeno (ispravak: ranija rečenica da čeka „da” bila je netočna). Kanonski plan spojen kao PR #52 (22. 11.).
+Spojeni u grane. Paket `val13.json` (20 zadataka: M3, M7, M8, M10) i `val13-ostali.json` (12 zadataka za PRE, WM, WO, APS, APF, DWIN, DMAC) spojeni su. Paket `val14-18.json` (79 zadataka) ušao je u red 21. 11. 2026. i svih 79 je spojeno (ispravak: ranija rečenica da čeka „da” bila je netočna). Kanonski plan spojen kao PR #52 (22. 11.).
 
 #### Što ostaje
 
@@ -292,7 +294,7 @@ Red ima 524 zadatka: 496 spojeno, 13 u PR-u, 11 čeka ovisnost, 4 zadržana.
 
 #### 1. Funkcije usporedno s fazom 3
 
-Pravilo „valovi 11–18 kreću nakon faze 3” u praksi je zamijenjeno. Funkcije po prototipu grade se usporedno s fazom 3, prema ugovorima `/api/v1`:
+Pravilo „paketi 11–18 kreću nakon faze 3” u praksi je zamijenjeno. Funkcije po prototipu grade se usporedno s fazom 3, prema ugovorima `/api/v1`:
 
 - ekrani N-xx,
 - etape i razgovor (WEB-1520/1530),
