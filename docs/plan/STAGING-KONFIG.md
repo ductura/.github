@@ -2,6 +2,8 @@
 
 > **NACRT. Ovdje nema tajni ni stvarnih vrijednosti.** Sve vrijednosti su rezervirana mjesta u obliku `<…>`. Račune i tajne otvara i upisuje Daniel (D3). Ovaj dokument ne stvara račune i ne pokreće deploy.
 
+**Dopuna 23. 11. 2026. (odluka Daniel):** staging se diže s migracijskih grana, prije F4. Stvarna imena: Render servis `ductura-institution-server-staging` (Blueprint „Ductura”, grana `migracija/kopija-ductus-backend`), Vercel projekt `ductura-staging` (`https://ductura-staging.vercel.app`, grana `migracija/kopija-ductus-front`). Prijava zasad ide lažnim OIDC servisom (opcija B, STG-OIDC), a AAI@EduHr (opcija A, STG-AAI) čeka da fakultet odobri matičnu ustanovu. Vidi `PLAN-MIGRACIJE.md`, „Dopuna 23. 11. 2026.: staging s migracijskih grana”. Mjerodavni koraci: `docs/STAGING.md` u Institution_serveru.
+
 Zadatak: P-STAGING (`PLAN-MIGRACIJE.md`, „Faze nakon V2”). Proba je 22. 2. 2027.
 
 ## Odluke na kojima se temelji
@@ -39,7 +41,7 @@ Izvor: `render.yaml` i `docs/DEPLOY.md` u `ductura/Institution_server`. Sve vari
 | `LOGS_DATABASE_URL` | `postgres://<logs_uloga>:<TAJNA>@<staging-logs-db-host>/ductus_logs` | |
 | `LEGAL_DATABASE_URL` | `postgres://<legal_uloga>:<TAJNA>@<staging-db-host>/ductus_legal` | baza se stvara ručno u instanci glavne baze |
 | `TRUSTED_PROXIES` | `<adrese i CIDR rasponi ruba>` | bez toga se `X-Forwarded-For` ne čita |
-| `DUCTUS_AUTH_PROVIDER` | `aai-eduhr` | lažni pružatelj se odbija (D-09) |
+| `DUCTUS_AUTH_PROVIDER` | `fake-oidc` sada (opcija B, uz `DUCTURA_DEPLOYMENT=staging`); `aai-eduhr` kad Srce odobri (opcija A) | u produkciji se lažni pružatelj i dalje odbija (D-09) |
 | `OIDC_ISSUER` | `<issuer AAI@EduHr testne registracije>` | **[ODLUKA Daniel]**: testna registracija kod Srca (AAI Lab) |
 | `OIDC_CLIENT_ID` | `<client id>` | |
 | `OIDC_CLIENT_SECRET` | `<TAJNA>` | upisuje Daniel |

@@ -406,7 +406,7 @@ Ovo nastavlja „Pet faza” i `PLAN.md` §5. Svaki korak ima vrata koja provjer
 | # | Pitanje | Odluka |
 |---|---|---|
 | D1 | Domena i usmjeravanje | Jedna domena `ductura.org` s podputanjama (`/`, `/c/`, `/api/v1/`), kao §1c. Jedan kolačić sesije i jedna AAI registracija. Domena je već registrirana (Daniel, 22. 11.). |
-| D2 | Staging | Render + Vercel preview, samo izmišljeni podaci, zasebna baza. Bez deploya dok Daniel ne otvori račune (D3). |
+| D2 | Staging | Render + Vercel preview, samo izmišljeni podaci, zasebna baza. Bez deploya dok Daniel ne otvori račune (D3). **Dopunjeno 23. 11.:** staging s migracijskih grana prije F4, vidi „Dopuna 23. 11. 2026.: staging s migracijskih grana”. |
 | D3 | Računi i tajne | Račune (Render, Vercel, baza, S3) i tajne otvara i upisuje Daniel. Orkestrator piše samo konfiguraciju bez tajni i ne stvara račune. |
 | D4 | Redoslijed u `main` | Institution_server, zatim Institution_front_web_chrome, Preloader zadnji. Nikad dva repoa odjednom. |
 | D5 | Način spajanja grana→`main` | Merge commit, bez squasha: čuva se povijest i veza commita sa zadacima i dokazima. |
@@ -417,6 +417,61 @@ Ovo nastavlja „Pet faza” i `PLAN.md` §5. Svaki korak ima vrata koja provjer
 #### Čišćenje (svaka stavka tek na Danielovo „da”)
 
 SRV grana `migracija/kopija-ductus-testovi-server`; WEB #61, #62, #418, #434; SRV #347; Preloader #37, #40, #46, #47; Aplication_front #2; `.github` #26, #38, #41–#43, #48–#50. Revizije pariteta (WEB #340, #341, #343) čekaju V3, a red-team prijedlozi (WEB #261, SRV #511) odluku o P-2.
+
+
+### Dopuna 23. 11. 2026.: staging s migracijskih grana (odluka Daniel)
+
+Ovo **mijenja raniji plan**. Po „Pet faza” i D2 staging je dolazio tek uz probu i Fazu 5 (M11.4: staging s AAI@EduHr Labom). Daniel je 23. 11. odlučio da se staging digne odmah, s migracijskih grana, prije Faze 4. Izvori: „b i a, postavi staging s migracijske grane”, „Idemo B”, „Idemo B onda da, ali moramo sve raditi paralelno i za A”.
+
+#### Što je odlučeno
+
+| # | Odluka |
+|---|---|
+| S1 | Staging se gradi s migracijskih grana: SRV `migracija/kopija-ductus-backend`, WEB `migracija/kopija-ductus-front`. Ne čeka F4 ni `main`. |
+| S2 | Hosting: server i baze na Renderu (Blueprint „Ductura”, servis `ductura-institution-server-staging`, Frankfurt), WEB na Vercelu (projekt `ductura-staging`, adresa `https://ductura-staging.vercel.app`, korijen `packages/app`). Vercel prosljeđuje `/api/v1/*` serveru (`INSTITUTION_SERVER_URL`). |
+| S3 | **Prijava, opcija B (sada):** lažni OIDC izdavatelj kao **zaseban Render servis**, samo uz `DUCTURA_DEPLOYMENT=staging` i host izvan `ductura.org`. Produkcijski build i dalje odbija lažnog pružatelja (D-09). Samo izmišljeni `demo-*` računi. |
+| S4 | **Prijava, opcija A (paralelno pripremljena):** testni resurs u Registru AAI@EduHr (vrsta „Test”). Čeka da neki fakultet odobri matičnu ustanovu. Kad odobri, mijenjaju se samo Render varijable (`DUCTUS_AUTH_PROVIDER=aai-eduhr`, `OIDC_*`), bez novog koda. Tekst zahtjeva: `_raspored/stg-aai-zahtjev.md`. |
+| S5 | Samo izmišljeni podaci. Nikad pravi računi, e-pošte ni radovi studenata i nastavnika. |
+| S6 | Račune, tajne i lozinke otvara i upisuje Daniel (D3). Prvi deploy i svaki sljedeći ide **samo na Danielovu riječ**. |
+
+#### Odnos prema ostatku plana
+
+- **M11.4 i GO uvjeti ostaju.** Lažni OIDC na stagingu nije dokaz stvarnog AAI toka (D-203 D1). Prije stvarnih korisnika i dalje treba prolaz prijave preko AAI@EduHr (opcija A).
+- **Proba 22. 2. 2027.** ide na ovom stagingu. Do F4 staging prati migracijske grane; nakon F4 prelazi na `main`.
+- **Faza 5 se ne mijenja:** produkcija samo na Danielovu riječ, uz pravno mišljenje i DPIA.
+- `STAGING-KONFIG.md` (nacrt s `<…>` mjestima) dopunjen je stvarnim imenima servisa i projekata. Mjerodavne upute za postavljanje su `docs/STAGING.md` u Institution_serveru.
+
+#### Zadaci
+
+| id | repo | tko | stanje 23. 11. | što |
+|---|---|---|---|---|
+| STG-PRIJAVA | SRV | oblak | spojeno (SRV #655) | Izričit staging način za lažnog pružatelja; produkcija ostaje fail-closed. |
+| OBJ-KONFIG | SRV | oblak | spojeno (SRV #656) | Render Blueprint za staging i `docs/STAGING.md`, bez tajni i bez deploya. |
+| STG-OIDC | SRV | oblak | u izradi | Lažni OIDC kao zaseban Render servis (`packages/test-fakes/oidc/`, staging način). |
+| STG-AAI | SRV | Daniel | čeka fakultet | Registracija testnog resursa i testnih e-identiteta kod Srca. |
+| P-STAGING | SRV | orkestrator i Daniel | čeka STG-OIDC | Baza (uloge, `ductus_legal`, migracije) psql skriptom koju pokreće Daniel; varijable na Renderu i Vercelu; prvi deploy na Danielovu riječ. |
+| P-OPORAVAK | SRV | graditelj | čeka P-STAGING | DAN-889 na stagingu, RPO i RTO izmjereni. |
+
+#### Usputni zadaci iz lokalne provjere sheme 3 (23. 11.)
+
+Nisu dio staginga, ali su nastali istog dana iz graditeljeve provjere v3 rada u upaljenoj aplikaciji:
+
+| id | repo | tko | stanje 23. 11. | što |
+|---|---|---|---|---|
+| LOK-SRV-V3 | SRV | graditelj | spojeno (SRV #654) | Lažni dev server daje rad sheme 3 (`DUCTURA_LAZNI_SHEMA=3`). |
+| INT-22 | WEB | graditelj | gotovo | Provjera v3 rada od početka do kraja; nalazi su postali INT-23…INT-27. |
+| INT-23 | WEB | oblak, kritično | u izradi | Nastavnikova reprodukcija v3 rada. |
+| INT-24 | WEB | oblak | u izradi | Vidljiva i fokusabilna oznaka fusnote u v3 tekstu. |
+| INT-25 | WEB | oblak | u izradi | Kopiranje teksta rada uključuje fusnote. |
+| INT-26 | WEB | oblak, kritično | u izradi | Prikaz uživo za v3 rad. |
+| INT-27 | SRV | graditelj | čeka | Lažni server čuva ranije verzije za usporedbu. |
+
+#### Redoslijed do prvog deploya
+
+1. STG-OIDC spojen u SRV migracijsku granu.
+2. Daniel pokreće psql skriptu za baze i uloge (klijent `psql` 17, bez lokalnog Postgres servera).
+3. Daniel upisuje Render varijable (`DUCTURA_DEPLOYMENT=staging`, `DUCTUS_AUTH_PROVIDER=fake-oidc`, `OIDC_*`, baze) i na Vercelu `INSTITUTION_SERVER_URL`.
+4. Daniel kaže „deploy”. Orkestrator provjerava prijavu i tok A01 na stagingu.
 
 ## 0. Ukratko
 
