@@ -18,8 +18,8 @@ Danielova odluka 23. 11. 2026. („Može da”): uz paritet s prototipom detaljn
 | 2 | Radni prostor i editor | NF-2 | Odlučeno 23. 11. |
 | 3 | Predaja i potvrda | NF-3 | Odlučeno 23. 11. |
 | 4 | Nastavnik: kolegiji i zadaci | NF-4 | Odlučeno 23. 11. |
-| 5 | Nastavnik: pregled rada, sažetak, karta podrijetla, reprodukcija | NF-5 | U radu |
-| 6 | Mentorstvo i konzultacije | NF-6 | Čeka NF-5 |
+| 5 | Nastavnik: pregled rada, sažetak, karta podrijetla, reprodukcija | NF-5 | Odlučeno 23. 11. |
+| 6 | Mentorstvo i konzultacije | NF-6 | U radu |
 | 7 | Operater i administracija | NF-7 | Čeka NF-6 |
 
 Dijelovi idu jedan po jedan, da Daniel svaki pročita i odluči prije sljedećeg.
@@ -119,3 +119,23 @@ Otvoreno prije gradnje:
 - NZ-9 i tekst NZ-15 idu kroz pravni pregled i DPIA.
 
 Redoslijed: najprije izmjene prototipa nastavnika i `INVENTAR-nastavnik.md` (NF-4-PROTO) i dopuna asistenta u prototipu editora (ASIST-PROTO), zatim zadaci u redu; gradnja čeka zatvaranje pariteta nastavnika (PAR2-N).
+
+### NF-5, nastavnik: pregled rada (23. 11. 2026.)
+
+Pregled: `docs/nalazi/nove-funkcije-5-nastavnik-pregled-rada.md` (WEB #562). Daniel: „Sve u pilotu 1. Ostaje u Merlinu 2. Smije ovo prov 3. Da 4. Smije vidjeti ritam pisanja po dijelu teksta 5. Smije s oznamaka podrijetla izvesti i ispisati”.
+
+Svih 15 prijedloga (PG-1 … PG-15) ide u pilot, uključivo PG-2 (karta podrijetla uz tekst rada), PG-9, PG-11 u cijelosti i PG-12.
+
+Odgovori na pitanja:
+
+1. Ocjena ostaje u Merlinu: PG-10 smjer (a), Ductura ne bilježi ocjenu; pregled kaže „Ocjenu upisujete u Merlin”.
+2. Nastavnik studentovo objašnjenje čita uz nalaz, u istom prikazu kao student (prva ponuđena mogućnost; Danielov odgovor „Smije ovo prov” orkestrator čita kao „smije, ovo prvo”).
+3. Prije pilota otvara se zadatak na poslužitelju za pitanje nastavnika i odgovor studenta uz izjavu (declaration-v1; NF-3 PR-20, NF-4 NZ-15, NF-5 PG-6).
+4. Nastavnik smije vidjeti ritam pisanja po dijelu teksta, uz napomenu da je to zapis o unosu, ne o autorstvu; ritam se briše najkasnije 30 dana nakon predaje.
+5. Pregled s oznakama podrijetla i podudaranja smije se izvesti i ispisati, uz upozorenje da datoteka sadrži tekst rada i ime studenta i uz zapis izvoza u dnevnik pristupa.
+
+Tehnička pitanja (orkestrator provjerava na SRV, ne traže Danielovu odluku): raspon po odsječku za kartu u tekstu (PG-2), sesije u zapisu ili popis „važna mjesta” (PG-5, D-239), čitanje objašnjenja uz nalaz (PG-7), „student je vidio” (PG-9), PDF sažetka i karte (PG-11).
+
+Otvoreno prije gradnje: PG-2, PG-11 i ritam po odsječku idu kroz pravni pregled i DPIA; tekstovi kroz skener zabranjenih izraza (PG-14).
+
+Redoslijed: NF-5-PROTO (prototip nastavnika i `INVENTAR-nastavnik.md`, nakon NF-4-PROTO jer dijele datoteke), SRV zadatak za pitanje uz izjavu, zatim zadaci u redu; gradnja čeka PAR2-N.
