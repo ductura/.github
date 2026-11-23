@@ -19,8 +19,8 @@ Danielova odluka 23. 11. 2026. („Može da”): uz paritet s prototipom detaljn
 | 3 | Predaja i potvrda | NF-3 | Odlučeno 23. 11. |
 | 4 | Nastavnik: kolegiji i zadaci | NF-4 | Odlučeno 23. 11. |
 | 5 | Nastavnik: pregled rada, sažetak, karta podrijetla, reprodukcija | NF-5 | Odlučeno 23. 11. |
-| 6 | Mentorstvo i konzultacije | NF-6 | U radu |
-| 7 | Operater i administracija | NF-7 | Čeka NF-6 |
+| 6 | Mentorstvo i konzultacije | NF-6 | Odlučeno 23. 11. |
+| 7 | Operater i administracija | NF-7 | U radu |
 
 Dijelovi idu jedan po jedan, da Daniel svaki pročita i odluči prije sljedećeg.
 
@@ -139,3 +139,26 @@ Tehnička pitanja (orkestrator provjerava na SRV, ne traže Danielovu odluku): r
 Otvoreno prije gradnje: PG-2, PG-11 i ritam po odsječku idu kroz pravni pregled i DPIA; tekstovi kroz skener zabranjenih izraza (PG-14).
 
 Redoslijed: NF-5-PROTO (prototip nastavnika i `INVENTAR-nastavnik.md`, nakon NF-4-PROTO jer dijele datoteke), SRV zadatak za pitanje uz izjavu, zatim zadaci u redu; gradnja čeka PAR2-N.
+
+### NF-6, mentorstvo i konzultacije (23. 11. 2026.)
+
+Pregled: `docs/nalazi/nove-funkcije-6-mentorstvo-konzultacije.md` (WEB #564). Daniel: „1 samo mentor, student čita 2. Unutar Ducture 3. Nisam siguran još, zašto je to bitno? 4. Mentorstvo otvara nastavnik 5. Da 6. Smije 7. Jesu 8. I na drugom računalu. Inače, sve u pilot”.
+
+Svih 17 prijedloga (MK-1 … MK-17) ide u pilot, uključivo MK-12 (obrasci i suglasnost) i MK-14 (nakon predaje i obrana), uz ograničenja iz odgovora.
+
+Odgovori na pitanja:
+
+1. Zapisnik konzultacija piše i dopunjuje samo mentor; student ga čita. MK-5 u pilotu: dogovoreni zadaci i dopune koje upisuje mentor; student ne započinje zapis i nema „Potvrđujem” / „Imam primjedbu” (prototip `mentor2.js` se usklađuje).
+2. Obrasci fakulteta i suglasnost mentora za predaju vode se unutar Ducture (MK-12); treba SRV ugovor i pravni pregled; „izvornost” samo kao naziv službenog obrasca.
+3. Broj mentorstava u pilotu još nije poznat. Nije blokirajuće: utječe samo na redoslijed (MK-11 „Moji studenti” i MK-14 korisniji su kad je mentorstava više) i na veličinu scenarija za provjeru (MK-16).
+4. Mentorstvo otvara nastavnik; student ne traži mentora kroz Ducturu, nego vidi odluku i mentora (MK-7 se mijenja: ulaz za nastavnika, obavijest studentu; postojeći `MentorshipRequestPage` za studenta nije u pilotu).
+5. Kriteriji ocjene smiju stajati u kartici Mentor kao rubrika bez broja, vidljiva studentu (uz NF-5: ocjena ostaje u Merlinu).
+6. Student smije uz zahtjev za termin priložiti pripremu (što je mijenjao, riješeni komentari), uz napomenu „zapis o unosu, ne o autorstvu” (MK-10).
+7. Kratke poruke mentor–student (`work.messages`) su u pilotu, uz značku „novo”.
+8. „Poruka sebi” i „Dokle sam stao” moraju biti dostupni i na drugom računalu: pohrana na poslužitelju (MK-9), uz brisanje na zahtjev studenta; vidi ih samo student.
+
+Server (SRV zadaci): nastavnik otvara mentorstvo i obavijest studentu; termin: tema, povlačenje, odbijanje, otkazivanje; prilog pripreme uz termin; dogovoreni zadaci u zapisniku (piše mentor); obrasci fakulteta i suglasnost mentora; stanja nakon predaje i obrane; poruka sebi i „Dokle sam stao” na poslužitelju; agregat „Moji studenti”; „student je vidio” (dijeli se s NF-5 PG-9).
+
+Otvoreno prije gradnje: MK-12 i MK-14 kroz pravni pregled; tekstovi kroz skener zabranjenih izraza (MK-17).
+
+Redoslijed: NF-6-PROTO (nakon NF-5-PROTO), SRV zadaci za mentorstvo; gradnja čeka PAR2-N. Sljedeći pregled: NF-7 (operater i administracija).
