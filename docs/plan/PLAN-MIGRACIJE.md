@@ -288,6 +288,8 @@ Red ima 524 zadatka: 496 spojeno, 13 u PR-u, 11 čeka ovisnost, 4 zadržana.
 
 **Ispravak tablice faza:** faza 2 nije potpuno zatvorena za WEB. Baza `migracija/kopija-ductus-front` ima crveni CI (`client`, `ui`, pa i `ci-ok`). Bazu popravlja graditeljev PR #416 (CI i osnovne snimke kataloga). Faza 2 za WEB zatvara se kad je `ci-ok` na bazi zelen.
 
+**Zatvoreno 23. 11. 2026.:** faza 2 je zatvorena za svih devet repoa. Svi ZEL i LOK-WEB zadaci su spojeni, a CI na svakoj migracijskoj bazi je zelen: SRV `2f1c37f0`, WEB `a3a3b27c` (`ci-ok`), PRE `cd6128df`, WM `ae5f825c`, WO `66a34105`, APS `ba92b34f`, APF `a3d460ca`, DWIN `aefc1736`, DMAC `9d74e356`. Svaki novi commit na bazi mora zadržati zeleni CI.
+
 #### 1. Funkcije usporedno s fazom 3
 
 Pravilo „valovi 11–18 kreću nakon faze 3” u praksi je zamijenjeno. Funkcije po prototipu grade se usporedno s fazom 3, prema ugovorima `/api/v1`:
