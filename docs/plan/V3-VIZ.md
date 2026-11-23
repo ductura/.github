@@ -4,30 +4,30 @@ Stanje 23. 11. 2026. Snimka Claude Doca (https://claude.ai/artifact/42ZpGSuVfoDs
 
 ## Cilj i kriterij gotovosti
 
-V3 je gotov kad svaki ekran iz prototipa izgleda identično u aplikaciji, s odstupanjem od najviše 2 % na širinama 390, 768, 1100 i 1280 px, i kad provjera to ruši u CI-ju. Danielova riječ od 22. 11.: „Želim i da izgleda identično i da ima sve funkcije.”
+V3 je gotov kad svaki ekran iz prototipa izgleda identično u aplikaciji, s odstupanjem od najviše 2 % na širinama 390, 768, 1100 i 1280 px, u svijetloj i u tamnoj temi, i kad provjera to ruši u CI-ju. Danielova riječ od 22. 11.: „Želim i da izgleda identično i da ima sve funkcije.”
 
 Izvor istine su prototipovi u `docs/prototip/` (Ductura_student.html, Ductura_nastavnik.html, editor/) i popisi ekrana i tokena u INVENTAR-student.md, INVENTAR-nastavnik.md i INVENTAR-editor.md. Izgled se prepisuje iz CSS-a prototipa, ne preoblikuje po uzoru. Faze nakon V2 dogovorene su u ductura/.github#58.
 
 V3 je zatvoren kad vrijedi svih pet uvjeta:
 
 1. Tablica pokrivenosti ima redak za svaki ekran prototipa: ruta, ljuska, scenarij podataka i postotak odstupanja na četiri širine.
-2. Svaki redak je ≤ 2 %, ili ima zapisanu preostalu razliku i razlog.
+2. Svaki redak je ≤ 2 % u obje teme, ili ima zapisanu preostalu razliku i razlog.
 3. Workflow viz-usporedba radi s uključenim vratima (`vrata=true`) i prolazi.
 4. axe prolazi na svakom ekranu; kontrast se popravlja tokenom, nikad gašenjem provjere.
 5. Ručna WCAG matrica (VIZ-WCAG) zapisana je u `docs/nalazi/`.
 
 ## Stanje zadataka
 
-Od 22 VIZ zadatka 16 je spojeno; preostalo je 6 (stanje 23. 11. u 20:25).
+Od 22 VIZ zadatka 17 je spojeno; preostalo je 5 (stanje 23. 11. navečer).
 
 | Zadatak | Područje | Stanje | Tko radi |
 | --- | --- | --- | --- |
 | VIZ-CSS | Zajednički CSS i tokeni iz prototipa | U radu | Pisac u oblaku |
-| VIZ-PODACI | Scenariji lažnog servera | PR #544, sukob riješen, čeka pregled | Orkestrator |
-| VIZ-SNIMKE | Osnovne snimke svih ruta | U radu | Pisac u oblaku |
+| VIZ-PODACI | Scenariji lažnog servera | Spojeno (#544, 23. 11.) | — |
+| VIZ-SNIMKE | Osnovne snimke svih ruta | PR #545, ci-ok zelen | Pregled orkestratora |
 | VIZ-E1 | Editor: kostur, alatna i statusna traka, traženje | PR #449 | Pregled orkestratora |
-| VIZ-S4b | Predaja studenta bez ljuske | Čeka VIZ-CSS i VIZ-PODACI | Orkestrator ga pokreće |
-| VIZ-WCAG | Ručna WCAG matrica | Slobodno | Graditelj (nakon Docker zadataka) |
+| VIZ-S4b | Predaja studenta bez ljuske | Čeka VIZ-CSS | Orkestrator ga pokreće |
+| VIZ-WCAG | Ručna WCAG matrica | U radu (nalog 23. 11.) | Graditelj |
 | VIZ-PRAG | Jedan prolaz usporedbe, prag 2 % | Spojeno (#543, 23. 11.) | — |
 | VIZ-CI | Workflow viz-usporedba | Spojeno | — |
 | VIZ-0 | Temelj: tokeni i komponente @ductura/ui | Spojeno | — |
@@ -79,9 +79,9 @@ Tri zadatka idu odmah i usporedno; VIZ-S4b i uključivanje vrata čekaju njih.
 
 1. **Sada, usporedno u oblaku:** VIZ-CSS, VIZ-SNIMKE (ovisi o VIZ-PRAG, koji je spojen) i VIZ-PODACI #544 (sukob s #543 u `e2e/viz` riješen). VIZ-E1 #449 ide na pregled čim je zelen.
 2. **Nakon VIZ-CSS i VIZ-PODACI:** VIZ-S4b (ovisi i o INT-10, koji je spojen).
-3. **Nakon svih šest:** novi prolaz viz-usporedbe; svaki ekran ≤ 2 % ili zapisan razlog.
+3. **Nakon svih šest:** novi prolaz viz-usporedbe u svijetloj i tamnoj temi; svaki ekran ≤ 2 % ili zapisan razlog.
 4. **Zatim:** orkestrator uključuje vrata (`vrata=true`), pa svaki budući PR koji pokvari izgled pada.
-5. **Usporedno, kad graditelj završi Docker zadatke:** VIZ-WCAG ručna matrica.
+5. **Usporedno:** VIZ-WCAG ručna matrica (graditelj, Faza 3 A01–A10 je gotova).
 6. **Zatvaranje V3:** kad vrijedi svih pet uvjeta iz prvog dijela.
 
 ## Pravila za sve VIZ zadatke
@@ -103,7 +103,7 @@ Najveći rizik je da brojke ne padnu ispod 2 % ni nakon VIZ-CSS; zato vrata osta
 
 - **Stvarne brojke danas.** Ekran „student: moji zadaci” odstupa 10,0 / 6,5 / 4,8 / 4,1 % na 390 / 768 / 1100 / 1280 px (mjereno u #543, prije VIZ-CSS i VIZ-PODACI).
 - **Vrata.** Uključuju se kad svi ekrani budu ispod praga; do tada viz-usporedba samo izvještava.
-- **Mjera.** Razlika se računa po pikselima s tolerancijom 24 po kanalu, zadana tema je svijetla. Tamna tema još nema svoj prolaz.
+- **Mjera.** Razlika se računa po pikselima s tolerancijom 24 po kanalu, zadana tema je svijetla. Tamna tema još nema svoj prolaz; treba ga dodati u viz-usporedbu.
 - **Ekrani bez para.** Neki ekrani s mape (npr. N-04, N-07) nemaju par u pairs.ts; vide se u tablici pokrivenosti i treba ih dodati.
-- **Lokalni RAM.** Graditelj na računalu orkestratora radi preostale Docker provjere (A07, pgTAP dio A09), pa VIZ rad ide samo u oblak. VIZ-WCAG graditelj radi nakon toga.
-- **Otvoreno pitanje za Daniela:** treba li i tamna tema prolaziti isti prag od 2 % prije zatvaranja V3?
+- **Lokalni RAM.** VIZ rad pisaca ide samo u oblak; graditelj lokalno radi VIZ-WCAG.
+- **Odluka Daniela 23. 11.:** „Da, i tamna tema neka prođe prag od 2 %.” Prolaz tamne teme dodaje se u viz-usporedbu prije uključivanja vrata.
