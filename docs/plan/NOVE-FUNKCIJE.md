@@ -15,8 +15,8 @@ Danielova odluka 23. 11. 2026. („Može da”): uz paritet s prototipom detaljn
 | # | Dio | Zadatak | Stanje |
 | --- | --- | --- | --- |
 | 1 | Student: zadaci, obavijesti, upis | NF-1 | Odlučeno 23. 11. |
-| 2 | Radni prostor i editor | NF-2 | U radu |
-| 3 | Predaja i potvrda | NF-3 | Čeka NF-2 |
+| 2 | Radni prostor i editor | NF-2 | Odlučeno 23. 11. |
+| 3 | Predaja i potvrda | NF-3 | U radu |
 | 4 | Nastavnik: kolegiji i zadaci | NF-4 | Čeka NF-3 |
 | 5 | Nastavnik: pregled rada, sažetak, karta podrijetla, reprodukcija | NF-5 | Čeka NF-4 |
 | 6 | Mentorstvo i konzultacije | NF-6 | Čeka NF-5 |
@@ -55,3 +55,24 @@ Otvoreno prije gradnje:
 - P-7 (povijest produljenja s razlogom) ide kroz pravni pregled teksta.
 
 Redoslijed: najprije izmjene prototipa i INVENTAR-a za studenta, zatim zadaci u redu; gradnja čeka zatvaranje pariteta studenta (PAR2-S).
+
+### NF-2, radni prostor i editor (23. 11. 2026.)
+
+Pregled: `docs/nalazi/nove-funkcije-2-radni-prostor-editor.md` (WEB #555). Daniel: „Sve u pilot. 1. Da 2. Da 3. Uz prvi rad 4. Da 5. U pilotu”.
+
+Svih 26 prijedloga (P-1 … P-26) ide u pilot, uključivo i one koje je pregled preporučio za „nakon pilota”: P-12 (izjava o AI-ju kao dijalog u editoru, odluka 2165), P-3 u cijelosti (odluka o sukobu verzija u sučelju, ne samo tekst), P-19 (uvoz DOCX/PDF), P-24 (stilovi citiranja po ustanovi), P-25 (tablica, slika, formula; shema v4) i P-26 (poruka o drugom uređaju).
+
+Odgovori na pitanja pregleda:
+
+1. Asistent (OC-1) je u pilotu isključen. Kartica Asistent (P-9, P-10) prikazuje pravila uporabe alata iz zadatka i iskreno stanje, a ne pomoćnika.
+2. Numerirani popis (G-6) ulazi u pilot; ne čeka shemu v3.
+3. Vodič „Prvi koraci” (P-20) prikazuje se uz prvi rad.
+4. „Predaja rada” i prebacivač lista u zaglavlju editora (WEB-23) su potvrđeni i upisuju se u INVENTAR-editor §1.2.
+5. Zapisnik konzultacija i „Dokle sam stao” ulaze u pilot; pojedinosti (privatni ili zajednički zapis) dolaze s NF-6.
+
+Otvoreno prije gradnje:
+
+- Serverske rute: sukob verzija (P-3), zatražene potvrde i izvori za studenta (P-8), dohvat DOI/ISBN (P-7), stanje izjave s poslužitelja (P-11); provjeru radi orkestrator, a nedostajuće rute postaju SRV zadaci.
+- P-25 (shema v4) i P-19 (uvoz) su velike stavke; ako ugroze rok 15. 1. 2027., orkestrator to javlja Danielu prije nego što ih odgodi.
+
+Redoslijed: najprije izmjene prototipa i INVENTAR-a za editor (NF-2-PROTO), zatim zadaci u redu; gradnja čeka zatvaranje pariteta editora (PAR2-E).
