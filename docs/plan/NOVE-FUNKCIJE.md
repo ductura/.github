@@ -14,8 +14,8 @@ Danielova odluka 23. 11. 2026. („Može da”): uz paritet s prototipom detaljn
 
 | # | Dio | Zadatak | Stanje |
 | --- | --- | --- | --- |
-| 1 | Student: zadaci, obavijesti, upis | NF-1 | U radu |
-| 2 | Radni prostor i editor | NF-2 | Čeka NF-1 |
+| 1 | Student: zadaci, obavijesti, upis | NF-1 | Odlučeno 23. 11. |
+| 2 | Radni prostor i editor | NF-2 | U radu |
 | 3 | Predaja i potvrda | NF-3 | Čeka NF-2 |
 | 4 | Nastavnik: kolegiji i zadaci | NF-4 | Čeka NF-3 |
 | 5 | Nastavnik: pregled rada, sažetak, karta podrijetla, reprodukcija | NF-5 | Čeka NF-4 |
@@ -35,3 +35,20 @@ Dijelovi idu jedan po jedan, da Daniel svaki pročita i odluči prije sljedećeg
 ## Nakon pregleda
 
 Orkestrator Danielove odluke upisuje u ovaj dokument; stavke „za pilot” idu najprije kao izmjena prototipa i INVENTAR-a, zatim kao zadaci u redu. Sljedeći dio kreće kad Daniel odluči o prethodnom.
+
+## Odluke
+
+### NF-1, student (23. 11. 2026.)
+
+Pregled: `docs/nalazi/nove-funkcije-1-student-zadaci.md` (WEB #551). Daniel: „Ja bih sve u pilot.”
+
+Svih 17 prijedloga (P-1 … P-17) ide u pilot, uključivo i one koje je pregled preporučio za „nakon pilota” (P-2, P-5, P-6, P-7, P-14, P-16).
+
+Otvoreno prije gradnje:
+
+- P-9: varijanta (a) ništa se ne bilježi prije potvrde ili (b) otvaranje se bilježi i to piše studentu.
+- P-17 (obavijest e-poštom ili push): protivno odluci 2147; čeka Danielovu potvrdu da 2147 mijenja.
+- P-6 i P-16 traže serverske zadatke (`submittedAt`, nova ruta za verzije obavijesti); P-1 i P-2 traže provjeru stvara li server zapise `deadline_reminder` i `assignment_version`.
+- P-7 (povijest produljenja s razlogom) ide kroz pravni pregled teksta.
+
+Redoslijed: najprije izmjene prototipa i INVENTAR-a za studenta, zatim zadaci u redu; gradnja čeka zatvaranje pariteta studenta (PAR2-S).
