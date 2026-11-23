@@ -35,41 +35,11 @@ Svi VIZ zadaci iz prve skupine su spojeni, uključivo VIZ-WCAG (#548). Otvoreno 
 
 ## Preostali zadaci i prihvaćanje
 
-Svaki preostali zadatak ima točan opseg i uvjet prihvaćanja u svom PR-u; orkestrator ga spaja tek nakon neovisnog pregleda i zelenog `ci-ok`.
+Svaki preostali zadatak ima točan opseg i uvjet prihvaćanja u svom PR-u; orkestrator ga spaja tek nakon neovisnog pregleda i zelenog `ci-ok`. Opseg već spojenih zadataka (VIZ-CSS, PODACI, SNIMKE, E1, S4b, WCAG) je u njihovim PR-ovima.
 
-**VIZ-CSS: jedan zajednički CSS iz prototipa**
+**VIZ-WCAG-POPRAVAK: popravci nalaza iz VIZ-WCAG (graditelj)**
 
-- Doslovno iz CSS-a prototipa: boje, fontovi, radijusi, razmaci, širine kolona, najveća širina kontejnera, grid i prijelomi ≤640 / 641–1050 / 1051–1250 / >1250 px. App to uvozi umjesto lokalnih vrijednosti.
-- Zapis ljuske po ekranu (bočna traka ili bez ljuske, kontejner) za sve ekrane; Host.tsx ga čita.
-- Fontovi iz istih datoteka kao prototip; snimka tek nakon `document.fonts.ready`.
-- U PR-u: tablica pravilo prototipa → token u appu, i tablica odstupanja prije/poslije na svim ekranima.
-
-**VIZ-PODACI: isti podaci kao prototip**
-
-- Scenarij „puno” jednak prototipu (Kolegij A, sesije, razgovori, lijepljenja, AI, napomene, sažetak procesa, povlačenje), plus prazno, učitavanje, greška i dugi tekst s č ć đ š ž.
-- Fiksni datum i vrijeme da snimke budu stabilne. Samo izmišljeni podaci.
-- Odabir scenarija preko `VIZ_SCENARIJ`; postojeći scenariji i testovi ostaju.
-
-**VIZ-SNIMKE: osnovne snimke**
-
-- Parovi prototip ↔ app na 390/768/1100/1280 px za sve rute iz INVENTAR-a, izvještaj u viz-usporedba.yml. Tokeni se ne diraju.
-
-**VIZ-E1: okvir editora (PR #449)**
-
-- Kostur stranice i mjere regija, alatna traka, traka traženja, statusna traka, načini prikaza (INVENTAR-editor §1).
-
-**VIZ-S4b: predaja studenta kao u prototipu**
-
-1. Predaja (izjava, pregled, slanje, potvrda) bez bočne trake.
-2. Traka „Natrag na rad” preko cijele širine uz vrh.
-3. E-8 na 1280 px u dvije kolone, oko 440 + 606 px.
-4. Na 390 px bez dvostrukog uvlaka, koraci u jednom redu, gumbi Dalje/Natrag 50/50.
-
-U PR-u tablica pokrivenosti za svaki ekran, interaktivna stanja (hover, fokus, onemogućeno, otvoren dijalog, greške forme) i snimke bez animacija.
-
-**VIZ-WCAG: ručna provjera pristupačnosti**
-
-- Tipkovnica, fokus, čitač zaslona i mobilni raspored po DAN-755; rezultat kao dokument u `docs/nalazi/`.
+- N1 „Predaja zadatka” na 320/390 px (1.4.10), N2 cilj PDF/DOCX od 20 px (2.5.8), N3 skok naslova h1→h3, N5 ekrani i rute koje nedostaju u `screens.ts`; N4 poveznica za preskakanje po želji.
 
 **VIZ-TAMNA: tamna tema i ekrani bez para**
 
