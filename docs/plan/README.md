@@ -7,3 +7,5 @@
 - [Arhiva](PLAN-ARHIVA.md)
 
 Izmjene se pregledavaju kroz PR u ovom repozitoriju; u `main` ulaze na vlasnikov „Spoji n”.
+
+Kopije plana u drugim repozitorijima i kod orkestratora samo su snimke; uređuje se samo ovdje (PLAN.md, odjeljak 10).

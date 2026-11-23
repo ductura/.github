@@ -81,3 +81,8 @@ Stari Next kod (`src/app`) je zamrznut i briše se kad INT-10 bude zelen. Ostali
 - Svaki SPREMAN se spaja čim je baza zelena i PR prođe `ci-ok`; kritični nakon neovisnog pregleda.
 - Graditelj lokalno dokazuje V2 na svakoj promjeni toka (sustavni test).
 - Ovaj dokument se ažurira kad se promijeni odluka, vrata ili kontrolna točka; `STANJE.md` se regenerira automatski.
+
+## 10. Održavanje plana (23. 11. 2026., Daniel: „Može, napravi sve”)
+
+- **Nova vrsta posla ide u plan prije prvog pisca.** Ako zadatak ne može navesti stavku ovog plana ili `PLAN-MIGRACIJE.md` (kao staging 23. 11.), orkestrator najprije otvori PR s dopunom plana pa tek onda pokreće pisce. Dopuna smije ući u isti dan; ne čeka „Spoji n” da bi se posao počeo, ali mora postojati kao PR.
+- **Jedan izvor, ostalo snimke.** Mjerodavan je `docs/plan/` u ovom repozitoriju. Kopija u Institution_serveru (`docs/plan/PLAN-MIGRACIJE.md`), orkestratorova `_raspored/plan-snimka.md` i artefakt s pregledom plana su snimke za čitanje. Uređuju se samo ovdje; snimke osvježava `node _raspored/sinkro-plan.mjs` (`--provjeri` javlja zastarjelu kopiju, `--repo <klon>` osvježava kopiju u drugom repou, koja zatim ide kroz PR).
