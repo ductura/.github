@@ -16,8 +16,8 @@ Danielova odluka 23. 11. 2026. („Može da”): uz paritet s prototipom detaljn
 | --- | --- | --- | --- |
 | 1 | Student: zadaci, obavijesti, upis | NF-1 | Odlučeno 23. 11. |
 | 2 | Radni prostor i editor | NF-2 | Odlučeno 23. 11. |
-| 3 | Predaja i potvrda | NF-3 | U radu |
-| 4 | Nastavnik: kolegiji i zadaci | NF-4 | Čeka NF-3 |
+| 3 | Predaja i potvrda | NF-3 | Odlučeno 23. 11. |
+| 4 | Nastavnik: kolegiji i zadaci | NF-4 | U radu |
 | 5 | Nastavnik: pregled rada, sažetak, karta podrijetla, reprodukcija | NF-5 | Čeka NF-4 |
 | 6 | Mentorstvo i konzultacije | NF-6 | Čeka NF-5 |
 | 7 | Operater i administracija | NF-7 | Čeka NF-6 |
@@ -76,3 +76,22 @@ Otvoreno prije gradnje:
 - P-25 (shema v4) i P-19 (uvoz) su velike stavke; ako ugroze rok 15. 1. 2027., orkestrator to javlja Danielu prije nego što ih odgodi.
 
 Redoslijed: najprije izmjene prototipa i INVENTAR-a za editor (NF-2-PROTO), zatim zadaci u redu; gradnja čeka zatvaranje pariteta editora (PAR2-E).
+
+### NF-3, predaja i potvrda (23. 11. 2026.)
+
+Pregled: `docs/nalazi/nove-funkcije-3-predaja.md` (WEB #557). Daniel: „Sve u pilot. 1 Pdf s kodom 2. Pilot 3. Da, ali nastavnik smije odobriti iznimno.”
+
+Svih 21 prijedlog (PR-1 … PR-21) ide u pilot, uključivo i one koje je pregled preporučio za „nakon pilota” ili za vlasnikovu odluku: PR-15 (povijest pokušaja), PR-5 (izjava kao dijalog, ide s P-12 iz NF-2), PR-14 (ispravak izjave nakon predaje; tekst ide kroz pravni pregled), PR-20 (pitanje nastavnika uz izjavu) i PR-21 (razgovori uz izjavu, dijalog „Razgovor N”).
+
+Odgovori na pitanja:
+
+1. Na potvrdi predaje student u pilotu dobiva samo PDF s QR kodom; paket za referadu i prenosivi zapis se ne prikazuju studentu.
+2. Pitanje nastavnika uz izjavu (R-33, PR-20) ulazi u pilot.
+3. Zadatak smije zabraniti predaju nakon roka; nastavnik iznimno smije odobriti kasnu predaju pojedinom studentu.
+
+Otvoreno prije gradnje:
+
+- Server: PR-20 i PR-21 traže ugovor i rute (pitanje nastavnika, prilozi razgovora uz declaration-v1 imaju `maxItems 0`); PR-21 ovisi i o Q-10 (pomoćnik je u pilotu isključen, pa se do odluke prikazuje pošteno prazno stanje). Pravilo „zabrana kasne predaje uz iznimno odobrenje” traži polje zadatka i nastavničku radnju (veza s NF-4 i NF-5). Orkestrator provjerava razlog nemogućeg povlačenja (PR-13), operaciju „pošalji doradu” (PR-16) i oblik `createdAt` kod napomena (PR-6).
+- PR-14 i tekst PR-20 idu kroz pravni pregled.
+
+Redoslijed: najprije izmjene prototipa i INVENTAR-a za predaju (NF-3-PROTO), zatim zadaci u redu; gradnja čeka zatvaranje pariteta studenta (PAR2-S, dijelovi C i D).
