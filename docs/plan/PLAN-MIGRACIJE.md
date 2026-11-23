@@ -354,7 +354,7 @@ Ovo nastavlja „Pet faza” i `PLAN.md` §5. Svaki korak ima vrata koja provjer
 
 1. **Zatvoriti V1 i V2:** zeleni `ci-ok` na WEB i SRV bazi; A01–A05 na istim SHA, tablica na Ductus#2052.
 2. **F3b, A06–A10 na stvarnom stogu** (graditelj): restart, oporavak potpisa, predaja V1/V2, ovlasti, dvije kartice. Usporedno idu preostale funkcije pilota po `STANJE.md` (P-1, P-D1…P-D8).
-3. **V3, izgled i paritet funkcija:** VIZ zadaci, snimke na 390/768/1100/1280 px u svijetloj i tamnoj temi, ručna WCAG matrica (DAN-428, DAN-755), nove revizije pariteta funkcija. Detalji u `V3-VIZ.md`. Server ne čeka V3.
+3. **V3, izgled i paritet funkcija:** VIZ zadaci, snimke na 390/768/1100/1280 px u svijetloj i tamnoj temi, ručna WCAG matrica (DAN-428, DAN-755), nove revizije pariteta funkcija. Detalji u `V3-VIZ.md`. Usporedno ide pregled novih funkcija dio po dio (`NOVE-FUNKCIJE.md`, samo dokumentacija; gradnja čeka paritet tog dijela). Server ne čeka V3.
 4. **F4, grana → `main`:** Institution_server, zatim Institution_front_web_chrome, Preloader zadnji. Svaki repo na „Spoji n”.
 5. **Proba 22. 2. 2027.** na stagingu, samo izmišljeni podaci.
 6. **F5, objava i pilot:** samo na Danielovu riječ, uz pravno mišljenje i DPIA.
