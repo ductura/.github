@@ -17,8 +17,8 @@ Danielova odluka 23. 11. 2026. („Može da”): uz paritet s prototipom detaljn
 | 1 | Student: zadaci, obavijesti, upis | NF-1 | Odlučeno 23. 11. |
 | 2 | Radni prostor i editor | NF-2 | Odlučeno 23. 11. |
 | 3 | Predaja i potvrda | NF-3 | Odlučeno 23. 11. |
-| 4 | Nastavnik: kolegiji i zadaci | NF-4 | U radu |
-| 5 | Nastavnik: pregled rada, sažetak, karta podrijetla, reprodukcija | NF-5 | Čeka NF-4 |
+| 4 | Nastavnik: kolegiji i zadaci | NF-4 | Odlučeno 23. 11. |
+| 5 | Nastavnik: pregled rada, sažetak, karta podrijetla, reprodukcija | NF-5 | U radu |
 | 6 | Mentorstvo i konzultacije | NF-6 | Čeka NF-5 |
 | 7 | Operater i administracija | NF-7 | Čeka NF-6 |
 
@@ -64,7 +64,7 @@ Svih 26 prijedloga (P-1 … P-26) ide u pilot, uključivo i one koje je pregled 
 
 Odgovori na pitanja pregleda:
 
-1. Asistent (OC-1) je u pilotu isključen. Kartica Asistent (P-9, P-10) prikazuje pravila uporabe alata iz zadatka i iskreno stanje, a ne pomoćnika.
+1. ~~Asistent (OC-1) je u pilotu isključen.~~ **Promijenjeno 23. 11. uz NF-4:** asistent u pilotu radi (vidi odjeljak NF-4). Kartica Asistent (P-9, P-10) uz pomoćnika i dalje prikazuje pravila uporabe alata iz zadatka.
 2. Numerirani popis (G-6) ulazi u pilot; ne čeka shemu v3.
 3. Vodič „Prvi koraci” (P-20) prikazuje se uz prvi rad.
 4. „Predaja rada” i prebacivač lista u zaglavlju editora (WEB-23) su potvrđeni i upisuju se u INVENTAR-editor §1.2.
@@ -95,3 +95,27 @@ Otvoreno prije gradnje:
 - PR-14 i tekst PR-20 idu kroz pravni pregled.
 
 Redoslijed: najprije izmjene prototipa i INVENTAR-a za predaju (NF-3-PROTO), zatim zadaci u redu; gradnja čeka zatvaranje pariteta studenta (PAR2-S, dijelovi C i D).
+
+### NF-4, nastavnik: kolegiji i zadaci (23. 11. 2026.)
+
+Pregled: `docs/nalazi/nove-funkcije-4-nastavnik-kolegiji-zadaci.md` (WEB #558). Daniel: „1 da 2. asistent u pilotu radi 3. Da 4. Oboje 5. Da 6. Smije isključiti”, zatim „Asistent radi u pilotu i sve stavke NZ idu u pilot”.
+
+Svih 18 prijedloga (NZ-1 … NZ-18) ide u pilot, uključivo NZ-14 (nastavnici i mentori na kolegiju), NZ-15 (pitanje nastavnika uz izjavu) i NZ-9 (obavijest e-poštom ili push, sa slanjem).
+
+Odgovori na pitanja:
+
+1. Obavijest e-poštom (NZ-9, NF-1 P-17) ulazi u pilot. To je iznimka od odluke 2147 („obavijest samo u aplikaciji”) i ide uz DPIA; poruka bez naslova rada i bez rada, student se može odjaviti.
+2. **Asistent u pilotu radi.** Ovo mijenja odluku NF-2 br. 1 (OC-1 isključen). Opcija „samo sažimanje” (`aiSummaryOnly`) u obrascu zadatka postaje stvarna postavka. Pružatelja i model bira Daniel (Q-10); orkestrator i pisci ih ne biraju niti imenuju u tekstu.
+3. Zabranu predaje nakon roka nastavnik smije mijenjati i nakon objave zadatka (uz dijalog o izmjeni pravila koja su studenti vidjeli, NZ-7).
+4. Iznimka kasne predaje: oboje. Varijanta A (produljenje za jednog studenta, postojeći ugovor) odmah, varijanta B (posebna iznimka s vlastitim zapisom) traži server.
+5. Produljenje roka nudi se i za zadatak kojem je rok prošao.
+6. Nastavnik smije isključiti obaveznu izjavu po zadatku (`teacher.declaration-required.put`).
+
+Otvoreno prije gradnje:
+
+- **Q-10: pružatelj i model asistenta (Daniel).** Do odluke asistent se gradi bez imena pružatelja ili modela.
+- Asistent u pilotu mijenja i provedene odluke: NF-2 P-9/P-10 (kartica Asistent u editoru), NF-3 PR-21 (razgovori uz izjavu), NF-1 i NF-3 tekstovi koji kažu „asistent isključen”. Orkestrator otvara dopunu prototipa.
+- Server: NZ-4a (polje „predaja nakon roka nije dopuštena”), NZ-5 B (iznimka sa zapisom), NZ-9 (slanje e-pošte, odjava), NZ-15 (pitanje uz izjavu), NZ-12 (skupno čitanje dorada), NZ-8 (potvrda obavijesti po studentu, provjeriti), NZ-3 (obrada `groupIds`, `externalToolsAllowed`, `aiSummaryOnly`, provjeriti).
+- NZ-9 i tekst NZ-15 idu kroz pravni pregled i DPIA.
+
+Redoslijed: najprije izmjene prototipa nastavnika i `INVENTAR-nastavnik.md` (NF-4-PROTO) i dopuna asistenta u prototipu editora (ASIST-PROTO), zatim zadaci u redu; gradnja čeka zatvaranje pariteta nastavnika (PAR2-N).
