@@ -44,10 +44,13 @@ Pregled: `docs/nalazi/nove-funkcije-1-student-zadaci.md` (WEB #551). Daniel: „
 
 Svih 17 prijedloga (P-1 … P-17) ide u pilot, uključivo i one koje je pregled preporučio za „nakon pilota” (P-2, P-5, P-6, P-7, P-14, P-16).
 
+Daniel 23. 11. („1. A 2. Da, neka uđe u pilot.”):
+
+- P-9: varijanta (a). Prije potvrde ništa se ne bilježi; automatski `notice-read` pri učitavanju se uklanja, kao u prototipu.
+- P-17 (obavijest e-poštom ili push) ulazi u pilot. Time Daniel mijenja odluku 2147 za ovaj kanal; izvedba ide kroz pregled privatnosti (sadržaj obavijesti bez osobnih podataka iz rada, pristanak i odjava).
+
 Otvoreno prije gradnje:
 
-- P-9: varijanta (a) ništa se ne bilježi prije potvrde ili (b) otvaranje se bilježi i to piše studentu.
-- P-17 (obavijest e-poštom ili push): protivno odluci 2147; čeka Danielovu potvrdu da 2147 mijenja.
 - P-6 i P-16 traže serverske zadatke (`submittedAt`, nova ruta za verzije obavijesti); P-1 i P-2 traže provjeru stvara li server zapise `deadline_reminder` i `assignment_version`.
 - P-7 (povijest produljenja s razlogom) ide kroz pravni pregled teksta.
 
