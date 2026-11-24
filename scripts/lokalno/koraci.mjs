@@ -303,6 +303,58 @@ ${(await r.text()).slice(0, 1500)}`);
       log(`OBRAZAC ${u} :: ${polja.join(' | ').slice(0, 1500)}`);
     }
   },
+  async nastavniTim(page) {
+    // INT-32 točka 3: the holder adds demo-teacher-2 to the teaching team, the collaborator sees the course, the holder removes them, the collaborator sees nothing.
+    const K = '87087218-38ac-4df9-bd46-ccde4018b7ad';
+    const A = '9ff97f5f-3ebc-40bc-822a-0223b482b7e2';
+    const KOLEGIJ = 'Izmišljeni seminar iz ekologije grada';
+    const SURADNIK = 'Maja Džombić';
+    const MAJA = 'f9693f65-8a5f-4858-a072-1a38657ec588';
+    const api = (p) => page.evaluate(async (u) => { const r = await fetch(u, { credentials: 'include' }); return `${r.status} ${(await r.text()).replace(/\s+/g, ' ').slice(0, 300)}`; }, `${BASE}/api/v1${p}`);
+    page.on('response', async (r) => { const m = r.request().method(); if (r.url().includes('/api/') && m !== 'GET' && !r.url().includes('client-context')) log(`  ${m} ${r.status()} ${r.url().split('/api')[1]} ${r.status() >= 400 ? (await r.text().catch(() => '')).slice(0, 200) : ''}`); });
+    const tim = async (oznaci) => {
+      await page.goto(`${BASE}/app/web/nastavnik`); await page.waitForTimeout(7000); await skipGuide(page);
+      const otvori = page.getByRole('button', { name: `Nastavni tim i grupe · ${KOLEGIJ}`, exact: true });
+      log(`TIM gumb panela: ${await otvori.count()}`);
+      if (!(await otvori.count())) return;
+      await otvori.first().click(); await page.waitForTimeout(4000);
+      const tablice = page.getByRole('table', { name: 'Asistenti' });
+      const ind = 0;
+      log(`TIM tablica Asistenti: ${await tablice.count()}`);
+      if (!(await tablice.count())) { log(`TIM panel: ${(await page.locator('main').innerText()).replace(/\s+/g, ' ').slice(0, 300)}`); return; }
+      const t = tablice.nth(ind);
+      log(`TIM redovi: ${(await t.locator('tbody tr').allInnerTexts()).map((x) => x.replace(/\s+/g, ' ')).join(' | ').slice(0, 200)}`);
+      const cb = t.getByRole('checkbox', { name: SURADNIK, exact: true });
+      if (!(await cb.count())) { log(`TIM nema ${SURADNIK} na popisu`); return; }
+      log(`TIM ${SURADNIK} prije=${await cb.isChecked()}`);
+      if (oznaci) await cb.check(); else await cb.uncheck();
+      await page.getByRole('button', { name: 'Spremi nastavni tim' }).first().click();
+      await page.waitForTimeout(5000);
+      log(`TIM nakon spremanja: status="${(await page.getByRole('status').allInnerTexts()).join(' | ').replace(/\s+/g, ' ').slice(0, 200)}" alert="${(await page.getByRole('alert').allInnerTexts()).join(' | ').slice(0, 200)}"`);
+    };
+    const suradnik = async (n) => {
+      await page.context().clearCookies(); await signIn(page, 'demo-teacher-2');
+      log(`${n} team/view ${await api(`/courses/${K}/team/view`)}`);
+      log(`${n} team ${await api(`/courses/${K}/team`)}`);
+      log(`${n} zadatak ${await api(`/institution/assignments/${A}`)}`);
+      await page.goto(`${BASE}/app/web/nastavnik`); await page.waitForTimeout(7000); await skipGuide(page);
+      const main = await page.locator('main').innerText().catch(() => '');
+      log(`${n} /nastavnik h1="${(await page.locator('h1').first().innerText().catch(() => '')).slice(0, 60)}" vidi kolegij=${main.includes(KOLEGIJ)} uloga="${(main.match(/Vaša uloga: [^.]*\./) || [''])[0]}"`);
+      await snap(page, `tim-${n.toLowerCase()}`);
+    };
+    await signIn(page, 'demo-teacher');
+    log(`NOSITELJ team prije ${await api(`/courses/${K}/team`)}`);
+    // The holder's panel lists only the current roster: there is no way in the UI to add someone new, so the add goes through the API the panel uses.
+    await tim(true);
+    const post = await page.evaluate(async ([u, id]) => { const r = await fetch(u, { method: 'POST', credentials: 'include', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ assistantIds: [id] }) }); return `${r.status} ${(await r.text()).slice(0, 200)}`; }, [`${BASE}/api/v1/courses/${K}/team`, MAJA]);
+    log(`NOSITELJ POST team [Maja] ${post}`);
+    log(`NOSITELJ team nakon dodavanja ${await api(`/courses/${K}/team`)}`);
+    await suradnik('DODAN');
+    await page.context().clearCookies(); await signIn(page, 'demo-teacher');
+    await tim(false);
+    log(`NOSITELJ team nakon uklanjanja ${await api(`/courses/${K}/team`)}`);
+    await suradnik('UKLONJEN');
+  },
   async nastavnikSpremi(page) {
     // INT-32: fill and save each teacher form in the browser, then check what the student sees.
     const A = '9ff97f5f-3ebc-40bc-822a-0223b482b7e2';
@@ -360,6 +412,25 @@ ${(await r.text()).slice(0, 1500)}`);
     await page.context().clearCookies(); await signIn(page, 'demo-student-2');
     const z = await (await page.request.get('/api/v1/student/assignments')).text();
     log(`STUDENT novi zadatak ${z.includes(oznaka) ? 'VIDI' : 'ne vidi'}; v2 ${z.includes('· v2') ? 'VIDI' : 'ne vidi'}`);
+  },
+  async nastavnikMerlin(page) {
+    // INT-32: the Merlin export on its own, without saving anything; every option of the assignment select.
+    const A = '9ff97f5f-3ebc-40bc-822a-0223b482b7e2';
+    page.on('response', async (r) => { if (r.url().includes('/api/') && (r.url().includes('merlin') || r.status() >= 400)) log(`  ${r.request().method()} ${r.status()} ${r.url().split('/api')[1].slice(0, 120)}`); });
+    await signIn(page, 'demo-teacher');
+    await page.goto(`${BASE}/app/web/nastavnik/zadatak/${A}/merlin`); await page.waitForTimeout(6000); await skipGuide(page);
+    const s = page.getByLabel('Zadatak', { exact: true });
+    const opcije = await s.locator('option').evaluateAll((o) => o.map((x) => [x.value, x.textContent.trim()]).filter((x) => x[0]));
+    log(`MERLIN api ${await page.evaluate(async (u) => { const r = await fetch(u, { credentials: 'include' }); return `${r.status} ${(await r.text()).slice(0, 600)}`; }, `${BASE}/api/v1/teacher/assignments/${A}/merlin/roster`)}`);
+    log(`MERLIN h1="${(await page.locator('h1').first().innerText().catch(() => '')).slice(0, 60)}" zadataka=${opcije.length}`);
+    for (const [v, t] of opcije.slice(0, 4)) {
+      await s.selectOption(v); await page.waitForTimeout(3000);
+      let mst = '';
+      for (let i = 0; i < 10; i++) { mst = (await page.getByTestId('merlin-status').innerText().catch(() => '')).replace(/\s+/g, ' '); if (await page.getByRole('button', { name: /Preuzmi/i }).count() || (await page.getByText('Nema predanih radova').count())) break; await page.waitForTimeout(2000); }
+      const csv = await page.getByRole('region', { name: 'CSV popis' }).locator('tr').count();
+      log(`MERLIN "${t.slice(0, 50)}" prazno=${await page.getByText('Nema predanih radova').count()} status="${mst.slice(0, 160)}" preuzmi=${await page.getByRole('button', { name: /Preuzmi/i }).count()} csvRedaka=${csv}`);
+    }
+    await snap(page, 'merlin');
   },
   async nastavnikApi(page) {
     // INT-32 negative at the API: every GET that answered demo-teacher with 2xx, replayed as other accounts.
