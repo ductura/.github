@@ -85,6 +85,16 @@ def za_graditelja(tijelo: str) -> bool:
     return bool(re.search(r"graditelj|\bLOK-|\bINT-\d+", tijelo, re.I))
 
 
+def kljucni_redovi(log: str, koliko: int = 8) -> list[str]:
+    """Redovi loga koji objašnjavaju pad: bez vremenske oznake i ANSI boja, bez ponavljanja."""
+    vidjeni: list[str] = []
+    for x in log.splitlines():
+        x = re.sub(r"\x1b\[[0-9;]*m", "", re.sub(r"^\ufeff?\S+Z ", "", x)).strip()
+        if re.search(r"FAIL|✘|✗|×|\bError\b|error TS|AssertionError|Expected|\d+ failed|##\[error\]", x) and x not in vidjeni:
+            vidjeni.append(x)
+    return vidjeni[:koliko]
+
+
 def razlike(staro: dict, novo: dict) -> list[str]:
     return [f"{k}: {staro.get(k, '—')} → {v}" for k, v in sorted(novo.items()) if staro.get(k) != v]
 
@@ -197,9 +207,12 @@ def ci(argv: list[str]) -> int:
         print(f"- {r['name']}")
         if not m:
             continue
-        log = subprocess.run(["gh", "api", f"repos/{repo}/actions/jobs/{m.group(1)}/logs"], capture_output=True, text=True, encoding="utf-8", errors="replace")
-        redovi = [re.sub(r"^\S+Z ", "", x) for x in log.stdout.splitlines()]
-        kljucni = [x for x in redovi if re.search(r"FAIL|✗|×|Error|error TS|AssertionError|expected|Expected|##\[error\]", x)]
+        log = subprocess.run(["gh", "api", "--allow-escape-sequences", f"repos/{repo}/actions/jobs/{m.group(1)}/logs"],
+                             capture_output=True, text=True, encoding="utf-8", errors="replace")
+        if log.returncode != 0:
+            print(f"    log nedostupan: {log.stderr.strip()[:160]}")
+            continue
+        kljucni = kljucni_redovi(log.stdout)
         for x in kljucni[:8]:
             print("    " + x.strip()[:220])
     return 0
@@ -261,6 +274,9 @@ def samotest() -> int:
     assert not za_graditelja("**GRADITELJ, PREDAJA** INT-31")
     assert not za_graditelja("Izvještaj kruga bez ičega")
     assert razlike({"a": "1"}, {"a": "1", "b": "2"}) == ["b: — → 2"]
+    log = ("2026-11-24T21:27:46.1Z \x1b[31m  ✘ 3 [app] e2e/a.spec.ts:50\x1b[0m\n2026-11-24T21:27:46.2Z ok\n"
+           "2026-11-24T21:27:46.3Z   1 failed\n2026-11-24T21:27:46.4Z   1 failed\n")
+    assert kljucni_redovi(log) == ["✘ 3 [app] e2e/a.spec.ts:50", "1 failed"], kljucni_redovi(log)
     print("samotest prolazi")
     return 0
 
