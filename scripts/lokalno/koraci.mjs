@@ -236,6 +236,60 @@ ${(await r.text()).slice(0, 1500)}`);
     (await import('node:fs')).writeFileSync(IZLAZ + 'nastavnik-urls.json', JSON.stringify(urls, null, 1));
     (await import('node:fs')).writeFileSync(IZLAZ + 'nastavnik-api.json', JSON.stringify(page.dobri, null, 1)); log(`API GET 2xx: ${page.dobri.length}`);
   },
+  async nastavnikRad(page) {
+    // INT-32: the sub-pages of each work demo-teacher reached in the crawl.
+    await signIn(page, 'demo-teacher');
+    const radovi = ['e9ddf3d0-f590-4be3-a528-e51761009a9a', 'd3a030b6-8780-4950-bff7-23d71f7ff17d', '5c441836-0ff9-4570-950e-97c5b7585a09'];
+    const pod = ['pregled', 'konzultacije', 'sazetak', 'usporedba', 'reprodukcija', 'priprema-razgovora', 'predaja'];
+    await obidi(page, radovi.flatMap((r) => pod.map((x) => `${BASE}/app/web/nastavnik/rad/${r}/${x}`)), 21, false);
+  },
+  async nastavnikPise(page) {
+    // INT-32: the mentor writes on the thesis (slot, consultation record, message, stage, note); the student reads it; another teacher is refused.
+    const MENT = 'e755883d-4840-49b5-870c-4af67ec4c87d';
+    const W = `/api/v1/works/${DOC}`;
+    const o = { headers: { origin: BASE } };
+    const pokazi = async (oznaka, r) => log(`${oznaka} ${r.status()} ${(await r.text()).slice(0, 220).replace(/\s+/g, ' ')}`);
+    await signIn(page, 'demo-teacher');
+    const oznaka = `INT-32 ${Date.now()}`;
+    await pokazi('TERMIN', await page.request.post(`${W}/consultation-slots`, { ...o, data: { startsAt: '2099-12-04T12:00:00.000Z' } }));
+    const ver = await (await page.request.get(`${W}/versions`)).json().catch(() => ({ versions: [] }));
+    const rev = Math.max(1, ...(ver.versions || []).map((v) => v.revision || 0));
+    await pokazi('ZAPIS', await page.request.post(`${W}/consultation-records`, { ...o, data: { heldOn: '2026-11-24', revision: rev, topic: `Izmišljena tema (${oznaka})`, agreement: 'Izmišljeni dogovor.' } }));
+    await pokazi('PORUKA', await page.request.post(`${W}/messages`, { ...o, data: { text: `Izmišljena poruka mentora (${oznaka}).` } }));
+    await pokazi('ETAPA-GET', await page.request.get(`${W}/thesis-stage`));
+    await pokazi('ETAPA-PUT', await page.request.put(`${W}/thesis-stage`, { ...o, data: { stage: 'defense_scheduled', defenseAt: '2099-12-15T09:00:00.000Z' } }));
+    await pokazi('BILJESKA', await page.request.post(`/api/v1/mentorships/${MENT}/notes`, { ...o, data: { body: `Izmišljena bilješka (${oznaka}).` } }));
+    await pokazi('TIM', await page.request.get('/api/v1/courses/87087218-38ac-4df9-bd46-ccde4018b7ad/team'));
+    await page.goto(`${BASE}/app/web/nastavnik/rad/${DOC}/konzultacije`); await page.waitForTimeout(6000); await skipGuide(page);
+    log('UI-KONZ ' + ((await page.locator('main').innerText().catch(() => '')).includes(oznaka) ? 'zapis vidljiv' : 'zapis NIJE vidljiv'));
+    await page.context().clearCookies(); await signIn(page, 'demo-student-2');
+    const poruke = await (await page.request.get(`${W}/messages`)).text();
+    log(`STUDENT-PORUKA ${poruke.includes(oznaka) ? 'vidi' : 'NE vidi'}`);
+    log(`STUDENT-ZAPIS ${(await (await page.request.get(`${W}/consultation-records`)).text()).includes(oznaka) ? 'vidi' : 'NE vidi'}`);
+    log(`STUDENT-TERMIN ${(await (await page.request.get(`${W}/consultation-slots`)).text()).includes('2099-12-04') ? 'vidi' : 'NE vidi'}`);
+    await pokazi('STUDENT-ETAPA', await page.request.get(`${W}/thesis-stage`));
+    const bil = await page.request.get(`/api/v1/mentorships/${MENT}/notes`);
+    log(`STUDENT-BILJESKE ${bil.status()} ${(await bil.text()).includes(oznaka) ? 'VIDI mentorovu bilješku' : 'ne vidi bilješku'}`);
+    await pokazi('STUDENT-OBAVIJESTI', await page.request.get('/api/v1/notifications'));
+    await page.context().clearCookies(); await signIn(page, 'demo-teacher-2');
+    await pokazi('TUDJI-PORUKA', await page.request.post(`${W}/messages`, { ...o, data: { text: 'Ne smije proći.' } }));
+    await pokazi('TUDJI-TERMIN', await page.request.post(`${W}/consultation-slots`, { ...o, data: { startsAt: '2099-12-05T12:00:00.000Z' } }));
+    await pokazi('TUDJI-ETAPA', await page.request.put(`${W}/thesis-stage`, { ...o, data: { stage: 'defense_scheduled', defenseAt: '2099-12-16T09:00:00.000Z' } }));
+    await pokazi('TUDJI-BILJESKE', await page.request.get(`/api/v1/mentorships/${MENT}/notes`));
+  },
+  async nastavnikTermin(page) {
+    // INT-32: the student requests a consultation slot (student_owner); the mentor sees it and can change it.
+    const W = `/api/v1/works/${DOC}`;
+    const o = { headers: { origin: BASE } };
+    await signIn(page, 'demo-student-2');
+    const r = await page.request.post(`${W}/consultation-slots`, { ...o, data: { startsAt: '2099-12-04T12:00:00.000Z' } });
+    log(`STUDENT-TRAZI ${r.status()} ${(await r.text()).slice(0, 200)}`);
+    await page.context().clearCookies(); await signIn(page, 'demo-teacher');
+    const t = await (await page.request.get(`${W}/consultation-slots`)).text();
+    log(`MENTOR-VIDI ${t.includes('2099-12-04') ? 'da' : 'NE'} ${t.slice(0, 200)}`);
+    await page.goto(`${BASE}/app/web/nastavnik/rad/${DOC}/konzultacije`); await page.waitForTimeout(6000); await skipGuide(page);
+    log(`UI-TERMIN ${(await page.locator('main').innerText().catch(() => '')).slice(0, 400).replace(/\s+/g, ' ')}`);
+  },
   async nastavnikApi(page) {
     // INT-32 negative at the API: every GET that answered demo-teacher with 2xx, replayed as other accounts.
     const api = JSON.parse((await import('node:fs')).readFileSync(IZLAZ + 'nastavnik-api.json', 'utf8'));
