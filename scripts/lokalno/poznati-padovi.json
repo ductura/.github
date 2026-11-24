@@ -1,0 +1,10 @@
+[
+  {
+    "uzorak": "server/contracts/check-breaking\\.test\\.ts > gitShow and the CLI against a real repository",
+    "razlog": "SRV na Windowsu: pada i u netaknutom stablu (okruženje, ne izmjena)"
+  },
+  {
+    "uzorak": "generated = committed > every generated file matches a fresh run",
+    "razlog": "SRV: prolazan pad pri prvom pokretanju (CRLF/vrijeme); ponovi pa ako prolazi, nije pad"
+  }
+]
