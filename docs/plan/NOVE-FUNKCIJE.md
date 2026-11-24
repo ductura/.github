@@ -197,3 +197,17 @@ Server (SRV zadaci): dnevnik radnji administratora i operatera (čitanje); prija
 Otvoreno prije gradnje: fakultet određuje rokove čuvanja za vrste podataka bez roka (pitanje 5); tekst „Moja prava” kroz pravni pregled i skener zabranjenih izraza; format izvoza iz Merlina i ISVU-a.
 
 Redoslijed: NF-7-PROTO (skica zaslona operatera i administracije u prototipu, INVENTAR), SRV zadaci za administraciju; gradnja čeka PAR2-N. Svih sedam dijelova pregleda je odlučeno.
+
+## Val 17: rani početak (24. 11. 2026.)
+
+Odluka vlasnika 24. 11. 2026. („Može 2 i 3”): red pisaca za pilot je gotovo prazan (715 od 742 zadatka spojeno, ostatak čeka odluke ili vanjske uvjete), pa se plan proširuje. Prvi ide val 17 iz PLAN-MIGRACIJE.md, „Rubrike, banka komentara i fakultetski predlošci”.
+
+Pravila:
+
+1. Opseg pilota i rok 15. 1. 2027. se ne mijenjaju. Val 17 ide uz pilot i ne smije zaustaviti ni usporiti ništa što pilot traži.
+2. Granice iz PLAN-MIGRACIJE.md vrijede doslovno: kriteriji ocjenjivanja vidljivi su studentu prije predaje; komentari nastavnika su ponovno upotrebljivi; predlošci su fakultetski; provjera formata prije predaje proširuje M4 Lektu. Rubrika ne ocjenjuje automatski. Nema rangiranja.
+3. Dio vala već postoji: banka komentara (`teacher.comment-bank.*`, web `CommentBank`), radni kriteriji mentora (`teacher-working-criteria`), predložak etapa (`milestone-template`), Lektini profili i stilovi citiranja. Ne gradi se ponovno.
+4. Prvi korak je pregled razlike (V17-PREGLED): što od vala 17 postoji na bazama `migracija/kopija-ductus-backend` i `migracija/kopija-ductus-front`, što nedostaje i koji su zadaci potrebni. Rezultat je `docs/nalazi/val17-razlika.md` u Institution_front_web_chrome, s numeriranim zadacima (SRV prije WEB-a, putanje koje se ne preklapaju, veličina S/M/L).
+5. Zadaci iz pregleda ulaze u red s ID-jevima `SRV-V17-*` i `WEB-V17-*`, jer su `SRV-17xx` i `WEB-17xx` već zauzeti za pilot. Server dobiva ugovor i rute prije weba. Novo API polje uvijek se izričito navodi.
+6. Vrijede sva postojeća pravila: neovisni pregled i zeleni `ci-ok` prije spajanja u migracijske baze, ništa u main bez vlasnikova „Spoji n”, samo izmišljeni podaci u testovima.
+7. Ostali valovi nakon pilota (13–22) ne kreću bez zasebne odluke vlasnika. Valovi 15, 16, 18 i 22 te K-1 imaju pisane preduvjete (Srce, DPIA, licenca, novi repo) i nisu spremni.
