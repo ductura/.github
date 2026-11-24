@@ -71,8 +71,10 @@ def testovi(argv: list[str]) -> int:
     if not provjeri_ram():
         return 2
     log = IZLAZ / f"testovi-{stablo.name}.log"
+    # WEB keeps vitest in packages/app, not at the root of the tree.
+    mjesto = next((m for m in (stablo, stablo / "packages" / "app") if (m / "node_modules" / ".bin" / "vitest").exists()), stablo)
     with open(log, "w", encoding="utf-8") as out:
-        kod = subprocess.run(" ".join(["npx", "vitest", "run", *args]), cwd=stablo, stdout=out, stderr=subprocess.STDOUT, shell=True).returncode
+        kod = subprocess.run(" ".join(["npx", "vitest", "run", *args]), cwd=mjesto, stdout=out, stderr=subprocess.STDOUT, shell=True).returncode
     tekst = ANSI.sub("", log.read_text(encoding="utf-8", errors="replace"))
     padovi = sorted({m.group(1).strip() for m in re.finditer(r"^\s*FAIL\s+(?:\|[^|]+\|\s+)?(.+?)\s*$", tekst, re.M) if ">" in m.group(1)})
     poznati, novi = [], []
