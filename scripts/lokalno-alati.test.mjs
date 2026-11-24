@@ -37,3 +37,14 @@ test('known-failure patterns are valid and explained', () => {
     assert.ok(k.razlog.length > 10, k.uzorak);
   }
 });
+
+test('graditelj.py pure functions pass their self-test', (t) => {
+  const python = process.env.PYTHON ?? (process.platform === 'win32' ? 'python' : 'python3');
+  const r = spawnSync(python, [join(dir, 'graditelj.py'), 'samotest'], {
+    env: { ...process.env, DUCTURA_LOKALNO: lokalno, PYTHONIOENCODING: 'utf-8' },
+    encoding: 'utf8',
+  });
+  if (r.error?.code === 'ENOENT') return t.skip(`${python} not found`);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /samotest prolazi/);
+});

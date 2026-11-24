@@ -11,6 +11,10 @@ Pokreću se s Pythonom 3.12+ uz `PYTHONIOENCODING=utf-8`. Radna stabla, zapisi i
 | `stog.py upit "<sql>"` | Upit u bazu stoga samo za čitanje (`READ ONLY` transakcija). |
 | `tok.py korak <ime>` | Pokreće korak iz `koraci.mjs` u pravom pregledniku (Playwright iz WEB stabla, `TOK_WEB`). Izlaz: 0 gotovo, 1 greška u koraku, 2 nepoznat korak, 3 neuspjela prijava (nije pad proizvoda), 4 stog ne radi. |
 | `tok.py testovi <stablo> [putanje]` | Pokreće vitest i odvaja nove padove od poznatih (`poznati-padovi.json`). Odbija `tests/db` dok port 54329 drži baza stoga. |
+| `graditelj.py pocetak` | Jedan sažet pregled nakon pokretanja sesije ili kompresije konteksta: kontrolna točka, RAM i stog, CI PR-ova iz točke, stanje radnih stabala i poruke za graditelja na Ductus #2055 od zadnjeg čitanja. |
+| `graditelj.py zapis polje=… +pr=web#638 +stablo=g-x` | Ažurira kontrolnu točku `_alati/graditelj.json` (zadatak, korak, sljedece, blokada, PR-ovi, stabla). Točka nije izvor istine; zadatak i status vode Linear i #2055. |
+| `graditelj.py ci <repo#broj>` | Neuspjele provjere PR-a i prvi redovi greške iz loga posla. |
+| `graditelj.py prati [minuta]` | Petlja za Monitor: ispisuje red samo kad se promijeni CI zaključak PR-a ili stog ili stigne poruka za graditelja; sama završava (zadano 25 min). Samo čita. |
 
 Provjere koje troše memoriju (`korak`, `testovi`) traže najmanje 1,5 GB slobodnog RAM-a, a `start` najmanje 4 GB.
 
@@ -25,4 +29,4 @@ Novi korak u pregledniku dodaje se kao nova metoda u `steps` u datoteci `koraci.
 
 ## Što provjerava CI
 
-CI (`node --test scripts/*.test.mjs`) pokreće samo `scripts/lokalno-alati.test.mjs`. Taj test provjerava da tokeni ne ulaze u zapis, da nepoznat korak završava izlazom 2 bez preglednika i da su uzorci u `poznati-padovi.json` ispravni. Python dio (`stog.py`, `tok.py`) i sami koraci provjereni su samo ručno nad lokalnim stogom.
+CI (`node --test scripts/*.test.mjs`) pokreće samo `scripts/lokalno-alati.test.mjs`. Taj test provjerava da tokeni ne ulaze u zapis, da nepoznat korak završava izlazom 2 bez preglednika da su uzorci u `poznati-padovi.json` ispravni i da prolazi `graditelj.py samotest` (čiste funkcije, bez mreže; preskače se ako nema Pythona). Ostali Python dio (`stog.py`, `tok.py`, mrežni dio `graditelj.py`) i sami koraci provjereni su samo ručno nad lokalnim stogom.
