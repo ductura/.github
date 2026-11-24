@@ -163,6 +163,18 @@ Otvoreno prije gradnje: MK-12 i MK-14 kroz pravni pregled; tekstovi kroz skener 
 
 Redoslijed: NF-6-PROTO (nakon NF-5-PROTO), SRV zadaci za mentorstvo; gradnja čeka PAR2-N.
 
+Dopuna 24. 11. 2026. (pregled SRV #668, Daniel: „Oboje je dobro da”):
+
+- Mentor i administrator smiju studentu postaviti obrazac na „predan”, uključujući službeni obrazac izjave o izvornosti; promjena se bilježi s tim tko ju je napravio.
+- Kad mentorstvo završi, obrasce, suglasnost i faze čita samo administrator fakulteta; student i mentor ih više ne vide.
+
+Dopuna 24. 11. 2026. (pregled SRV #667, Daniel: „1 da”): zapisnik konzultacija i dopune piše samo mentor za sve radove, ne samo u mentorstvu; student zapisnik samo čita.
+
+Dopuna 24. 11. 2026. (pregled SRV #669, Daniel: „1. Da 2. Treba šifrirati da”):
+
+- „Student je vidio” bilježi samo prvo otvaranje stavke, bez trajanja i bez rangiranja. To je u skladu s pravilom „bez praćenja po osobi”.
+- Tekst „Poruke sebi” šifrira se na studentovu uređaju. Poslužitelj i baza čuvaju samo šifrirani tekst, pa ga ne može pročitati ni operater, ni netko s izravnim pristupom bazi ili backupu. Poruka mora ostati dostupna i na drugom računalu (točka 8), pa prije gradnje treba prijedlog kako student dolazi do ključa na drugom uređaju; ključ ne smije biti na poslužitelju u čitljivom obliku. „Dokle sam stao” (mjesto u radu) ostaje nešifriran.
+
 ### NF-7, operater i administracija (23. 11. 2026.)
 
 Pregled: `docs/nalazi/nove-funkcije-7-operater-administracija.md` (WEB #568). Daniel: „1. zaslon u pilotu da 2. Da 3. Treba uvoz popisa iz Merlina ili ISVU, ali neka kod opcija ostane 4. Za pilot da 5. Treba riješiti prije da 6. Da 7. Ručna obavijest 8. Neka uđe, probleme riješava ovisno o pitanjju”.
