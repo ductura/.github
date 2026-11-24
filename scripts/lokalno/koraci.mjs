@@ -163,6 +163,45 @@ ${(await r.text()).slice(0, 1500)}`);
     await page.goto(`${BASE}/app/web/rad/${TEZA}`); await page.waitForTimeout(8000); await skipGuide(page);
     await snap(page, 'rad', 1500);
   },
+  async sazetak(page) {
+    // INT-31: process-summary for the student's own unsubmitted thesis document and the submitted one.
+    await signIn(page, 'demo-student-2');
+    await page.goto(`${BASE}/app/web/zadaci`); await page.waitForTimeout(3000);
+    for (const id of [DOC, '857f4f02-8dc9-4ce2-9ff4-062199a5d54b']) {
+      const r = await page.request.post('/api/v1/process-summary', { data: { documentId: id }, headers: { origin: BASE } });
+      log(`SAZETAK ${id.slice(0, 8)} ${r.status()} ${(await r.text()).slice(0, 300)}`);
+    }
+  },
+  async dorada(page) {
+    // INT-31 "Slanje dorade": the teacher returns the submitted seminar, the student sees the request.
+    const SEM = '9ff97f5f-3ebc-40bc-822a-0223b482b7e2';
+    const SEM_DOC = '5c441836-0ff9-4570-950e-97c5b7585a09';
+    await signIn(page, 'demo-teacher');
+    const r = await page.request.post(`/api/v1/works/${SEM_DOC}/return-for-revision`, {
+      data: { comment: 'Izmišljeni zahtjev za doradu (INT-31).', revisionDueAt: '2099-12-01T10:00:00.000Z' }, headers: { origin: BASE },
+    });
+    log(`VRATI ${r.status()} ${(await r.text()).slice(0, 300)}`);
+    await page.context().clearCookies();
+    await signIn(page, 'demo-student-2');
+    const n = await page.request.get('/api/v1/notifications/returned-for-revision');
+    log(`OBAVIJEST ${n.status()} ${(await n.text()).slice(0, 400)}`);
+    await page.goto(`${BASE}/app/web/rad/${SEM}`); await page.waitForTimeout(8000); await skipGuide(page);
+    log('RAD ' + (await page.locator('main').innerText().catch(() => '')).split(String.fromCharCode(10)).filter((l) => /dorad|Predaj|vrać/i.test(l)).slice(0, 8).join(' | '));
+    await snap(page, 'dorada', 1000);
+  },
+  async usporedi(page) {
+    // INT-31: is the editor toolbar of the returned seminar locked, compared with the unsubmitted thesis?
+    await signIn(page, 'demo-student-2');
+    const w = await page.request.get('/api/v1/student/assignment-work');
+    log(`STANJE ${(await w.text()).slice(0, 600)}`);
+    for (const id of ['9ff97f5f-3ebc-40bc-822a-0223b482b7e2', TEZA]) {
+      await page.goto(`${BASE}/app/web/rad/${id}`); await page.waitForTimeout(8000); await skipGuide(page);
+      const ed = page.locator('[contenteditable]').first();
+      log(`UREDIVAC ${id.slice(0, 8)} contenteditable=${await ed.getAttribute('contenteditable').catch(() => 'nema')}`);
+      await ed.click({ timeout: 5000 }).catch(() => {});
+      log(`PODEBLJANO ${id.slice(0, 8)} disabled=${await page.getByRole('button', { name: 'Podebljano' }).isDisabled().catch(() => 'nema')}`);
+    }
+  },
   async teza(page) {
     await signIn(page, 'demo-student-2');
     await page.goto(`${BASE}/app/web/rad/${TEZA}`); await page.waitForTimeout(4000); await skipGuide(page);
