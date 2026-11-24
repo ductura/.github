@@ -202,6 +202,16 @@ ${(await r.text()).slice(0, 1500)}`);
       log(`PODEBLJANO ${id.slice(0, 8)} disabled=${await page.getByRole('button', { name: 'Podebljano' }).isDisabled().catch(() => 'nema')}`);
     }
   },
+  async izvoz(page) {
+    // INT-31 data export, student side: the own list and an unknown one-time link (no clerk exists in the seed).
+    await signIn(page, 'demo-student-2');
+    const l = await page.request.get('/api/v1/institution/student-data-exports');
+    log(`POPIS ${l.status()} ${(await l.text()).slice(0, 300)}`);
+    const t = await page.request.get('/api/v1/student/data-export/' + 'A'.repeat(43));
+    log(`POVEZNICA ${t.status()} ${(await t.text()).slice(0, 200)}`);
+    const z = await page.request.post('/api/v1/institution/student-data-exports', { data: { studentId: '18e08064-79d1-465c-acb0-da4af79ad3d3', identityCheckedBy: 'student_card', note: 'INT-31' }, headers: { origin: BASE } });
+    log(`ZAHTJEV-STUDENT ${z.status()} ${(await z.text()).slice(0, 200)}`);
+  },
   async teza(page) {
     await signIn(page, 'demo-student-2');
     await page.goto(`${BASE}/app/web/rad/${TEZA}`); await page.waitForTimeout(4000); await skipGuide(page);
