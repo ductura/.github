@@ -61,23 +61,25 @@ Ostale ideje:
 | A1: oznaka mogućeg skriptiranog unosa | To je mjera iz vremena (pravilo 4), a kao ML ili AI analiza krši i pravilo 13. Čita se kao tvrdnja o autorstvu (D-01). U redu je kao A1-AUTOTIPKAC-ZASTAVICA s oznakom `drzi`. | čeka C9 i C14 |
 | Lab S12–S34 (otpornost zapisa) | **Ne ulazi u plan.** Lab danas cilja stari Ductus i rutu `/rad` (`Lab/server/targets.ts:9,42`), a ne isporučeni `packages/app` iza Preloadera. Rezultati ne bi vrijedili za proizvod. | čeka C22 (preusmjeriti Lab) |
 
-## 4. Odbijeno, s razlozima
+## 4. Predloženo za odbijanje, s razlozima
 
-| Ideja | Razlog |
-|---|---|
-| A8: biometrija tipkanja (provjera je li pisac isti) | To su biometrijski podaci (GDPR čl. 9), a provjera bi bila tvrdnja o autorstvu (D-01). Bez izričite vlasnikove odluke (C3) se ne gradi. |
-| A9: AI detektor za hrvatski kao značajka | Izravno se sukobljava s D-01, jer Ductura ne tvrdi je li AI korišten. Proizvod nije detektor. |
-| A1 kao model strojnog učenja | Pravilo 13. Uz to bi sustav mogao postati visokorizični prema Aktu o UI-ju (obrazovanje). Vidi C9. |
-| Ocjenjivanje u Ducturi | Ocjena ostaje u Merlinu (NF-5, PG-10). PLAN §1 „ocjenjuje” treba uskladiti. |
+Ništa od ovoga još nije odbijeno. Svaka stavka čeka odluku.
+
+| Ideja | Razlog | Odluka |
+|---|---|---|
+| A8: biometrija tipkanja (provjera je li pisac isti) | To su biometrijski podaci (GDPR čl. 9), a provjera bi bila tvrdnja o autorstvu (D-01). | prijedlog, čeka C3 |
+| A9: AI detektor za hrvatski kao značajka | Izravno se sukobljava s D-01, jer Ductura ne tvrdi je li AI korišten. Proizvod nije detektor. | prijedlog, čeka C3 |
+| A1 kao model strojnog učenja | Pravilo 13. Uz to bi sustav mogao postati visokorizični prema Aktu o UI-ju (obrazovanje). | prijedlog, čeka C9 |
+| Ocjenjivanje u Ducturi | Ocjena ostaje u Merlinu (NF-5, PG-10). PLAN §1 „ocjenjuje” treba uskladiti. | prijedlog, čeka vlasnika |
 
 ## 5. Rez opsega (sažetak)
 
-- **Ukupna procjena:** 126 NF stavki, oko 361 jedinica (S=1, S–M=2, M=3, M–L=5, L=8; jedinica prema PROGRAM.md:9).
+- **Ukupna procjena:** 126 NF stavki. Jedinica je jedna večer rada, a raspon je procjena iz veličina u danima.
 
-| Stupac | Stavki | Jedinica |
+| Stupac | Stavki | Jedinica (raspon) |
 |---|---|---|
-| Nužno za probu | 40 | ~87 |
-| Može nakon 15. 1. | 73 | ~186 |
-| Nakon pilota | 13 | ~88 |
+| Nužno za probu | 40 | 87–165 |
+| Može nakon 15. 1. | 73 | 186–359 |
+| Nakon pilota | 13 | 88–138 |
 
-- Kapacitet do 15. 1. procijenjen je na 55–65 jedinica, a PROGRAM.md taj broj ne navodi. Do 15. 1. zato idu samo popravci mrtvih ili neistinitih tokova probe. Sve to čeka C12.
+- Prijedlog: do 15. 1. samo popravci mrtvih ili neistinitih tokova probe. Čeka C12.
