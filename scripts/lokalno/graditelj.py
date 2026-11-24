@@ -79,8 +79,8 @@ def sazmi_provjere(runs: list[dict]) -> tuple[str, list[str]]:
 
 def za_graditelja(tijelo: str) -> bool:
     """Poruka na #2055 koja se tiče graditelja, a nije moja vlastita predaja."""
-    prvi = tijelo.lstrip()[:200]
-    if re.match(r"\**\s*GRADITELJ\b", prvi):
+    prvi = tijelo.lstrip().split("\n", 1)[0][:200]
+    if re.match(r"\**\s*GRADITELJ\b", prvi) or re.search(r"·\s*GRADITELJ\s*$", prvi):
         return False
     return bool(re.search(r"graditelj|\bLOK-|\bINT-\d+", tijelo, re.I))
 
@@ -272,6 +272,8 @@ def samotest() -> int:
     assert za_graditelja("NALOG graditelju: INT-32")
     assert not za_graditelja("NALOG wpilk-shema-v3 za pisca u oblaku")
     assert not za_graditelja("**GRADITELJ, PREDAJA** INT-31")
+    assert not za_graditelja("**PREDAJA · INT-31 (DAN-1499) · 2026-11-24T22:10Z** · GRADITELJ\nSljedeći korak: INT-32")
+    assert za_graditelja("**NALOG · INT-32**\nRadi graditelj; potpis · GRADITELJ nije u prvom retku")
     assert not za_graditelja("Izvještaj kruga bez ičega")
     assert razlike({"a": "1"}, {"a": "1", "b": "2"}) == ["b: — → 2"]
     log = ("2026-11-24T21:27:46.1Z \x1b[31m  ✘ 3 [app] e2e/a.spec.ts:50\x1b[0m\n2026-11-24T21:27:46.2Z ok\n"
