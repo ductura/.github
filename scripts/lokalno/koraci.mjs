@@ -3,6 +3,23 @@ import { BASE, H, IZLAZ, log, signIn, skipGuide, snap } from './tok-lib.mjs';
 
 export const TEZA = '8081cb0a-8a6f-4296-a97d-e1efa6df9be8';
 const DOC = 'd3a030b6-8780-4950-bff7-23d71f7ff17d';
+// Visit pages (optionally following /nastavnik/ links); log heading, alerts and API calls that fail.
+async function obidi(page, pocetak, max, slijedi = true) {
+  const red = [...pocetak], vidjeno = new Set(), los = [];
+  const dobri = new Set();
+  page.on('response', (r) => { const u = r.url(); if (u.includes('/api/') && r.status() < 300 && r.request().method() === 'GET') dobri.add(u.split('/api')[1]); });
+  page.on('response', (r) => { const u = r.url(); if (u.includes('/api/') && r.status() >= 400) los.push(`${r.status()} ${r.request().method()} ${u.split('/api')[1].slice(0, 120)}`); });
+  while (red.length && vidjeno.size < max) {
+    const u = red.shift(); if (vidjeno.has(u)) continue; vidjeno.add(u); los.length = 0;
+    await page.goto(u).catch(() => {}); await page.waitForTimeout(5000); await skipGuide(page);
+    const h1 = await page.locator('h1').first().innerText({ timeout: 2000 }).catch(() => '-');
+    const al = (await page.getByRole('alert').allInnerTexts().catch(() => [])).join(' | ').slice(0, 200);
+    log(`STR ${u.replace(BASE + '/app/web', '')} h1="${h1.slice(0, 60)}" alert="${al}" api4xx5xx=[${[...new Set(los)].join('; ')}]`);
+    if (slijedi) for (const h of await page.locator('a[href*="/nastavnik/"]').evaluateAll((as) => as.map((a) => a.href.split('#')[0]))) if (!vidjeno.has(h) && !red.includes(h)) red.push(h);
+  }
+  page.dobri = [...dobri];
+  return [...vidjeno];
+}
 export const steps = {
   async portfelj(page) {
     const SEM = '9ff97f5f-3ebc-40bc-822a-0223b482b7e2';
@@ -211,6 +228,34 @@ ${(await r.text()).slice(0, 1500)}`);
     log(`POVEZNICA ${t.status()} ${(await t.text()).slice(0, 200)}`);
     const z = await page.request.post('/api/v1/institution/student-data-exports', { data: { studentId: '18e08064-79d1-465c-acb0-da4af79ad3d3', identityCheckedBy: 'student_card', note: 'INT-31' }, headers: { origin: BASE } });
     log(`ZAHTJEV-STUDENT ${z.status()} ${(await z.text()).slice(0, 200)}`);
+  },
+  async nastavnik(page) {
+    // INT-32: crawl every teacher page linked from the course list as demo-teacher; record URLs for the negative pass.
+    await signIn(page, 'demo-teacher');
+    const urls = await obidi(page, [`${BASE}/app/web/nastavnik/kolegiji`], 30);
+    (await import('node:fs')).writeFileSync(IZLAZ + 'nastavnik-urls.json', JSON.stringify(urls, null, 1));
+    (await import('node:fs')).writeFileSync(IZLAZ + 'nastavnik-api.json', JSON.stringify(page.dobri, null, 1)); log(`API GET 2xx: ${page.dobri.length}`);
+  },
+  async nastavnikApi(page) {
+    // INT-32 negative at the API: every GET that answered demo-teacher with 2xx, replayed as other accounts.
+    const api = JSON.parse((await import('node:fs')).readFileSync(IZLAZ + 'nastavnik-api.json', 'utf8'));
+    for (const racun of ['demo-b-teacher', 'demo-teacher-2', 'demo-student-2']) {
+      await page.context().clearCookies(); await signIn(page, racun);
+      const tuzno = [];
+      for (const a of api) {
+        const r = await page.request.get('/api' + a); const t = await r.text();
+        if (r.status() < 300) tuzno.push(`${r.status()} ${a.slice(0, 110)} ${t.slice(0, 90).replace(/\s+/g, ' ')}`);
+      }
+      log(`=== ${racun}: ${api.length} poziva, 2xx: ${tuzno.length}`); for (const t of tuzno) log('  2XX ' + t);
+    }
+  },
+  async nastavnikTudji(page) {
+    // INT-32 negative: a teacher of another institution and a student open demo-teacher's pages.
+    const urls = JSON.parse((await import('node:fs')).readFileSync(IZLAZ + 'nastavnik-urls.json', 'utf8'));
+    for (const racun of ['demo-b-teacher', 'demo-student-2']) {
+      await page.context().clearCookies(); await signIn(page, racun); log(`=== ${racun}`);
+      await obidi(page, urls, urls.length, false);
+    }
   },
   async teza(page) {
     await signIn(page, 'demo-student-2');
