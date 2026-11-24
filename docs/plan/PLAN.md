@@ -86,6 +86,19 @@ Iz analize naloga 24. 11. (`_analiza/nalog-2411/`, prijedlozi u [`PRIJEDLOZI-241
 | Repoi | Jedan popis: 9 repoa organizacije Ductura; stari Ductus je arhiva i mjesto koordinacije. |
 | D-55 | Pravno mišljenje nije D-55 (to je kontrolna točka uživo); referenca u izvještaju se ispravlja. |
 
+## 6b. Odluke i stanje 21.–24. 11. 2026. koje vrijede uz ovaj plan
+
+| Tema | Što vrijedi |
+|---|---|
+| Faza 3 lokalno (Daniel 23. 11.: „Može, radiš ti sve”) | A01–A10 na stvarnom stogu (Postgres, lažni OIDC, poslužitelj, frontovi iza edgea) radi graditelj lokalno, ulaz `pnpm sve` u Preloaderu. Popravci idu kao PR u migracijske baze, nikad u `main`. 23. 11. lokalno 13/13 PROLAZ (WEB bc2e5f1a, SRV ffb96c57). |
+| V3 (Daniel 23. 11.: „pričekajmo A01–A10”) | Uvjet je ispunjen 23. 11. 19:00 (tablica A01–A10 sva PROLAZ, Ductus#2055 c.7110879950), pa su VIZ zadaci otvoreni. Sustavni run na glavama 24. 11. ponovno pada (ZEL-WEB-SISTEM-GLAVE): zeleni V1 ima prednost pred VIZ-om, a novi VIZ zadaci ne pokreću se dok sustavni run ne bude opet zelen. |
+| F4 (Daniel 24. 11.: „Može”) | PR u `main` (F4-PR-SRV, F4-PR-WEB, F4-PRE-HOST) tek nakon kontrolne točke 30. 11., kad su SRV-MENTOR-3, SRV-MENTOR-3B, NF6-SIFRA-PRIJEDLOG, SRV-ADMIN-2B i SRV-ADMIN-3B spojeni i provjereni na stvarnom stogu (INT-28 do INT-30). Priprema smije odmah (Daniel: „Može da za oboje”): F4-SYNC (main u migracijsku bazu) i F4-PREGLED. Svako spajanje u `main` i dalje traži „Spoji n”. |
+| NF-6 pečaćena poruka sebi | Poslužiteljski dio spojen 24. 11. (SRV #676: SRV-NF6-SIFRA, NF6-SIFRA-PRIJEDLOG). U radu su klijent (WEB-NF6-SIFRA) i dorade iz neovisnog pregleda (SRV-NF6-SIFRA-2). Rok čuvanja ključa je otvoren za Daniela. |
+| Pregled na laptopu (Daniel 23. 11.: „Može, postavi 25. 11.”) | Trajni stog s izmišljenim podacima na laptopu za Danielovo klikanje, ne prije 25. 11. 09:48 (LOK-PREGLED-LAPTOP, graditelj). Vide se samo promjene spojene u migracijske baze. Staging i dalje samo na Danielovu riječ. |
+| Bilježenje sadržaja tipki (K-1, Ustav v1.9 / P-3, Daniel 21. 11.) | Samo u polju za pisanje u editoru, kao zasebna klasa podataka koja se briše nakon izračuna oznake, najkasnije 30 dana nakon predaje; nikad se ne prikazuje kao zapis tipki. Sa stvarnim studentima tek nakon pravnog mišljenja i DPIA. **Ne ide u red pisaca prije pilota** (detalj u `PLAN-MIGRACIJE.md`, K-1). |
+| Dopune Ustava P-1–P-4 | Tekstovi su u nacrt-PR-ovima #48 (P-1), #49 (P-2), #50 (P-3), #63 (P-4, ispitni način). Do Danielove potvrde teksta (i pravnog mišljenja za P-3 i P-4) mjerodavne su odluke u ovom planu i `PLAN-MIGRACIJE.md`. P-1 je u pilotu (C13); ispitni način (P-4) nema zadataka u redu i ne gradi se prije potvrde teksta. |
+| Stanje reda | `STANJE.md` je regeneriran 24. 11. 05:31: 686 zadataka, 664 spojeno, 3 u PR-u, 5 u radu, 11 zadržano. |
+
 ## 7. Nepromjenjiva pravila
 
 - Bez deploya i produkcijskih migracija; migracija na bazi se nikad ne mijenja (D-91).
@@ -105,6 +118,8 @@ Iz analize naloga 24. 11. (`_analiza/nalog-2411/`, prijedlozi u [`PRIJEDLOZI-241
 | C18: klauzule K1, K2, K6 u ugovor s FPZG-om | uz Q-3 |
 | C23: zamjenik s pristupom za hitne slučajeve | 15. 12. |
 | C1, C11, C21, C24: ovise o odgovoru Srca, README pokusa i FPZG-u | kad stigne odgovor |
+| Potvrda teksta dopuna Ustava P-1–P-4 (nacrt-PR-ovi #48, #49, #50, #63) | P-1 prije PRODUCT pravila 4 (C13) |
+| NF-6: rok čuvanja ključa pečaćene poruke | prije pilota |
 | Opseg nakon probe (mobile, Web_other, desktop) | nakon 22. 2. 2027. |
 | Računi i tajne za staging i objavu (D3), narudžba pravnog mišljenja i DPIA (D7); ostale odluke D1–D8 su u `PLAN-MIGRACIJE.md`, „Faze nakon V2” | prije probe / F5 |
 
