@@ -290,6 +290,77 @@ ${(await r.text()).slice(0, 1500)}`);
     await page.goto(`${BASE}/app/web/nastavnik/rad/${DOC}/konzultacije`); await page.waitForTimeout(6000); await skipGuide(page);
     log(`UI-TERMIN ${(await page.locator('main').innerText().catch(() => '')).slice(0, 400).replace(/\s+/g, ' ')}`);
   },
+  async nastavnikPolja(page) {
+    // INT-32: list the controls of each teacher form, so the save steps can fill them by label.
+    await signIn(page, 'demo-teacher');
+    const A = '9ff97f5f-3ebc-40bc-822a-0223b482b7e2';
+    for (const u of ['novi?kolegij=87087218-38ac-4df9-bd46-ccde4018b7ad', `${A}/uredi`, `${A}/uredi?kopiraj=1`, `${A}/produljenje`, `${A}/merlin`]) {
+      await page.goto(`${BASE}/app/web/nastavnik/zadatak/${u}`); await page.waitForTimeout(5000); await skipGuide(page);
+      const polja = await page.evaluate(() => [...document.querySelectorAll('main input, main select, main textarea, main button, main [role=radio], main [role=checkbox]')].map((e) => {
+        const l = (e.labels && e.labels[0] && e.labels[0].innerText) || e.getAttribute('aria-label') || e.innerText || e.getAttribute('name') || '';
+        return `${e.tagName.toLowerCase()}${e.type ? ':' + e.type : ''}${e.disabled ? '(x)' : ''}=${l.trim().replace(/\s+/g, ' ').slice(0, 50)}`;
+      }));
+      log(`OBRAZAC ${u} :: ${polja.join(' | ').slice(0, 1500)}`);
+    }
+  },
+  async nastavnikSpremi(page) {
+    // INT-32: fill and save each teacher form in the browser, then check what the student sees.
+    const A = '9ff97f5f-3ebc-40bc-822a-0223b482b7e2';
+    const K = '87087218-38ac-4df9-bd46-ccde4018b7ad';
+    const oznaka = `INT-32 ${Date.now()}`;
+    const dt = (dana) => { const d = new Date(Date.now() + dana * 864e5); d.setMinutes(0, 0, 0); return d.toISOString().slice(0, 16); };
+    page.on('response', async (r) => { const m = r.request().method(); if (r.url().includes('/api/') && m !== 'GET' && !r.url().includes('client-context')) { log(`  ${m} ${r.status()} ${r.url().split('/api')[1].slice(0, 110)}`); if (r.status() >= 400) log(`    REQ ${(r.request().postData() ?? '').slice(0, 500)} RESP ${(await r.text().catch(() => '')).slice(0, 300)}`); } });
+    const stanje = async (n) => { await page.waitForTimeout(4000); log(`${n} url=${page.url().split('/app/web')[1]} h1="${(await page.locator('h1').first().innerText().catch(() => '')).slice(0, 60)}" alert="${(await page.locator('[role=alert],[role=status]').allInnerTexts().catch(() => [])).join(' | ').replace(/\s+/g, ' ').slice(0, 200)}"`); };
+    const idi = async (u) => { await page.goto(`${BASE}/app/web/nastavnik/zadatak/${u}`); await page.waitForTimeout(5000); await skipGuide(page); };
+    const prviIzbor = async (l) => { const s = page.getByLabel(l, { exact: true }); const v = await s.locator('option').evaluateAll((o) => o.map((x) => x.value).filter(Boolean)); if (v.length) await s.selectOption(v[0]); return v; };
+    await signIn(page, 'demo-teacher');
+
+    await idi(`novi?kolegij=${K}`);
+    await page.getByLabel('Naslov zadatka', { exact: true }).fill(`Izmišljeni zadatak (${oznaka})`);
+    await prviIzbor('Vrsta rada');
+    await page.getByLabel('Opis zadatka', { exact: true }).fill('Izmišljeni opis zadatka za lokalnu provjeru.');
+    await page.getByLabel('Otvaranje', { exact: true }).fill(dt(1));
+    await page.getByLabel('Rok', { exact: true }).fill(dt(30));
+    await page.getByRole('button', { name: 'Pregled i objava' }).click();
+    await stanje('NOVI-PREGLED');
+    const objavi = page.getByRole('button', { name: /^Objavi/ }).first();
+    if (await objavi.count()) { await objavi.click(); await stanje('NOVI-OBJAVA'); } else log('NOVI nema gumba Objavi: ' + (await page.locator('main button').allInnerTexts()).join(' | ').slice(0, 300));
+
+    await idi(`${A}/uredi`);
+    const n = page.getByLabel('Naslov', { exact: true });
+    await n.fill(`${await n.inputValue()} · v2`);
+    const v2 = page.getByRole('button', { name: /Objavi verziju/ });
+    log(`VERZIJA gumb ${await v2.isEnabled().catch(() => 'nema')}`);
+    if (await v2.isEnabled().catch(() => false)) { await v2.click(); await stanje('VERZIJA'); const p2 = page.getByRole('button', { name: /^Objavi|^Potvrdi/ }).first(); if (await p2.isEnabled().catch(() => false)) { await p2.click(); await stanje('VERZIJA-POTVRDA'); } }
+
+    await idi(`${A}/uredi?kopiraj=1`);
+    const odr = await prviIzbor('Odredišni kolegij');
+    log(`KOPIJA kolegiji ${odr.join(',')}`);
+    await page.getByRole('button', { name: 'Stvori kopiju' }).click().catch((e) => log('KOPIJA klik ' + e.message.slice(0, 120)));
+    await stanje('KOPIJA');
+
+    await idi(`${A}/produljenje`);
+    await page.getByLabel('Jedan student', { exact: true }).check();
+    const st = await prviIzbor('Student');
+    await page.getByLabel('Novi rok', { exact: true }).fill(dt(80));
+    await prviIzbor('Razlog');
+    log(`PRODULJENJE studenti ${st.length}`);
+    await page.getByRole('button', { name: 'Zabilježi produljenje' }).click();
+    await stanje('PRODULJENJE');
+
+    await idi(`${A}/merlin`);
+    await prviIzbor('Zadatak');
+    await page.waitForTimeout(3000);
+    const prazno = await page.getByText('Nema predanih radova').count();
+    let mst = '';
+    for (let i = 0; i < 20 && !prazno; i++) { mst = (await page.getByTestId('merlin-status').innerText().catch(() => '')).replace(/\s+/g, ' '); if (await page.getByRole('button', { name: /Preuzmi/i }).count()) break; await page.waitForTimeout(3000); }
+    const csv = await page.getByRole('region', { name: 'CSV popis' }).locator('tr').count();
+    log(`MERLIN prazno=${prazno} status="${mst.slice(0, 200)}" preuzmi=${await page.getByRole('button', { name: /Preuzmi/i }).count()} csvRedaka=${csv}`);
+
+    await page.context().clearCookies(); await signIn(page, 'demo-student-2');
+    const z = await (await page.request.get('/api/v1/student/assignments')).text();
+    log(`STUDENT novi zadatak ${z.includes(oznaka) ? 'VIDI' : 'ne vidi'}; v2 ${z.includes('· v2') ? 'VIDI' : 'ne vidi'}`);
+  },
   async nastavnikApi(page) {
     // INT-32 negative at the API: every GET that answered demo-teacher with 2xx, replayed as other accounts.
     const api = JSON.parse((await import('node:fs')).readFileSync(IZLAZ + 'nastavnik-api.json', 'utf8'));
