@@ -308,6 +308,13 @@ Serverska ovisnost i dalje se provjerava u fazi 3 (`srvDeps`).
 - Tome služi traka `VIZ-*`.
 - **Redoslijed:** prvo sve funkcije i rute po planu, a završni dizajn i snimke na kraju.
 - `globals.css` ostaje zaključan. Odstupanja idu u `*.module.css` ili u varijantu `@ductura/ui`.
+- **Alati za usklađenost dizajna (Daniel, 25. 11.: „upiši u dizajnersku fazu”).** Uvode se tek u dizajnerskoj fazi, uz VIZ-*, a ne usred funkcionalnih valova. Svi su razvojne ovisnosti, uvode se kao upozorenje ili s baselineom da ne ruše CI, a čišćenje ide zasebnim zadacima. `globals.css` se ni tada ne mijenja. Izvor je predaja dizajnerske sesije (`pregled/koncepti/aplikacija/PREDAJA-ALATI.md`). Redom:
+  1. `DIZ-ALAT-01` Stylelint + `stylelint-declaration-strict-value`: boje i radijusi samo kao tokeni. Trenutačno ima 177 upisanih hex boja u 19 CSS datoteka.
+  2. `DIZ-ALAT-02` `stylelint-value-no-unknown-custom-properties`: svaki `var(--…)` postoji u `globals.css`.
+  3. `DIZ-ALAT-03` test usklađenosti Figme i koda bez novog paketa (po uzoru na `design-doc.test.ts`): JSON izvoz Figma varijabli u repozitoriju uspoređuje se s `globals.css`. Izvoz ide preko Figma MCP-a ili ručno, jer je Variables REST API samo za Enterprise.
+  4. `DIZ-ALAT-04` knip za mrtve komponente i izvoze; react-scanner i jscpd samo jednokratno.
+  5. `DIZ-ALAT-05` ESLint 9 + `eslint-plugin-jsx-a11y`.
+  6. `DIZ-ALAT-06` Figma Code Connect, uvjetno: samo ako radi na planu Professional.
 
 #### 3. Podjela posla (Daniel, 22. 11.)
 
