@@ -1,22 +1,37 @@
 # Ductura — stanje i sljedeća vrata
 
-Generirano iz `_raspored/red.json` i PR-ova (Institution_front_web_chrome, Institution_server) skriptom `_raspored/stanje-plana.mjs`, 24. 11. 2026. 05:31. Ne uređuj ručno; pravila i odluke su u `PLAN-MIGRACIJE.md`, povijest u `PLAN-ARHIVA.md`.
+Generirano 25. 11. 2026. (oko 20:35 UTC) iz GitHub REST-a (otvoreni PR-ovi i glave baza), DAN-1528. Ne uređuj ručno; pravila i odluke su u `PLAN-MIGRACIJE.md`, povijest u `PLAN-ARHIVA.md`.
 
-## Brojke
+**Ograničenje ovog izdanja:** brojke zadataka po statusu (spojeno, radi, čeka, zadržano) dolaze iz `_raspored/red.json` skriptom `_raspored/stanje-plana.mjs`, a ni jedno ni drugo nije dostupno oblaku. Zato ovdje nema tih brojki ni popisa „Radi / Čeka / Zadržano”; zadnje poznate vrijednosti (24. 11. 05:31: 686 zadataka, 664 spojeno, 3 u PR-u, 5 u radu, 11 zadržano) ne prepisuju se kao trenutačne. Orkestrator ih dopunjuje iz reda.
 
-Ukupno 686 zadataka: 664 spojeno, 3 u PR-u, 3 slobodno ili čeka ovisnost, 11 zadržano, 5 radi (pisac bez PR-a). Otvorenih kritičnih: 16 (oznaka **K**).
+## Izvori (SHA-ovi 25. 11. 2026.)
 
-| Repo | Spojeno | PR otvoren | Radi | Čeka | Zadržano |
-|---|---|---|---|---|---|
-| Institution_front_web_chrome | 392 | 0 | 1 | 1 | 4 |
-| Institution_server | 245 | 3 | 3 | 2 | 6 |
-| Preloader | 7 | 0 | 1 | 0 | 1 |
-| Institution_web_mobile | 4 | 0 | 0 | 0 | 0 |
-| Web_other | 4 | 0 | 0 | 0 | 0 |
-| Aplication_server | 4 | 0 | 0 | 0 | 0 |
-| Aplication_front | 3 | 0 | 0 | 0 | 0 |
-| Desktop_macos | 3 | 0 | 0 | 0 | 0 |
-| Desktop_windows | 2 | 0 | 0 | 0 | 0 |
+| Izvor | Grana | SHA |
+|---|---|---|
+| ductura/.github | `main` | `97c31e9178438ef0d7e663a609cea1b459a3e3aa` |
+| ductura/Institution_server | `main` | `879a81e97b6743b807e3cbe37495572742d4e71c` |
+| ductura/Institution_server | `migracija/kopija-ductus-backend` | `4709413102c6d2006efaa74edae97467445d6e71` |
+| ductura/Institution_front_web_chrome | `main` | `a59455ab5e3c25b07629592cea43886127daf9eb` |
+| ductura/Institution_front_web_chrome | `migracija/kopija-ductus-front` | `ce922d458fab3206ff1787d65e0d58680343a373` |
+
+## Otvoreni PR-ovi u migracijske baze
+
+| Repo | Otvoreno | Od toga nacrta |
+|---|---|---|
+| Institution_server | 10 | 0 |
+| Institution_front_web_chrome | 10 | 4 |
+
+Institution_server (#): #740 SRV-V13-IZVOZ-PPTX, #744 SRV-V15-KORELACIJA, #751 SRV-V15-HTTP, #764 SRV-V18-UPITNIK-ISPUNJAVANJE, #765 SRV-V14-KIND, #766 SRV-V13-EVIDENCE-SLAJD, #767 SRV-V18-KODIRANJE-GRADIVO, #768 SRV-V18-KODIRANJE-SIFRARNIK, #769 SRV-V16-TEMA-PRIJEDLOG, #770 SRV-V18-UPITNIK-IZVOZ. (#511 je nacrt prijedloga prema `main`.)
+
+Institution_front_web_chrome (#): #682 sistem na push, #693 WEB-V16-ETAPE-STUDENT, #697 WEB-V22-STUDOMAT-ULAZ, #742 ED-37, #746 WEB-V13-MODEL-KLIJENT, #747 izvadak ugovora, #748 CI-BRZINA; nacrti: #700 ED-23, #340, #341, #343 (paritet). (#261, #486, #574 su nacrti prijedloga prema drugim granama.)
+
+## Otvoreni PR-ovi u `.github`
+
+- #85 plan: valovi 13–16, 18, 21, 22 odobreni (Daniel 25. 11.)
+- #83 alati graditelja za lokalni stog
+- #43, #42, #41 preseljenje pravila, proizvoda i odluka iz Ductusa
+- #38 DAN-1078-1a, dozvole workflowa
+- Nacrti Ustava: #48 (P-1), #49 (P-2), #50 (P-3), #63 (P-4)
 
 ## Sljedeća vrata
 
@@ -25,45 +40,16 @@ Ukupno 686 zadataka: 664 spojeno, 3 u PR-u, 3 slobodno ili čeka ovisnost, 11 za
 3. **Kontrolna točka 30. 11.:** točke 1 i 2 za server i Institution_front_web_chrome; funkcije po prototipu sa spojenim rutama.
 4. **Faza 4:** „Spoji n” repo po repo u `main`, Preloader zadnji. Samo na Danielovu riječ.
 
-## PR otvoren
-
-- `F4-SYNC-SRV` **K** — Institution_server #680
-- `NF6-SIFRA-PRIJEDLOG` **K** — Institution_server #676
-- `SRV-NF6-SIFRA` **K** — Institution_server #676
-
-## Radi (pisac bez PR-a)
-
-- `INT-28` **K** — graditelj
-- `INT-29` **K** — graditelj
-- `INT-30` **K** — graditelj
-- `ZEL-WEB-SISTEM-GLAVE` **K** — graditelj
-- `LOK-PREGLED-LAPTOP` — graditelj
-
-## Čeka
-
-- `WEB-NF6-SIFRA` **K**
-- `SRV-MENTOR-3C` **K**
-- `SRV-NF6-SIFRA-2` **K**
-
-## Zadržano (orkestrator)
-
-- `F4-PREGLED-SRV` **K** — orkestrator 24. 11.: prvo potvrditi da oblak pise u privatni ductura/sigurnosni-nalazi
-- `F4-PR-SRV` **K** — F4
-- `F4-PR-WEB` **K** — F4
-- `F4-PRE-HOST` **K** — F4
-- `P-STAGING` **K** — Daniel 23. 11. 2026.: „Staging sam već napravio” (Render i Vercel, tajne); orkestrator provjerava stage; svaki deploy samo na Danielovu riječ
-- `P-OPORAVAK` **K** — P
-- `WEB-2113` — izvan-hosta
-- `F5-LICENCE` — F4
-- `STG-AAI` — Daniel 23. 11. 2026. poslao zahtjev Srcu za testni AAI@EduHr OIDC klijent; čeka odgovor Srca (OIDC_ISSUER/CLIENT_ID/SECRET), Daniel ih upisuje u Render
-- `NF5-Q4-RITAM-PREGLED` — zadrzano-daniel: čeka odluku C13/C14 (nalog 24. 11. 2026.), ne graditi
-- `A1-AUTOTIPKAC-ZASTAVICA` — zadrzano-daniel: čeka odluku C13/C14 (nalog 24. 11. 2026.), ne graditi
-
 ## Odluke koje čekaju Daniela
+
+Potpun popis je u `PLAN.md`, odjeljak 8. Najbliži rokovi:
 
 | Odluka | Rok |
 |---|---|
+| C17: pravna osoba | odmah |
+| Q-21 / C8 / C20: pitanje Srcu i razgovor | 30. 11. 2026. |
 | Q-10 / D-194: AI pružatelj (bira samo Daniel) | 15. 12. 2026. |
-| Tekst P-1 (nacrt `docs/plan/P-1-NACRT.md`) | prije vala 9/11 dorade |
-| Nacrti N-14 i N-15 | prije tih ekrana |
+| C16: budžet za pravno mišljenje i pentest; C23: zamjenik za hitne slučajeve | 15. 12. 2026. |
+| Potvrda teksta dopuna Ustava P-1–P-4 (#48, #49, #50, #63) | P-1 prije PRODUCT pravila 4 (C13) |
+| NF-6: rok čuvanja ključa pečaćene poruke | prije pilota |
 | Opseg nakon probe: Institution_web_mobile, Web_other, desktop | nakon probe 22. 2. 2027. |

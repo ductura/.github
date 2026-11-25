@@ -97,7 +97,7 @@ Iz analize naloga 24. 11. (`_analiza/nalog-2411/`, prijedlozi u [`PRIJEDLOZI-241
 | Pregled na laptopu (Daniel 23. 11.: „Može, postavi 25. 11.”) | Trajni stog s izmišljenim podacima na laptopu za Danielovo klikanje, ne prije 25. 11. 09:48 (LOK-PREGLED-LAPTOP, graditelj). Vide se samo promjene spojene u migracijske baze. Staging i dalje samo na Danielovu riječ. |
 | Bilježenje sadržaja tipki (K-1, Ustav v1.9 / P-3, Daniel 21. 11.) | Samo u polju za pisanje u editoru, kao zasebna klasa podataka koja se briše nakon izračuna oznake, najkasnije 30 dana nakon predaje; nikad se ne prikazuje kao zapis tipki. Sa stvarnim studentima tek nakon pravnog mišljenja i DPIA. **Ne ide u red pisaca prije pilota** (detalj u `PLAN-MIGRACIJE.md`, K-1). |
 | Dopune Ustava P-1–P-4 | Tekstovi su u nacrt-PR-ovima #48 (P-1), #49 (P-2), #50 (P-3), #63 (P-4, ispitni način). Do Danielove potvrde teksta (i pravnog mišljenja za P-3 i P-4) mjerodavne su odluke u ovom planu i `PLAN-MIGRACIJE.md`. P-1 je u pilotu (C13); ispitni način (P-4) nema zadataka u redu i ne gradi se prije potvrde teksta. |
-| Stanje reda | `STANJE.md` je regeneriran 24. 11. 05:31: 686 zadataka, 664 spojeno, 3 u PR-u, 5 u radu, 11 zadržano. |
+| Stanje reda | `STANJE.md` je regeneriran 25. 11. 2026. (DAN-1528) iz GitHub REST-a: SHA-ovi izvora i otvoreni PR-ovi. Brojke zadataka po statusu ovise o `_raspored/red.json`, koji oblak ne vidi; u tom izdanju nisu navedene. |
 
 ## 7. Nepromjenjiva pravila
 
