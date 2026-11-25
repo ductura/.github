@@ -6,10 +6,16 @@ Ductura je alat za pisanje studentskih radova koji čuva povijest nastanka tekst
 
 | Repozitorij | Što sadrži |
 |---|---|
-| [`Institution_server`](https://github.com/ductura/Institution_server) | zajednički API: prijava, ovlasti, baza i pozadinski poslovi |
-| [`.github`](https://github.com/ductura/.github) | zajednički CI workflowi, preseti alata i predlošci |
-
-Ostali repozitoriji (web, aplikacije za računalo i preloader) dodaju se kad počne njihov rad.
+| [`Institution_server`](https://github.com/ductura/Institution_server) | zajednički API za sva sučelja: prijava AAI@EduHr, ovlasti, baza i pozadinski poslovi |
+| [`Preloader`](https://github.com/ductura/Preloader) | ulaz na `ductura.org`: prepoznaje uređaj i preglednik, otvara odgovarajuće sučelje i nudi paket za računalo |
+| [`Institution_front_web_chrome`](https://github.com/ductura/Institution_front_web_chrome) | prioritetno sučelje za Google Chrome na računalu |
+| [`Web_other`](https://github.com/ductura/Web_other) | sučelje za Firefox, Safari, Edge, Operu i ostale preglednike na računalu |
+| [`Institution_web_mobile`](https://github.com/ductura/Institution_web_mobile) | sučelje za mobitele i tablete |
+| [`Desktop_macos`](https://github.com/ductura/Desktop_macos) | aplikacija i instalacijski paket za macOS |
+| [`Desktop_windows`](https://github.com/ductura/Desktop_windows) | aplikacija i instalacijski paket za Windows |
+| [`Aplication_server`](https://github.com/ductura/Aplication_server) | aplikacijski poslužitelj platforme (administracija) |
+| [`Aplication_front`](https://github.com/ductura/Aplication_front) | administratorska aplikacija platforme (sučelje) |
+| [`.github`](https://github.com/ductura/.github) | zajednički CI workflowi, preseti alata, predlošci i plan migracije |
 
 ## Načela
 
