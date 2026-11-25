@@ -593,4 +593,252 @@ ${(await r.text()).slice(0, 1500)}`);
     log((await editor.textContent().catch(() => '')).includes(sentence) ? 'PROLAZ rečenica nakon osvježavanja' : 'PAD rečenica nije nakon osvježavanja');
     await page.screenshot({ path: IZLAZ + 'teza-rad.png' });
   },
+  // INT-33: waves V16, V17, V19, V22 and NF4 end to end on the stack (invented data of the local seed).
+  async int33(page) {
+    const K = 'b895e480-e38b-4b87-a081-3bc8dd352a93', Z = '0da788a3-e8e5-44d2-b4eb-edd52f71ff1e', DZ = 'ffb84a9b-2e03-4305-a4d7-b95e45e21888';
+    const M = '6dfeefa0-5905-4859-9074-54ad633fe563', DM = 'e8efbf5a-3061-460d-b791-f4c11e81f7a1', ADMIN = 'sim:nastavnik:demo-admin@demo.ductus.test';
+    const W = BASE + '/app/web';
+    const zbroj = { PROLAZ: 0, PAD: 0 };
+    const api = async (who, v, path, ok) => {
+      const r = await page.request.get('/api/v1' + path, { headers: H }).catch((e) => ({ status: () => 0, text: async () => e.message }));
+      const st = r.status(), t = (await r.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 160);
+      const pass = ok ? st >= 200 && st < 300 : st === 403 || st === 404;
+      zbroj[pass ? 'PROLAZ' : 'PAD']++;
+      log(`${pass ? 'PROLAZ' : 'PAD'} ${v} ${ok ? 'POZ' : 'NEG'} ${who} ${st} GET ${path} ${t}`);
+    };
+    const as = async (who, checks, pages = []) => {
+      await page.context().clearCookies(); await signIn(page, who);
+      for (const [v, path, ok] of checks) await api(who, v, path, ok);
+      if (pages.length) await obidi(page, pages.map((u) => W + u), pages.length, false);
+    };
+    const T = [
+      ['V17', `/teacher/assignments/${Z}/rubric`], ['V17', `/teacher/works/${DZ}/rubric`],
+      ['V19', `/teacher/assignments/${Z}/teams`], ['V19', `/institution/assignments/${Z}/team-setting`],
+      ['NF4', `/teacher/assignments/${Z}/late-submission-exceptions`], ['NF4', `/teacher/assignments/${Z}/follow-up`],
+      ['NF4', `/teacher/assignments/${Z}/deadline-extensions`],
+    ];
+    const S = [
+      ['V17', `/student/assignments/${Z}/rubric`], ['V17', `/student/assignments/${Z}/format-rules`], ['V17', `/student/assignments/${Z}/template`],
+      ['V19', `/student/assignments/${Z}/team`], ['V19', `/student/assignments/${Z}/team/contribution`],
+      ['NF4', `/student/assignments/${Z}/late-submission`], ['NF4', `/student/assignments/${Z}/late-submission-exceptions`],
+    ];
+    const STAGE = ['V16', `/works/${DM}/thesis-stage`];
+    const ADM = [['V16', '/institution/milestone-template'], ['V17', '/institution/work-templates/essay']];
+    const pos = (l) => l.map(([v, p]) => [v, p, true]), neg = (l) => l.map(([v, p]) => [v, p, false]);
+
+    log('=== nastavnik kolegija i mentor (demo-teacher)');
+    await as('demo-teacher', [...pos(T), [...STAGE, true], ['V19', '/practice/placements', true], ...neg(ADM)], [
+      '/nastavnik/mentorstva', '/nastavnik/mentorstva/dnevnik-prakse', `/nastavnik/zadatak/${Z}/timovi`, `/nastavnik/zadatak/${Z}/uredi`,
+      `/nastavnik/zadatak/${Z}/produljenje`, `/nastavnik/rad/${DZ}/pregled`, `/nastavnik/kolegiji/${K}/isvu-ocjene`,
+    ]);
+    log('=== student kolegija (demo-student)');
+    await as('demo-student', [...pos(S), ['V19', '/practice/placements', true], [...STAGE, false], ...neg(ADM), ...neg(T)], [
+      `/zadatak/${Z}`, `/zadatak/${Z}/tim`, `/rad/${Z}/predaja/pregled`, '/zadaci/dnevnik-prakse', '/ustanova/isvu', `/nastavnik/kolegiji/${K}/isvu-ocjene`,
+    ]);
+    log('=== student mentorstva (demo-student-2)');
+    await as('demo-student-2', [[...STAGE, true], ...neg(S), ...neg(T)], ['/zadaci/mentorstvo', `/rad/${M}`]);
+    log('=== nastavnik drugog kolegija (demo-teacher-2)');
+    await as('demo-teacher-2', [...neg(T), [...STAGE, false], ...neg(ADM)], [`/nastavnik/zadatak/${Z}/timovi`, `/nastavnik/kolegiji/${K}/isvu-ocjene`]);
+    log('=== administrator (demo-admin)');
+    await as(ADMIN, [...pos(ADM), [...STAGE, false]], ['/ustanova/etape', '/ustanova/isvu', '/ustanova/postavke']);
+    log(`ZBROJ PROLAZ=${zbroj.PROLAZ} PAD=${zbroj.PAD}`);
+  },
+  // INT-33, zapisi: the same waves through their writes (invented data only), then the reads and screens that show them.
+  async int33zapis(page) {
+    const Z = '0da788a3-e8e5-44d2-b4eb-edd52f71ff1e', DZ = 'ffb84a9b-2e03-4305-a4d7-b95e45e21888', DM = 'e8efbf5a-3061-460d-b791-f4c11e81f7a1';
+    const MS = 'f23146ef-86b9-43c7-91c5-33daa95371a1', ST = '1c857278-be91-4d3c-ac60-a03698a63757', ST3 = '4d43d9e2-e85d-4943-a8fc-6cfb9907c6f4';
+    const ADMIN = 'sim:nastavnik:demo-admin@demo.ductus.test', W = BASE + '/app/web';
+    const zbroj = { PROLAZ: 0, PAD: 0 };
+    const call = async (v, who, method, path, data, ok) => {
+      if (typeof data === 'function') { ok = data; data = undefined; }
+      const r = await page.request.fetch('/api/v1' + path, { method, headers: H, data }).catch((e) => ({ status: () => 0, text: async () => e.message }));
+      const st = r.status(), t = await r.text().catch(() => '');
+      const pass = ok === true ? st >= 200 && st < 300 : ok === false ? st === 403 || st === 404 : ok(st, t);
+      zbroj[pass ? 'PROLAZ' : 'PAD']++;
+      log(`${pass ? 'PROLAZ' : 'PAD'} ${v} ${ok === false ? 'NEG' : 'POZ'} ${who} ${st} ${method} ${path} ${t.replace(/\s+/g, ' ').slice(0, 200)}`);
+      try { return JSON.parse(t); } catch { return null; }
+    };
+    const as = async (who) => { await page.context().clearCookies(); await signIn(page, who); };
+    const text = async (u, ...want) => {
+      await page.goto(W + u).catch(() => {}); await page.waitForTimeout(6000); await skipGuide(page);
+      const body = await page.locator('main').first().innerText({ timeout: 5000 }).catch(() => '');
+      for (const w of want) { const pass = body.includes(w); zbroj[pass ? 'PROLAZ' : 'PAD']++; log(`${pass ? 'PROLAZ' : 'PAD'} EKRAN ${u} sadrži „${w}”`); }
+      if (!want.every((w) => body.includes(w))) log('TEKST ' + body.replace(/\s+/g, ' ').slice(0, 600));
+      await page.screenshot({ path: IZLAZ + 'int33-' + u.replace(/[^a-z0-9]+/gi, '-').slice(-40) + '.png', fullPage: true });
+    };
+    const lv = (n) => ['Treba doraditi', 'Dobro', 'Vrlo dobro'].map((label, i) => ({ label, descriptor: `Izmišljeni opis razine ${i + 1} (${n}).` }));
+    const RUB = { criteria: [{ id: 'tema', title: 'Izmišljena tema i cilj rada', levels: lv('tema') }, { id: 'izvori', title: 'Izmišljeni izvori i navođenje', levels: lv('izvori') }] };
+
+    log('=== administrator: predložak rada (V17), predložak etapa (V16)');
+    await as(ADMIN);
+    const tpl = await call('V17', ADMIN, 'GET', '/institution/work-templates/seminar_paper', undefined, true);
+    await call('V17', ADMIN, 'PUT', '/institution/work-templates/seminar_paper', { expectedVersion: tpl?.version ?? 0, titlePage: ['title', 'author'], sections: [{ title: 'Uvod', hint: 'Izmišljena uputa za uvod.' }, { title: 'Zaključak', hint: '' }], citationStyle: 'fpzg' }, true);
+    const ms = await call('V16', ADMIN, 'GET', '/institution/milestone-template', undefined, true);
+    log('PREDLOŽAK ETAPA ' + JSON.stringify(ms).slice(0, 300));
+
+    log('=== nastavnik kolegija: rubrika, predložak, timovi, iznimka (V17, V19, NF4)');
+    await as('demo-teacher');
+    const r0 = await call('V17', 'demo-teacher', 'GET', `/teacher/assignments/${Z}/rubric`, undefined, true);
+    await call('V17', 'demo-teacher', 'PUT', `/teacher/assignments/${Z}/rubric`, { expectedVersion: r0?.version ?? 0, ...RUB }, true);
+    const wr = await call('V17', 'demo-teacher', 'GET', `/teacher/works/${DZ}/rubric`, undefined, true);
+    const crit = wr?.marks?.[0]?.criterionId ?? 'tema';
+    await call('V17', 'demo-teacher', 'PUT', `/teacher/works/${DZ}/rubric/${crit}`, { level: 1, note: 'Izmišljena napomena o temi.' }, true);
+    await call('V17', 'demo-teacher', 'PUT', `/teacher/assignments/${Z}/template`, { useInstitutionTemplate: true }, true);
+    const ts = await call('V19', 'demo-teacher', 'GET', `/institution/assignments/${Z}/team-setting`, undefined, true);
+    await call('V19', 'demo-teacher', 'PUT', `/institution/assignments/${Z}/team-setting`, { ...(ts || {}), enabled: true, minSize: 2, maxSize: 3, formation: 'teacher_assigned' }, true);
+    const team = await call('V19', 'demo-teacher', 'POST', `/teacher/assignments/${Z}/teams`, undefined, true);
+    if (team?.teamId) {
+      await call('V19', 'demo-teacher', 'POST', `/teacher/assignments/${Z}/teams/${team.teamId}/members`, { studentId: ST, action: 'add' }, true);
+      await call('V19', 'demo-teacher', 'POST', `/teacher/assignments/${Z}/teams/${team.teamId}/members`, { studentId: ST3, action: 'add' }, true);
+    }
+    await call('NF4', 'demo-teacher', 'POST', `/teacher/assignments/${Z}/late-submission-exceptions`, { studentId: ST, reasonId: 'justified', untilAt: '2027-02-14T23:00:00.000Z' }, true);
+    log('=== mentor: etapa nakon predaje, dnevnik prakse (V16, V19)');
+    await call('V16', 'demo-teacher', 'PUT', `/works/${DM}/thesis-stage`, { stage: 'defense_scheduled', defenseAt: '2026-12-15T09:00:00.000Z' }, true);
+    const pl = await call('V19', 'demo-teacher', 'POST', '/practice/placements', { mentorshipId: MS, organisationName: 'Izmišljena organizacija d.o.o.', startsOn: '2026-11-02', endsOn: '2027-01-30' }, true);
+    const PL = pl?.placementId ?? pl?.id ?? pl?.placement?.id;
+    log('PRAKSA ' + JSON.stringify(pl).slice(0, 200));
+    await text('/nastavnik/mentorstva', 'Obrana');
+    await text(`/nastavnik/zadatak/${Z}/timovi`, 'Lucija');
+
+    log('=== student kolegija (demo-student)');
+    await as('demo-student');
+    await call('V17', 'demo-student', 'GET', `/student/assignments/${Z}/rubric`, (st, t) => st === 200 && t.includes('Izmišljena tema'));
+    await call('V17', 'demo-student', 'GET', `/student/assignments/${Z}/template`, (st, t) => st === 200 && t.includes('Uvod'));
+    await call('V19', 'demo-student', 'GET', `/student/assignments/${Z}/team`, (st, t) => st === 200 && t.includes(ST3));
+    await call('NF4', 'demo-student', 'GET', `/student/assignments/${Z}/late-submission-exceptions`, (st, t) => st === 200 && t.includes('2027-02-14'));
+    await call('V16', 'demo-student', 'PUT', `/works/${DM}/thesis-stage`, { stage: 'defended' }, false);
+    if (PL) await call('V19', 'demo-student', 'POST', `/practice/placements/${PL}/entries`, { date: '2026-11-20', hours: 6, text: 'Izmišljeni zapis tuđe prakse.' }, false);
+    await text(`/zadatak/${Z}`, 'Izmišljena tema i cilj rada');
+    await text(`/zadatak/${Z}/tim`, 'Moj tim');
+
+    log('=== student mentorstva (demo-student-2): etapa, dnevnik prakse');
+    await as('demo-student-2');
+    await call('V16', 'demo-student-2', 'GET', `/works/${DM}/thesis-stage`, (st, t) => st === 200 && t.includes('defense_scheduled'));
+    await call('V16', 'demo-student-2', 'PUT', `/works/${DM}/thesis-stage`, { stage: 'defended' }, false);
+    if (PL) await call('V19', 'demo-student-2', 'POST', `/practice/placements/${PL}/entries`, { date: '2026-11-20', hours: 6, text: 'Izmišljeni zapis dana prakse.' }, true);
+    await call('V17', 'demo-student-2', 'GET', `/student/assignments/${Z}/rubric`, undefined, false);
+    await text('/zadaci/dnevnik-prakse', 'Izmišljena organizacija');
+
+    log('=== mentor potvrđuje zapise (V19)');
+    await as('demo-teacher');
+    if (PL) await call('V19', 'demo-teacher', 'POST', `/practice/placements/${PL}/signoffs`, { throughDate: '2026-11-20', comment: 'Izmišljena potvrda zapisa.' }, true);
+    await text('/nastavnik/mentorstva/dnevnik-prakse', 'Izmišljena organizacija');
+
+    log('=== nastavnik drugog kolegija (demo-teacher-2): zapisi odbijeni');
+    await as('demo-teacher-2');
+    await call('V17', 'demo-teacher-2', 'PUT', `/teacher/assignments/${Z}/rubric`, { expectedVersion: 1, ...RUB }, false);
+    await call('V17', 'demo-teacher-2', 'PUT', `/teacher/works/${DZ}/rubric/${crit}`, { level: 2, note: null }, false);
+    await call('V19', 'demo-teacher-2', 'POST', `/teacher/assignments/${Z}/teams`, undefined, false);
+    await call('NF4', 'demo-teacher-2', 'POST', `/teacher/assignments/${Z}/late-submission-exceptions`, { studentId: ST, reasonId: 'justified', untilAt: '2027-02-21T23:00:00.000Z' }, false);
+    await call('V16', 'demo-teacher-2', 'PUT', `/works/${DM}/thesis-stage`, { stage: 'defended' }, false);
+    if (PL) await call('V19', 'demo-teacher-2', 'POST', `/practice/placements/${PL}/signoffs`, { throughDate: '2026-11-20' }, false);
+    log(`ZBROJ PROLAZ=${zbroj.PROLAZ} PAD=${zbroj.PAD}`);
+  },
+  // INT-33, zapisi (nastavak nakon prvog prolaza): the same waves through their writes (invented data only), then the reads and screens that show them.
+  async int33zapis2(page) {
+    const Z = '0da788a3-e8e5-44d2-b4eb-edd52f71ff1e', DZ = 'ffb84a9b-2e03-4305-a4d7-b95e45e21888', DM = 'e8efbf5a-3061-460d-b791-f4c11e81f7a1';
+    const MS = 'f23146ef-86b9-43c7-91c5-33daa95371a1', ST = '1c857278-be91-4d3c-ac60-a03698a63757', ST3 = '4d43d9e2-e85d-4943-a8fc-6cfb9907c6f4';
+    const ADMIN = 'sim:nastavnik:demo-admin@demo.ductus.test', W = BASE + '/app/web';
+    const zbroj = { PROLAZ: 0, PAD: 0 };
+    const call = async (v, who, method, path, data, ok) => {
+      if (typeof data === 'function') { ok = data; data = undefined; }
+      const r = await page.request.fetch('/api/v1' + path, { method, headers: H, data }).catch((e) => ({ status: () => 0, text: async () => e.message }));
+      const st = r.status(), t = await r.text().catch(() => '');
+      const pass = ok === true ? st >= 200 && st < 300 : ok === false ? st === 403 || st === 404 : ok(st, t);
+      zbroj[pass ? 'PROLAZ' : 'PAD']++;
+      log(`${pass ? 'PROLAZ' : 'PAD'} ${v} ${ok === false ? 'NEG' : 'POZ'} ${who} ${st} ${method} ${path} ${t.replace(/\s+/g, ' ').slice(0, 200)}`);
+      try { return JSON.parse(t); } catch { return null; }
+    };
+    const as = async (who) => { await page.context().clearCookies(); await signIn(page, who); };
+    const text = async (u, ...want) => {
+      await page.goto(W + u).catch(() => {}); await page.waitForTimeout(6000); await skipGuide(page);
+      const body = await page.locator('main').first().innerText({ timeout: 5000 }).catch(() => '');
+      for (const w of want) { const pass = body.includes(w); zbroj[pass ? 'PROLAZ' : 'PAD']++; log(`${pass ? 'PROLAZ' : 'PAD'} EKRAN ${u} sadrži „${w}”`); }
+      if (!want.every((w) => body.includes(w))) log('TEKST ' + body.replace(/\s+/g, ' ').slice(0, 600));
+      await page.screenshot({ path: IZLAZ + 'int33-' + u.replace(/[^a-z0-9]+/gi, '-').slice(-40) + '.png', fullPage: true });
+    };
+    const lv = (n) => ['Treba doraditi', 'Dobro', 'Vrlo dobro'].map((label, i) => ({ label, descriptor: `Izmišljeni opis razine ${i + 1} (${n}).` }));
+    const RUB = { criteria: [{ id: 'tema', title: 'Izmišljena tema i cilj rada', levels: lv('tema') }, { id: 'izvori', title: 'Izmišljeni izvori i navođenje', levels: lv('izvori') }] };
+
+    log('=== administrator: predložak rada (V17), predložak etapa (V16)');
+    await as(ADMIN);
+    const tpl = await call('V17', ADMIN, 'GET', '/institution/work-templates/seminar_paper', undefined, true);
+    await call('V17', ADMIN, 'PUT', '/institution/work-templates/seminar_paper', { expectedVersion: tpl?.version ?? 0, titlePage: ['title', 'author'], sections: [{ title: 'Uvod', hint: 'Izmišljena uputa za uvod.' }, { title: 'Zaključak', hint: '' }], citationStyle: 'fpzg' }, true);
+    const ms = await call('V16', ADMIN, 'GET', '/institution/milestone-template', undefined, true);
+    log('PREDLOŽAK ETAPA ' + JSON.stringify(ms).slice(0, 300));
+
+    log('=== nastavnik kolegija: rubrika, predložak, timovi, iznimka (V17, V19, NF4)');
+    await as('demo-teacher');
+    const crit = 'tema';
+    await call('V17', 'demo-teacher', 'PUT', `/teacher/assignments/${Z}/template`, { useInstitutionTemplate: true }, true);
+    await call('NF4', 'demo-teacher', 'POST', `/teacher/assignments/${Z}/late-submission-exceptions`, { studentId: ST, reasonId: 'justified', untilAt: '2027-02-14T23:00:00.000Z' }, true);
+    log('=== mentor: etapa nakon predaje, dnevnik prakse (V16, V19)');
+    const PL = 'f1efca7e-3ff8-4bb9-afdd-11c989c69636';
+    await text('/nastavnik/mentorstva', 'Zakazana obrana');
+    await text(`/nastavnik/zadatak/${Z}/timovi`, 'Lucija');
+
+    log('=== student kolegija (demo-student)');
+    await as('demo-student');
+    await call('V17', 'demo-student', 'GET', `/student/assignments/${Z}/rubric`, (st, t) => st === 200 && t.includes('Izmišljena tema'));
+    await call('V17', 'demo-student', 'GET', `/student/assignments/${Z}/template`, (st, t) => st === 200 && t.includes('Uvod'));
+    await call('V19', 'demo-student', 'GET', `/student/assignments/${Z}/team`, (st, t) => st === 200 && t.includes(ST3));
+    await call('NF4', 'demo-student', 'GET', `/student/assignments/${Z}/late-submission-exceptions`, (st, t) => st === 200 && t.includes('2027-02-14'));
+    await call('V16', 'demo-student', 'PUT', `/works/${DM}/thesis-stage`, { stage: 'defended' }, false);
+    if (PL) await call('V19', 'demo-student', 'POST', `/practice/placements/${PL}/entries`, { date: '2026-11-20', hours: 6, text: 'Izmišljeni zapis tuđe prakse.' }, false);
+    await text(`/zadatak/${Z}`, 'Izmišljena tema i cilj rada');
+    await text(`/zadatak/${Z}/tim`, 'Moj tim');
+
+    log('=== student mentorstva (demo-student-2): etapa, dnevnik prakse');
+    await as('demo-student-2');
+    await call('V16', 'demo-student-2', 'GET', `/works/${DM}/thesis-stage`, (st, t) => st === 200 && t.includes('defense_scheduled'));
+    await call('V16', 'demo-student-2', 'PUT', `/works/${DM}/thesis-stage`, { stage: 'defended' }, false);
+    if (PL) await call('V19', 'demo-student-2', 'POST', `/practice/placements/${PL}/entries`, { date: '2026-11-20', hours: 6, text: 'Izmišljeni zapis dana prakse.' }, true);
+    await call('V17', 'demo-student-2', 'GET', `/student/assignments/${Z}/rubric`, undefined, false);
+    await text('/rad/6dfeefa0-5905-4859-9074-54ad633fe563', 'Zakazana obrana');
+    await text('/zadaci/dnevnik-prakse', 'Izmišljena organizacija');
+
+    log('=== mentor potvrđuje zapise (V19)');
+    await as('demo-teacher');
+    if (PL) await call('V19', 'demo-teacher', 'POST', `/practice/placements/${PL}/signoffs`, { throughDate: '2026-11-20', comment: 'Izmišljena potvrda zapisa.' }, true);
+    await text('/nastavnik/mentorstva/dnevnik-prakse', 'Izmišljena organizacija');
+
+    log('=== nastavnik drugog kolegija (demo-teacher-2): zapisi odbijeni');
+    await as('demo-teacher-2');
+    await call('V17', 'demo-teacher-2', 'PUT', `/teacher/assignments/${Z}/rubric`, { expectedVersion: 1, ...RUB }, false);
+    await call('V17', 'demo-teacher-2', 'PUT', `/teacher/works/${DZ}/rubric/${crit}`, { level: 2, note: null }, false);
+    await call('V19', 'demo-teacher-2', 'POST', `/teacher/assignments/${Z}/teams`, undefined, false);
+    await call('NF4', 'demo-teacher-2', 'POST', `/teacher/assignments/${Z}/late-submission-exceptions`, { studentId: ST, reasonId: 'justified', untilAt: '2027-02-21T23:00:00.000Z' }, false);
+    await call('V16', 'demo-teacher-2', 'PUT', `/works/${DM}/thesis-stage`, { stage: 'defended' }, false);
+    if (PL) await call('V19', 'demo-teacher-2', 'POST', `/practice/placements/${PL}/signoffs`, { throughDate: '2026-11-20' }, false);
+    log(`ZBROJ PROLAZ=${zbroj.PROLAZ} PAD=${zbroj.PAD}`);
+  },
+  // INT-33: where the student sees the rubric (V17) and the stage after submission (V16).
+  async int33prikaz(page) {
+    const W = BASE + '/app/web';
+    const look = async (who, u, want, tabs = []) => {
+      await page.context().clearCookies(); await signIn(page, who);
+      await page.goto(W + u).catch(() => {}); await page.waitForTimeout(8000); await skipGuide(page);
+      for (const t of tabs) await page.getByRole('tab', { name: t }).first().click({ timeout: 3000 }).catch(() => log('NEMA KARTICE ' + t));
+      await page.waitForTimeout(2000);
+      const body = await page.locator('body').innerText().catch(() => '');
+      log(`${body.includes(want) ? 'PROLAZ' : 'PAD'} EKRAN ${who} ${u} sadrži „${want}”`);
+      log('KARTICE ' + (await page.getByRole('tab').allInnerTexts().catch(() => [])).join(' | '));
+      log('TEKST ' + body.replace(/\s+/g, ' ').slice(0, 900));
+      await page.screenshot({ path: IZLAZ + 'int33p-' + who + '.png', fullPage: true });
+    };
+    await look('demo-student', '/rad/0da788a3-e8e5-44d2-b4eb-edd52f71ff1e', 'Izmišljena tema i cilj rada', ['Asistent']);
+    await look('demo-student-2', '/rad/6dfeefa0-5905-4859-9074-54ad633fe563', 'Zakazana obrana');
+  },
+  // INT-33: which request fails when the student opens the team work.
+  async int33otvori(page) {
+    page.on('response', async (r) => { if (r.url().includes('/api/') && r.status() >= 400) log(`ODGOVOR ${r.status()} ${r.request().method()} ${r.url().replace(BASE, '')} ${(await r.text().catch(() => '')).slice(0, 200)}`); });
+    page.on('console', (m) => { if (m.type() === 'error') log('KONZOLA ' + m.text().slice(0, 300)); });
+    await page.context().clearCookies(); await signIn(page, 'demo-student');
+    for (const u of ['/student/assignments', '/student/assignment-work']) {
+      const r = await page.request.get('/api/v1' + u, { headers: H }); const t = await r.text();
+      const at = t.indexOf('0da788a3'); log(`API ${r.status()} ${u} ${t.slice(Math.max(0, at - 200), at + 900)}`);
+    }
+    await page.goto(BASE + '/app/web/rad/0da788a3-e8e5-44d2-b4eb-edd52f71ff1e').catch(() => {}); await page.waitForTimeout(12000);
+    log('TEKST ' + (await page.locator('body').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 300));
+  },
 };
