@@ -476,6 +476,12 @@ test("tests-table failure is never softened: no continue-on-error, fail-fast off
   for (const j of [...Object.values(reusable.jobs), job]) assert.equal(j["continue-on-error"], undefined);
   for (const s of Object.values(reusable.jobs).flatMap((j) => j.steps)) assert.equal(s["continue-on-error"], undefined);
   assert.equal(job.strategy["fail-fast"], false);
+  // tests-table may be skipped only on a docs-only pull request (CI-BRZINA): the
+  // name appears in allow-skipped only behind changes saying fixtures false.
   const skips = [selfTest.jobs["ci-ok-reusable"].with["allow-skipped"], ...selfTest.jobs["ci-ok"].steps.map((s) => s.env?.ALLOW_SKIPPED)];
-  for (const v of skips.filter((v) => v !== undefined)) assert.doesNotMatch(String(v), /tests-table/);
+  for (const v of skips.filter((v) => v !== undefined)) {
+    assert.doesNotMatch(String(v).replace("needs.changes.outputs.fixtures == 'false' && 'engineering-gate tests-table'", ""), /tests-table/);
+  }
+  assert.deepEqual(job.needs, "changes");
+  assert.equal(job.if, "${{ needs.changes.outputs.fixtures != 'false' }}");
 });

@@ -101,7 +101,9 @@ const dir = new URL("../.github/workflows/", import.meta.url);
 const selfTest = workflowOf(readFileSync(new URL("self-test.yml", dir), "utf8"));
 // The one job that is skipped on purpose: only red-aggregate may need it (DAN-971).
 const SKIPPED = "node-skipped";
-const allowSkipped = "${{ github.event_name != 'pull_request' && 'dependency-review' || '' }}";
+// CI-BRZINA (Daniel 25. 11. 2026): on a pull request only the two fixture
+// jobs may be skipped, and only when changes found nothing but docs/.
+const allowSkipped = "${{ github.event_name != 'pull_request' && 'dependency-review' || needs.changes.outputs.fixtures == 'false' && 'engineering-gate tests-table' || '' }}";
 
 // Workflows another PR could add: each must be refused by the trigger check.
 const strays = [
@@ -166,7 +168,7 @@ test("self-test ci-ok is a plain job named ci-ok over every other job", () => {
   const step = ok.steps.find((s) => typeof s.run === "string" && s.run.includes("node scripts/extract-run.mjs .github/workflows/ci-ok.yml ci-ok"));
   assert.ok(step, "ci-ok runs the block that ci-ok.yml ships");
   assert.equal(step.env?.RESULTS, "${{ toJSON(needs) }}");
-  // On pull requests nothing may be skipped; the empty branch must come last.
+  // On pull requests only the docs-only fixture skip; the empty branch must come last.
   assert.equal(step.env?.ALLOW_SKIPPED, allowSkipped);
 });
 
