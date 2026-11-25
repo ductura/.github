@@ -5,6 +5,12 @@ on:
   pull_request:
 permissions:
   contents: read
+# One run per pull request (CI-BRZINA, 25. 11.): a new push cancels the older
+# run of the same PR, which would only be replaced. Runs on main are never
+# cancelled; each push to main has its own group.
+concurrency:
+  group: self-test-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   actionlint:
     runs-on: ubuntu-latest
@@ -72,8 +78,12 @@ jobs:
   # fixtures/gate: the cases that must pass and those that must stay pending
   # or fail. Local fake API only; no token reaches the runner.
   engineering-gate:
+    # At most four cases at a time (CI-BRZINA): this matrix and tests-table
+    # started 26 jobs at once and filled the organisation's 20 runners, so
+    # other repositories' CI waited in the queue. Every case still runs.
     strategy:
       fail-fast: false
+      max-parallel: 4
       matrix:
         case: [pass-standard, pass-override, no-verdict, stale-head, fail-on-head, bad-agent-format]
         include:
@@ -101,6 +111,7 @@ jobs:
   tests-table:
     strategy:
       fail-fast: false
+      max-parallel: 4
       matrix:
         case: [cdata, code-fence, comment-only, del-da, docs-only, fence-between, filled-table, filled-template, line-separator, math-cell, mixed-indent, raw-html-hidden, template, zero-rows]
     permissions: { contents: read, pull-requests: read }
