@@ -453,6 +453,130 @@ ${(await r.text()).slice(0, 1500)}`);
       await obidi(page, urls, urls.length, false);
     }
   },
+  async tezaPriprema(page) {
+    // INT-32 closing fixture: demo-teacher opens a mentorship for demo-student-2 (an invented master's thesis), the student starts and writes.
+    const fs = await import('node:fs');
+    const datoteka = IZLAZ + 'teza-zavrsetak.json';
+    let teza = fs.existsSync(datoteka) ? JSON.parse(fs.readFileSync(datoteka, 'utf8')) : null;
+    if (!teza) {
+      await signIn(page, 'demo-teacher');
+      const r = await page.request.post('/api/v1/mentorships', { headers: H, data: { studentId: process.env.TEZA_STUDENT ?? '75fdcf46-2b5a-459f-851f-f7edf0f8939d', workType: 'bachelor_thesis', topic: 'Izmišljena tema završnog rada za INT-32' } });
+      const t = await r.text(); log(`MENTORSTVO ${r.status()} ${t.slice(0, 300)}`);
+      if (r.status() !== 201) throw new Error('mentorstvo nije otvoreno');
+      teza = { mentorshipId: JSON.parse(t).mentorshipId };
+      await page.context().clearCookies();
+    }
+    await signIn(page, 'demo-student-2');
+    const m = await page.request.get('/api/v1/student/mentorships'); const mt = await m.json();
+    const moje = (mt.mentorships ?? []).find((x) => x.mentorshipId === teza.mentorshipId);
+    log(`STUDENT MENTORSTVO ${m.status()} ${JSON.stringify(moje).slice(0, 300)}`);
+    if (!moje?.assignmentId) throw new Error('student ne vidi zadatak mentorstva');
+    teza.assignmentId = moje.assignmentId;
+    fs.writeFileSync(datoteka, JSON.stringify(teza, null, 1));
+    await page.goto(`${BASE}/app/web/rad/${teza.assignmentId}`); await page.waitForTimeout(5000); await skipGuide(page);
+    await snap(page, 'teza prije', 2000);
+    if (page.url().includes('/zadatak/')) {
+      // The notice comes first: confirm it as a student would, then the editor opens.
+      for (const cb of await page.locator('main').getByRole('checkbox').all()) await cb.check().catch(() => {});
+      await page.getByRole('button', { name: 'Potvrdi i otvori editor' }).click();
+      await page.waitForTimeout(4000);
+      await page.getByRole('link', { name: 'Otvori editor' }).or(page.getByRole('button', { name: 'Otvori editor' })).first().click();
+      await page.waitForTimeout(6000); await skipGuide(page);
+      log('OBAVIJEST potvrđena, sada ' + page.url().replace(BASE, ''));
+      await snap(page, 'teza nakon obavijesti', 2000);
+    }
+    const start = page.getByRole('button', { name: /Započni rad/ });
+    if (await start.count()) { await start.first().click(); await page.waitForTimeout(5000); await skipGuide(page); }
+    const editor = page.getByRole('textbox', { name: 'Tekst rada', exact: true });
+    const chip = page.locator('footer[aria-label="Stanje rada"]').getByRole('status');
+    await editor.click(); await page.keyboard.press('Control+End'); await page.keyboard.insertText(` Izmišljena rečenica diplomskog rada ${Date.now()}.`);
+    await chip.filter({ hasText: 'Spremljeno na poslužitelju' }).waitFor({ timeout: 60000 }).then(() => log('PROLAZ spremljeno na poslužitelju'), () => log('PAD nije „Spremljeno na poslužitelju”'));
+    await page.goto(`${BASE}/app/web/rad/${teza.assignmentId}/predaja/izjava`); await page.waitForTimeout(5000);
+    await snap(page, 'izjava', 4000);
+  },
+  async tezaIzjava(page) {
+    // INT-32 closing fixture: demo-student-2 opens the declaration of the mentored work and logs every API answer of the page.
+    const fs = await import('node:fs');
+    const teza = JSON.parse(fs.readFileSync(IZLAZ + 'teza-zavrsetak.json', 'utf8'));
+    page.on('response', async (r) => { const u = r.url(); if (u.includes('/api/')) log(`RESP ${r.request().method()} ${u.split('/api')[1]} ${r.status()} ${r.status() >= 400 ? (await r.text().catch(() => '')).slice(0, 200) : ''}`); });
+    await signIn(page, 'demo-student-2');
+    for (const x of ['', '/predaja', '/predaja/izjava']) {
+      const h = await page.request.get(`${BASE}/app/web/rad/${teza.assignmentId}${x}`); const b = await h.text();
+      log(`HTML ${x || '/'} ${h.status()} next=${(b.match(/\/_next\/static\/[a-z]+/) ?? [''])[0]} web=${b.includes('/web/_next') } nf=${(b.match(/NEXT_HTTP_ERROR_FALLBACK;d+|NEXT_NOT_FOUND|NEXT_REDIRECT[^"]{0,80}/g) ?? []).join(",")} len=${b.length}`);
+    }
+    await page.goto(`${BASE}/app/web/rad/${teza.assignmentId}/predaja/izjava`); await page.waitForTimeout(8000); await skipGuide(page);
+    await snap(page, 'izjava', 2000);
+  },
+  async tezaPredaja(page) {
+    // INT-32 closing fixture: demo-student-2 confirms the declaration and submits the mentored work over the API (the client host 404s on it, see the report).
+    const fs = await import('node:fs');
+    const datoteka = IZLAZ + 'teza-zavrsetak.json';
+    const teza = JSON.parse(fs.readFileSync(datoteka, 'utf8'));
+    await signIn(page, 'demo-student-2');
+    const w = await page.request.get('/api/v1/student/assignment-work'); const wj = await w.json();
+    const rad = JSON.stringify(wj).includes(teza.assignmentId) ? (Object.values(wj).flat().find((x) => x?.assignmentId === teza.assignmentId) ?? null) : null;
+    log(`RAD ${w.status()} ${JSON.stringify(rad).slice(0, 300)}`);
+    if (rad?.documentId) teza.documentId = rad.documentId;
+    const url = `/api/v1/student/assignments/${teza.assignmentId}/declaration`;
+    const g = await page.request.get(url); const d = await g.json();
+    log(`IZJAVA GET ${g.status()} state=${d.state} currentRevision=${d.currentRevision} version=${d.version} form=${JSON.stringify(d.currentForm && { formId: d.currentForm.formId, formVersion: d.currentForm.formVersion })}`);
+    if (d.state !== 'confirmed') {
+      const body = { baseVersion: d.version, revision: d.currentRevision, confirm: true,
+        form: { formId: d.currentForm.formId, formVersion: d.currentForm.formVersion, formSha256: d.currentForm.formSha256 },
+        ownWork: { confirmed: true }, humanHelp: { received: false, entries: [] },
+        ai: { use: 'not_used', declaredTools: [], attachments: [], externalAttachmentIds: [] } };
+      const p = await page.request.put(url, { headers: H, data: body });
+      log(`IZJAVA PUT ${p.status()} ${(await p.text()).slice(0, 300)}`);
+      if (p.status() >= 300) throw new Error('izjava nije potvrđena');
+    }
+    const s = await page.request.post('/api/v1/submission/v2', { headers: { ...H, 'ductus-protocol': '1' }, data: { documentId: teza.documentId, revision: d.currentRevision } });
+    log(`PREDAJA ${s.status()} ${(await s.text()).slice(0, 300)}`);
+    fs.writeFileSync(datoteka, JSON.stringify(teza, null, 1));
+  },
+  async tezaIzjavaDump(page) {
+    // Diagnostic: the bound declaration as the student reads it, for a contract check of the teacher read.
+    const fs = await import('node:fs');
+    const teza = JSON.parse(fs.readFileSync(IZLAZ + 'teza-zavrsetak.json', 'utf8'));
+    await signIn(page, 'demo-student-2');
+    const g = await page.request.get(`/api/v1/student/assignments/${teza.assignmentId}/declaration`);
+    const d = await g.json();
+    log(`IZJAVA ${g.status()} state=${d.state} submitted=${d.submitted}`);
+    fs.writeFileSync(IZLAZ + 'izjava-student.json', JSON.stringify(d, null, 1));
+  },
+  async nastavnikZavrsetak(page) {
+    // INT-32 closing: the mentor's declaration (SRV#718) and the enrollment-code state (SRV#704), then the same calls as other accounts.
+    // Fails unless demo-teacher got 200 on both; the work comes from tezaPriprema (teza-zavrsetak.json, documentId added after it).
+    const fs = await import('node:fs');
+    const teza = JSON.parse(fs.readFileSync(IZLAZ + 'teza-zavrsetak.json', 'utf8'));
+    if (!teza.documentId) throw new Error('teza-zavrsetak.json nema documentId');
+    const ciljevi = new Map();
+    page.on('response', (r) => {
+      const u = r.url().split('/api')[1] ?? '';
+      if (/\/declaration|enrollment-code\/state/.test(u) && r.request().method() === 'GET') ciljevi.set(u, r.status());
+    });
+    await signIn(page, 'demo-teacher');
+    for (const u of [`${BASE}/app/web/nastavnik/kolegiji`, `${BASE}/app/web/nastavnik/rad/${teza.documentId}/predaja`]) {
+      await page.goto(u).catch(() => {}); await page.waitForTimeout(6000); await skipGuide(page);
+      const al = (await page.getByRole('alert').allInnerTexts().catch(() => [])).join(' | ').slice(0, 200);
+      const nemoze = await page.getByText(/nije moguće učitati/i).count();
+      log(`STR ${u.replace(BASE + '/app/web', '')} alert="${al}" nijeMoguceUcitati=${nemoze}`);
+      await snap(page, 'zavrsetak ' + u.split('/').slice(-2).join(' '), 1000);
+    }
+    for (const [u, s] of ciljevi) log(`VLASNIK demo-teacher ${s} ${u}`);
+    fs.writeFileSync(IZLAZ + 'zavrsetak-api.json', JSON.stringify([...ciljevi], null, 1));
+    const izjava = [...ciljevi].filter(([u]) => /\/declaration/.test(u));
+    const kod = [...ciljevi].filter(([u]) => /enrollment-code\/state/.test(u));
+    log(`${izjava.some(([, s]) => s === 200) ? 'PROLAZ' : 'PAD'} izjava za mentora (${izjava.map(([, s]) => s).join(',') || 'nema poziva'})`);
+    log(`${kod.length && kod.every(([, s]) => s === 200) ? 'PROLAZ' : 'PAD'} stanje upisnog koda (${kod.map(([, s]) => s).join(',') || 'nema poziva'})`);
+    for (const racun of ['demo-teacher-2', 'demo-student', 'demo-student-2']) {
+      await page.context().clearCookies(); await signIn(page, racun);
+      for (const u of ciljevi.keys()) {
+        const r = await page.request.get('/api' + u);
+        log(`NEG ${racun} ${r.status()} ${[403, 404].includes(r.status()) ? 'ok' : 'NEOCEKIVANO'} ${u} ${(await r.text()).slice(0, 80).replace(/\s+/g, ' ')}`);
+      }
+    }
+    if (!izjava.some(([, s]) => s === 200) || !kod.length || !kod.every(([, s]) => s === 200)) throw new Error('INT-32 završetak: vlasnik nije dobio 200');
+  },
   async teza(page) {
     await signIn(page, 'demo-student-2');
     await page.goto(`${BASE}/app/web/rad/${TEZA}`); await page.waitForTimeout(4000); await skipGuide(page);
