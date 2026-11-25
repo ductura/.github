@@ -855,16 +855,6 @@ ${(await r.text()).slice(0, 1500)}`);
     const los = [];
     page.on('response', (r) => { const u = r.url(); if (u.includes('/api/') && r.status() >= 400) los.push(`${r.status()} ${r.request().method()} ${u.split('/api')[1].slice(0, 110)}`); });
     const as = async (who) => { await page.context().clearCookies(); await signIn(page, who); };
-    // The fake OIDC lists no button for sim: accounts; its form takes any account, as seed-predaja.ts posts it.
-    const asSim = async (who) => {
-      await page.context().clearCookies();
-      await page.goto(BASE + '/'); const link = page.getByRole('link', { name: 'Prijava preko AAI@EduHr', exact: true });
-      await link.waitFor({ timeout: 20000 }); await page.goto(BASE + (await link.getAttribute('href')));
-      await page.locator('button[name="account"]').first().waitFor({ timeout: 20000 });
-      await page.evaluate((acc) => { const b = document.querySelector('button[name="account"]'); b.value = acc; b.click(); }, who);
-      await page.waitForURL((u) => u.origin === BASE && u.pathname.startsWith('/app/web/'), { timeout: 30000 });
-      log(`prijava ${who}: uspjela`);
-    };
     const screen = async (u, name) => {
       los.length = 0;
       await page.goto(W + u).catch(() => {}); await page.waitForTimeout(8000); await skipGuide(page);
@@ -886,7 +876,7 @@ ${(await r.text()).slice(0, 1500)}`);
     mark(los.filter((l) => /^5/.test(l)).length === 0, 'EKRAN nastavnik: bez 5xx');
 
     log('=== student recenzent (demo-recenzent-1): zadaci, anonimni rad, primljene');
-    await asSim(R(1));
+    await as(R(1));
     const s = await screen(`/zadatak/${A}/recenzija`, 'student');
     mark(!/Učitavanje|nije dostupn|nisu dostupn/i.test(s) && s.length > 80, 'EKRAN student: zadaci recenzije');
     const tasks = [...new Set(await page.locator('a[href*="/recenzija/rad/"]').evaluateAll((as) => as.map((a) => a.getAttribute('href'))))];
@@ -910,7 +900,7 @@ ${(await r.text()).slice(0, 1500)}`);
     mark(!names.some((x) => n.includes(x)), 'NEG nastavnik drugog kolegija ne vidi dodjele');
 
     log('=== V17 predložak rada (administrator)');
-    await asSim('sim:nastavnik:demo-admin@demo.ductus.test');
+    await as('sim:nastavnik:demo-admin@demo.ductus.test');
     const a = await screen('/ustanova/predlozak-rada', 'predlozak');
     mark(!/Učitavanje|nije dostupn|nisu dostupn/i.test(a) && a.length > 40, 'EKRAN administrator: predložak rada');
     mark(los.filter((l) => /^5/.test(l)).length === 0, 'EKRAN predložak: bez 5xx');

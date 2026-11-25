@@ -26,7 +26,13 @@ export async function signIn(page, account) {
       await link.waitFor({ timeout: 20000 });
       // Izravno na href: klik na poveznicu na sporom računalu zapinje na „stabilnosti” elementa.
       await page.goto(BASE + (await link.getAttribute('href')));
-      await page.locator(`button[name="account"][value="${account}"]`).click({ timeout: 20000 });
+      if (account.startsWith('sim:')) {
+        // Lažni OIDC nema gumb za sim: račune; obrazac prima bilo koji račun, kao što ga šalje seed-predaja.ts.
+        await page.locator('button[name="account"]').first().waitFor({ timeout: 20000 });
+        await page.evaluate((acc) => { const b = document.querySelector('button[name="account"]'); b.value = acc; b.click(); }, account);
+      } else {
+        await page.locator(`button[name="account"][value="${account}"]`).click({ timeout: 20000 });
+      }
       await page.waitForURL((u) => u.origin === BASE && u.pathname.startsWith('/app/web/'), { timeout: 30000 });
       log(`prijava ${account}: pokušaj ${i + 1} uspio`);
       return;

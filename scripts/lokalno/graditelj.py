@@ -82,6 +82,9 @@ def za_graditelja(tijelo: str) -> bool:
     prvi = tijelo.lstrip().split("\n", 1)[0][:200]
     if re.match(r"\**\s*GRADITELJ\b", prvi) or re.search(r"·\s*GRADITELJ\s*\**\s*$", prvi):
         return False
+    # NALOG w… ide piscima u oblaku (Daniel 25. 11.: nikad graditeljev), a IZVJEŠTAJ graditelj je moja poruka.
+    if re.match(r"\**\s*NALOG\**\s+w", prvi) or re.match(r"\**\s*IZVJEŠTAJ\s+graditelj\b", prvi, re.I):
+        return False
     return bool(re.search(r"graditelj|\bLOK-|\bINT-\d+", tijelo, re.I))
 
 
@@ -276,6 +279,9 @@ def samotest() -> int:
     assert not za_graditelja("**PREDAJA · INT-32 (DAN-1500) · GRADITELJ**\n\nTablica")
     assert za_graditelja("**NALOG · INT-32**\nRadi graditelj; potpis · GRADITELJ nije u prvom retku")
     assert not za_graditelja("Izvještaj kruga bez ičega")
+    assert not za_graditelja("NALOG wwebed25-popisv2\nZA LAB: graditelj nije potreban")
+    assert not za_graditelja("**NALOG** wsrv-x\nINT-35 graditelj")
+    assert not za_graditelja("IZVJEŠTAJ graditelj: tri lokalna posla\nINT-35")
     assert razlike({"a": "1"}, {"a": "1", "b": "2"}) == ["b: — → 2"]
     log = ("2026-11-24T21:27:46.1Z \x1b[31m  ✘ 3 [app] e2e/a.spec.ts:50\x1b[0m\n2026-11-24T21:27:46.2Z ok\n"
            "2026-11-24T21:27:46.3Z   1 failed\n2026-11-24T21:27:46.4Z   1 failed\n")
