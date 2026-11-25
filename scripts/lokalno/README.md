@@ -15,6 +15,9 @@ Pokreću se s Pythonom 3.12+ uz `PYTHONIOENCODING=utf-8`. Radna stabla, zapisi i
 | `graditelj.py zapis polje=… +pr=web#638 +stablo=g-x` | Ažurira kontrolnu točku `_alati/graditelj.json` (zadatak, korak, sljedece, blokada, PR-ovi, stabla). Točka nije izvor istine; zadatak i status vode Linear i #2055. |
 | `graditelj.py ci <repo#broj>` | Neuspjele provjere PR-a i prvi redovi greške iz loga posla. |
 | `graditelj.py prati [minuta]` | Petlja za Monitor: ispisuje red samo kad se promijeni CI zaključak PR-a ili stog ili stigne poruka za graditelja; sama završava (zadano 25 min). Samo čita. |
+| `ci.py mjeri <cilj> [...] [--koraci N]` | Trajanje CI pokreta po workflowu: ukupno, najsporiji poslovi, čekanje na runner. Cilj je `web#748`, `web@<run_id>` ili `web:<grana>`. Više ciljeva daje usporedbu. Samo čita. |
+| `ci.py cekaj <repo#broj> [--max min]` | Čeka da sve provjere PR-a završe i ispiše sažetak. Izlaz: 0 prolaz (po ci-ok), 1 pad, 2 isteklo vrijeme, 3 nema provjera. Samo čita. |
+| `ci.py testovi <mapa> <datoteke…>` | `node --test` s Git Bashom na PATH-u (WSL bash daje lažne padove). Kad mapa nema `node_modules`, privremeno se spaja na `g-teza-web` i spojnica se poslije briše. Treba barem 1,5 GB slobodnog RAM-a. |
 
 Provjere koje troše memoriju (`korak`, `testovi`) traže najmanje 1,5 GB slobodnog RAM-a, a `start` najmanje 4 GB.
 
@@ -29,4 +32,4 @@ Novi korak u pregledniku dodaje se kao nova metoda u `steps` u datoteci `koraci.
 
 ## Što provjerava CI
 
-CI (`node --test scripts/*.test.mjs`) pokreće samo `scripts/lokalno-alati.test.mjs`. Taj test provjerava da tokeni ne ulaze u zapis, da nepoznat korak završava izlazom 2 bez preglednika da su uzorci u `poznati-padovi.json` ispravni i da prolazi `graditelj.py samotest` (čiste funkcije, bez mreže; preskače se ako nema Pythona). Ostali Python dio (`stog.py`, `tok.py`, mrežni dio `graditelj.py`) i sami koraci provjereni su samo ručno nad lokalnim stogom.
+CI (`node --test scripts/*.test.mjs`) pokreće samo `scripts/lokalno-alati.test.mjs`. Taj test provjerava da tokeni ne ulaze u zapis, da nepoznat korak završava izlazom 2 bez preglednika da su uzorci u `poznati-padovi.json` ispravni i da prolaze `graditelj.py samotest` i `ci.py samotest` (čiste funkcije, bez mreže; preskače se ako nema Pythona). Ostali Python dio (`stog.py`, `tok.py`, mrežni dio `graditelj.py`) i sami koraci provjereni su samo ručno nad lokalnim stogom.
