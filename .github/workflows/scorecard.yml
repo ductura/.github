@@ -1,0 +1,50 @@
+# Reusable OpenSSF Scorecard (ISTR-3): scores the caller's repository and
+# uploads the SARIF to its Code scanning. Nothing is published to OpenSSF
+# (publish_results: false, tested in scripts/scorecard.test.mjs). Advisory
+# only: not part of ci-ok and never a required check. Scorecard scores the
+# default branch, so call it on a schedule (or by hand), never on pull requests.
+# Caller (weekly), with exactly these permissions on the calling job:
+#   on:
+#     schedule: [{ cron: "17 4 * * 1" }]
+#     workflow_dispatch:
+#   permissions: {}
+#   jobs:
+#     scorecard:
+#       permissions: { security-events: write, contents: read, actions: read }
+#       uses: ductura/.github/.github/workflows/scorecard.yml@<40-char SHA> # <tag>
+# This repository runs it on itself weekly through the schedule below.
+name: scorecard
+on:
+  workflow_call:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 4 * * 1"
+permissions: {}
+jobs:
+  scorecard:
+    name: scorecard
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # One run at a time per repository; a second one waits, none is cancelled.
+    concurrency:
+      group: scorecard
+      cancel-in-progress: false
+    permissions:
+      security-events: write # upload the SARIF to Code scanning
+      contents: read # read the repository being scored
+      actions: read # read workflow runs for the CI checks
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Scorecard (results stay in this repository)
+        uses: ossf/scorecard-action@23f22cd43608bae7a1f1fa2603d7314dee9538a5 # v2.6.0
+        with:
+          results_file: scorecard.sarif
+          results_format: sarif
+          publish_results: false
+      - name: Upload the SARIF to Code scanning
+        uses: github/codeql-action/upload-sarif@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
+        with:
+          sarif_file: scorecard.sarif
+          category: scorecard
