@@ -4,7 +4,7 @@
 
 Zadaci su alati, ovisnosti i testovi. Nijedan ne dodaje funkciju za korisnika. Svaki zadatak ide zasebnim PR-om s ID-jem `ISTR-n`. Za SRV vrijedi risk floor (`.github/**` i `db/**/tests/**` su critical); gdje kartica traži višu razinu, vrijedi viša.
 
-Redoslijed: ISTR-3 i ISTR-6 su mali i neovisni. ISTR-1 ide prije ISTR-2 jer oba diraju lanac dokumenata. ISTR-4 radi pisac s pristupom privatnom repou. ISTR-5 nakon ISTR-1.
+Redoslijed: ISTR-3 i ISTR-6 su mali i neovisni. ISTR-1 ide prije ISTR-2 jer oba diraju lanac dokumenata. ISTR-4 radi pisac s pristupom privatnom repou. ISTR-5 nakon ISTR-1 i nakon DAN-1090.
 
 ### ISTR-1 `pdf-lib-fork` (SRV)
 - **Risk:** standard prema donjoj granici, a predlažem critical, jer zadatak mijenja ovisnost potvrde predaje i izvoza.
@@ -72,6 +72,8 @@ Redoslijed: ISTR-3 i ISTR-6 su mali i neovisni. ISTR-1 ide prije ISTR-2 jer oba 
 
 ### ISTR-5 `stryker-moduli-povjerenja` (SRV)
 - **Risk:** critical (novi workflow u `.github/workflows`).
+- **Odnos s DAN-1090:** isti alat. DAN-1090 (Backlog) gradi zajedničku naredbu u ductura/.github za datoteke koje PR mijenja. ISTR-5 je SRV konfiguracija za module povjerenja i koristi tu naredbu kad postoji, a ne uvodi drugu. Orkestrator ih vodi kao jedan tok: najprije DAN-1090, zatim ISTR-5.
+- **Preduvjet:** provjeriti da `@stryker-mutator/vitest-runner` podržava Vitest 5 (SRV ima `^5.1.0`). Ako ne podržava, zadatak stoji i to se javlja na #2058.
 - **Opseg:**
   - `@stryker-mutator/core` i `@stryker-mutator/vitest-runner` kao devDependency.
   - `stryker.config.mjs` ograničen na `server/domain/forensics/**`, `scripts/evidence-verify/**` i `scripts/engineering/risk-floor.ts`.
