@@ -42,6 +42,42 @@ test("drift/expected.json is valid and its labels file loads", () => {
   assert.ok(labels.length > 0);
 });
 
+// The names in drift/expected.json must be the real repository names of the
+// organisation. docs/plan/STANJE.md lists them in its first table (every
+// repository except .github itself), so the two lists must agree exactly.
+export function planRepoNames(markdown) {
+  const names = [];
+  let inTable = false;
+  for (const line of markdown.split("\n")) {
+    if (/^\|\s*Repo\s*\|/.test(line)) {
+      inTable = true;
+      continue;
+    }
+    if (!inTable) continue;
+    if (!line.startsWith("|")) break;
+    const name = /^\|\s*([^|\s]+)\s*\|/.exec(line)?.[1];
+    if (name && !/^-+$/.test(name)) names.push(name);
+  }
+  return names;
+}
+
+test("drift/expected.json names exactly the real repositories of the organisation", () => {
+  const { expected } = loadExpected(join(ROOT, "drift", "expected.json"));
+  const planned = planRepoNames(readFileSync(join(ROOT, "docs", "plan", "STANJE.md"), "utf8"));
+  assert.ok(planned.length >= 9, `STANJE.md repo table not found (got ${planned.length})`);
+  const actual = expected.repos.map((x) => x.name).sort();
+  assert.deepEqual(actual, [...planned, ".github"].sort());
+  // GitHub names are case-insensitive, but the listed spelling must be the real one.
+  for (const n of actual) assert.doesNotMatch(n, /^(server|web|preloader|desktop-.*)$/, `${n} is a plan name, not a real repository name`);
+});
+
+test("planRepoNames notices a renamed or missing repository", () => {
+  const md = "| Repo | Spojeno |\n|---|---|\n| Alfa | 1 |\n| Beta | 2 |\n\nrest";
+  assert.deepEqual(planRepoNames(md), ["Alfa", "Beta"]);
+  assert.notDeepEqual(planRepoNames(md.replace("Beta", "beta-2")), ["Alfa", "Beta"]);
+  assert.deepEqual(planRepoNames("nema tablice"), []);
+});
+
 test("validateExpected rejects bad configurations", () => {
   assert.deepEqual(validateExpected(EXPECTED), []);
   assert.match(validateExpected({ ...EXPECTED, version: 2 }).join(), /version/);

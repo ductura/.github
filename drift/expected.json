@@ -6,11 +6,15 @@
   "labels": "labels.yml",
   "reportIssue": "Razilaženje postavki (drift-check)",
   "repos": [
-    { "name": "server" },
-    { "name": "preloader" },
-    { "name": "web" },
     { "name": ".github" },
-    { "name": "desktop-windows", "optional": true, "note": "nastaje u fazi E" },
-    { "name": "desktop-macos", "optional": true, "note": "nastaje u fazi E" }
+    { "name": "Institution_server" },
+    { "name": "Institution_front_web_chrome" },
+    { "name": "Preloader" },
+    { "name": "Institution_web_mobile" },
+    { "name": "Web_other" },
+    { "name": "Aplication_server" },
+    { "name": "Aplication_front" },
+    { "name": "Desktop_macos" },
+    { "name": "Desktop_windows" }
   ]
 }
