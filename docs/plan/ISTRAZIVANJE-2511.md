@@ -4,9 +4,10 @@
 
 Zadaci su alati, ovisnosti i testovi. Nijedan ne dodaje funkciju za korisnika. Svaki zadatak ide zasebnim PR-om s ID-jem `ISTR-n`. Za SRV vrijedi risk floor (`.github/**` i `db/**/tests/**` su critical); gdje kartica traži višu razinu, vrijedi viša.
 
-Redoslijed: ISTR-3 i ISTR-6 su mali i neovisni. ISTR-1 ide prije ISTR-2 jer oba diraju lanac dokumenata. ISTR-4 radi pisac s pristupom privatnom repou. ISTR-5 nakon ISTR-1 i nakon DAN-1090.
+Redoslijed: ISTR-3 i ISTR-6 su mali i neovisni. ISTR-1 ide prije ISTR-2 jer oba diraju lanac dokumenata. ISTR-4 radi pisac s pristupom privatnom repou. ISTR-5 nakon ISTR-1 i nakon DAN-1090. ISTR-7 je neovisan. ISTR-8 ide nakon ISTR-6. ISTR-9 tek nakon A01–A10.
 
 ### ISTR-1 `pdf-lib-fork` (SRV)
+
 - **Risk:** standard prema donjoj granici, a predlažem critical, jer zadatak mijenja ovisnost potvrde predaje i izvoza.
 - **Opseg:**
   - U `package.json` zamijeniti `pdf-lib` 1.17.1 s `@cantoo/pdf-lib` na točnoj verziji (zadnji tag je v2.11.0, 2026-09-11).
@@ -26,6 +27,7 @@ Redoslijed: ISTR-3 i ISTR-6 su mali i neovisni. ISTR-1 ide prije ISTR-2 jer oba 
   - Test koji čita uvezeni PDF (`read-pdf`) prolazi.
 
 ### ISTR-2 `tsa-rfc3161-pkijs` (SRV, dio B5)
+
 - **Risk:** standard prema donjoj granici, a predlažem critical (lanac povjerenja evidencije).
 - **Opseg:**
   - Port `server/external/tsa`: iz SHA-256 dnevnog korijena gradi `TimeStampReq`, a `TimeStampResp` parsira i provjerava PKI.js-om (`TSTInfo.messageImprint`, nonce, vrijeme, lanac certifikata TSA-a).
@@ -45,6 +47,7 @@ Redoslijed: ISTR-3 i ISTR-6 su mali i neovisni. ISTR-1 ide prije ISTR-2 jer oba 
   - Test da lažni TSA nikad ne prima ništa osim hasha.
 
 ### ISTR-3 `scorecard-reusable` (`ductura/.github`)
+
 - **Risk:** critical (`.github/**`).
 - **Opseg:**
   - Reusable workflow `scorecard.yml` s `ossf/scorecard-action` prikvačenim na SHA, `publish_results: false` i SARIF uploadom u Code scanning.
@@ -59,6 +62,7 @@ Redoslijed: ISTR-3 i ISTR-6 su mali i neovisni. ISTR-1 ide prije ISTR-2 jer oba 
   - Test u `scripts/` potvrđuje da je `publish_results` false.
 
 ### ISTR-4 `rls-katalog-usporedba` (SRV, UZETI OBRAZAC)
+
 - **Risk:** critical (`db/**/tests/**`).
 - **Opseg:**
   - Usporediti 68 pravila iz pgrls `docs/RULES.md` s čuvarima u `db/{main,logs,legal}/tests/000`, `010` i `012`.
@@ -71,6 +75,7 @@ Redoslijed: ISTR-3 i ISTR-6 su mali i neovisni. ISTR-1 ide prije ISTR-2 jer oba 
 - **Testovi prihvata:** nema koda. Ako nastanu novi čuvari, svaki ima negativnu kontrolu koja ga ruši.
 
 ### ISTR-5 `stryker-moduli-povjerenja` (SRV)
+
 - **Risk:** critical (novi workflow u `.github/workflows`).
 - **Odnos s DAN-1090:** isti alat. DAN-1090 (Backlog) gradi zajedničku naredbu u ductura/.github za datoteke koje PR mijenja. ISTR-5 je SRV konfiguracija za module povjerenja i koristi tu naredbu kad postoji, a ne uvodi drugu. Orkestrator ih vodi kao jedan tok: najprije DAN-1090, zatim ISTR-5.
 - **Preduvjet:** provjeriti da `@stryker-mutator/vitest-runner` podržava Vitest 5 (SRV ima `^5.1.0`). Ako ne podržava, zadatak stoji i to se javlja na #2058.
@@ -90,6 +95,7 @@ Redoslijed: ISTR-3 i ISTR-6 su mali i neovisni. ISTR-1 ide prije ISTR-2 jer oba 
   - Postojeći testovi se ne mijenjaju.
 
 ### ISTR-6 `docx-fixturi-mammoth` (SRV, UZETI OBRAZAC, S)
+
 - **Risk:** standard.
 - **Opseg:**
   - Uzeti odabrane DOCX fixture iz `mammoth.js/test/test-data` (BSD-2-Clause, uz zapis licence i izvora) u `test-support/docx-zip`: `strict-format`, `comments`, `footnotes`, `endnotes`, `tables` i `external-picture`.
@@ -97,6 +103,52 @@ Redoslijed: ISTR-3 i ISTR-6 su mali i neovisni. ISTR-1 ide prije ISTR-2 jer oba 
 - **Granice:** biblioteka mammoth se ne uvodi. Uvoz ne smije slati vanjske zahtjeve (`external-picture`).
 - **Gotovo kad:** svaki fixture ima test s očekivanim ishodom (uvezeno ili zatvorena greška).
 - **Testovi prihvata:** novi testovi su zeleni, a postojeći testovi uvoza ostaju nepromijenjeni.
+
+### ISTR-7 `schemathesis-ugovor` (SRV)
+
+- **Odobreno:** Daniel 25. 11. 2026. („Može, dodaj ISTR-7, 8 i 9”).
+- **Risk:** standard. Critical ako zadatak dira `.github/**` ili identitet.
+- **Opseg:**
+  - Schemathesis (Python CLI, prikvačena verzija) nad `openapi/v1.json`, protiv lokalnog stoga s lažnim OIDC računima.
+  - Naredba u `scripts/` koja pokreće probu s ograničenim brojem primjera i vremenom i ispisuje sažetak neslaganja (status, shema odgovora, 5xx).
+  - Popis ruta koje se provjeravaju. Prvo samo rute za čitanje, a rute koje pišu tek uz zaseban stog za probu.
+- **Granice:**
+  - Samo lokalni stog i sintetički računi. Nikad dijeljeni stog u upotrebi, nikad produkcija.
+  - Ne ulazi u `ci-ok`. Rezultat je izvještaj, a pronađene greške su zasebni zadaci.
+  - Nalaz koji je sigurnosni ide samo u privatni `ductura/sigurnosni-nalazi`.
+- **Gotovo kad:** postoji naredba i jedan zapisani pokret s brojem provjerenih ruta i neslaganja.
+- **Testovi prihvata:** na namjerno pokvarenoj ruti (lažni poslužitelj u testu vraća polje izvan sheme) proba prijavi neslaganje. Na ispravnoj ruti ne prijavi ništa.
+
+### ISTR-8 `jazzer-docx-uvoz` (SRV, nakon ISTR-6)
+
+- **Odobreno:** Daniel 25. 11. 2026. Ranije istraživanje (`docs/ductus/arhiva/ISTRAZIVANJE-ALATA-2026-10-25.md`) dalo je ocjenu „PROBATI ograničen fuzz harness parsera”.
+- **Risk:** standard.
+- **Opseg:**
+  - Jedan Jazzer.js harness za DOCX uvoz (`server/import`), s korpusom iz fixtura ISTR-6.
+  - Vremensko ograničenje i ograničenje veličine ulaza. Ručni workflow ili lokalna naredba.
+- **Granice:**
+  - Jedan parser. Bez proširenja na druge module prije zapisanog rezultata.
+  - Ne ulazi u `ci-ok`.
+  - Jazzer.js ima jednog aktivnog autora. Ako ne radi s našom verzijom Nodea, zadatak se zatvara s tim zapisom.
+- **Gotovo kad:** harness radi zadano vrijeme, a svaki pad je zapisan kao zasebni zadatak s minimalnim ulazom.
+- **Testovi prihvata:** svaki pronađeni pad dobiva regresijski test u postojećem skupu testova uvoza.
+
+### ISTR-9 `k6-opterecenje` (SRV, nakon A01–A10)
+
+- **Odobreno:** Daniel 25. 11. 2026. Počinje tek kad je tablica A01–A10 sva PROLAZ.
+- **Risk:** standard.
+- **Opseg:**
+  - k6 (OSS, lokalno, bez Grafana Clouda) i skripte scenarija u `scripts/load/`:
+    - normalna nastava;
+    - rok predaje (mnogo spremanja i predaja u kratkom vremenu);
+    - sinkronizacija nakon prekida veze.
+  - Broj korisnika je parametar. Ciljevi kapaciteta usklađuju se s planom pilota i nisu dio ovog zadatka.
+- **Granice:**
+  - Samo zaseban lokalni stog za probu, sintetički računi i podaci. Nikad stog u upotrebi.
+  - Uz RAM pravilo: jedna teška proba odjednom.
+  - k6 je AGPL-3.0 i koristi se samo kao lokalni alat. Ne isporučuje se i ne ulazi u ovisnosti.
+- **Gotovo kad:** svaki scenarij ima zapisani pokret (p50/p95 trajanja, stopa grešaka, broj korisnika) i popis uskih grla kao zasebne zadatke.
+- **Testovi prihvata:** scenarij pokrenut na stogu bez opterećenja daje stopu grešaka 0. Namjerno ugašen poslužitelj daje grešku, a ne tihi prolaz.
 
 Obrazac iz Playwrighta (`--shard`, paralelni katalog) nije dobio zadatak: već je uveden u WEB #445 i #447, spojenima 22. 11. 2026.
 
