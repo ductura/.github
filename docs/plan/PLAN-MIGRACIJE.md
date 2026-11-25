@@ -317,6 +317,16 @@ Serverska ovisnost i dalje se provjerava u fazi 3 (`srvDeps`).
 | Pisci u oblaku | WEB-*, SRV-* i VIZ-* kod koji ne treba upaljenu aplikaciju. Jedan zadatak, jedan PR. |
 | Orkestrator | Raspoređivanje, odgovori piscima, sitni popravci (sukobi, izvadak ugovora, CI baze), guranje PR-ova do spajanja. |
 
+#### 3a. Usklađivanje sučelja u dizajnerskoj fazi (Daniel, 25. 11.)
+
+Druga predaja dizajnerske sesije (`pregled/koncepti/aplikacija/ODLUKE-USKLADIVANJE.md`, nalazi u `INVENTAR.md` 5.1–5.9). Kreće tek nakon alata DIZ-ALAT-01 do 06, u dizajnerskoj fazi. Pravilo: samo postojeće komponente iz `@ductura/ui`, bez novog dizajnerskog sustava, `globals.css` se ne mijenja. Svaki korak je zaseban zadatak:
+
+1. `DIZ-UI-01` Okvir i stanja: okvir stranice po uzoru na TeacherPage prelazi u `@ductura/ui` (DAN-1111); greška na cijeloj stranici je ErrorScreen, a na dijelu stranice Card error s gumbom „Pokušaj ponovno”, uvijek `role="alert"`; učitavanje je RouteLoading, Skeleton ili DataTable loading; prazno stanje je Card empty ili DataTable empty; AccessDenied umjesto tihog preusmjeravanja. Mobilni razmak i manji h1 ispod 640 px rješavaju se u komponenti.
+2. `DIZ-UI-02` Zamjena sirovih elemenata ekran po ekran (Button, Card, DataTable, TextField, Select, TextArea, Checkbox, KeyValueList), uz vizualnu regresiju. Iznimke su sadržaj uređivača i ručni grafikoni.
+3. `DIZ-UI-03` Jedna aplikacija i duplikati: kanonska je `packages/app`; `src/app`, AppShell, `theme.ts`, stari N-17 i N-04, TeacherToast, StudentToasts i inline „Bez uloge” uklanjaju se tek kad `packages/app` pokrije sve njihove rute.
+4. `DIZ-UI-04` Iznimke: /prijava zadržava staklo, ali s tokenima i ui gumbima; /stanje i /kako-radi prelaze na zajednički okvir; prijelomi samo iz `prijelomi.ts`; pismo najmanje 12 px.
+5. Nepostojeći `@ductura/catalog` u CI-ju i `design-doc.test.ts` rješava se u DIZ-ALAT-03.
+
 #### 4. Vrata CI-ja za WEB (Daniel, 22. 11.)
 
 Daniel je rekao: „Ako ove 3 promjene ne usporavaju razvoj aplikacije, da napravi te 3 stvari.” Te tri stvari su:
