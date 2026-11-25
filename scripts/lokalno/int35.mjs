@@ -2,7 +2,7 @@
 // Needs the submitted works of predaje-recenzija.mjs (sim:student:demo-recenzent-1..6) on the chosen
 // assignment. Allocation is once per round, so a rerun reads the allocated round and goes on; the round
 // must be open (opensAt in the past) for the student part. Invented data only.
-// Use (cwd = SRV tree): node int35.mjs . [hidro|seminar]   (prints PROLAZ/PAD lines and a sum)
+// Use (cwd = SRV tree): node int35.mjs . [hidro|seminar|danas]   (prints PROLAZ/PAD lines and a sum)
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -24,7 +24,12 @@ globalThis.fetch = (url, init = {}) => {
   return plainFetch(url, init);
 };
 
-const COURSE = { hidro: 'Izmišljeni seminar iz urbane hidrologije', seminar: 'Izmišljeni seminar iz ekologije grada' }[which];
+// The seminar course holds two assignments since 25. 11., so the assignment is picked by its title.
+const [COURSE, TITLE] = {
+  hidro: ['Izmišljeni seminar iz urbane hidrologije', 'Kratki osvrt: gradski vrtovi'],
+  seminar: ['Izmišljeni seminar iz ekologije grada', 'Seminarski rad: kućno kompostiranje'],
+  danas: ['Izmišljeni seminar iz ekologije grada', 'Recenzija danas: gradsko zelenilo'],
+}[which];
 const N = 6, K = 2;
 const R = (i) => `sim:student:demo-recenzent-${i}@demo.ductus.test`;
 const sum = { PROLAZ: 0, PAD: 0 };
@@ -32,7 +37,7 @@ const sessions = new Map();
 const as = async (who) => sessions.get(who) ?? sessions.set(who, await seed.signIn(origin, ISSUER, who)).get(who);
 const short = (who) => who.replace(/^sim:student:|@demo\.ductus\.test$/g, '');
 
-const A = (await (await (await as(R(1)))('student/assignments')).json()).courses.find((c) => c.name === COURSE)?.assignments[0]?.id;
+const A = (await (await (await as(R(1)))('student/assignments')).json()).courses.find((c) => c.name === COURSE)?.assignments.find((a) => a.title === TITLE)?.id;
 if (!A) throw new Error(`recenzent 1 nije upisan u ${COURSE}; prvo predaje-recenzija.mjs`);
 const T = `teacher/assignments/${A}/peer-review`, S = `student/assignments/${A}/peer-review`;
 console.log(`zadatak ${which}: ${A}`);

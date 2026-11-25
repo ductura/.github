@@ -4,7 +4,7 @@
 // accounts only (sim:student:demo-recenzent-N@demo.ductus.test); nothing touches the database.
 // A rerun is idempotent (same revision, same receipt).
 //
-// Use (cwd = SRV tree): node predaje-recenzija.mjs . [count=6] [zadatak=seminar|hidro]
+// Use (cwd = SRV tree): node predaje-recenzija.mjs . [count=6] [zadatak=seminar|hidro|danas]
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
@@ -20,6 +20,8 @@ const { canonicalizeJcs } = await imp('server/domain/forensics/jcs.ts');
 export const ZADACI = {
   seminar: { code: 'UPIS2026DEMO', course: 'Izmišljeni seminar iz ekologije grada', title: 'Seminarski rad: kućno kompostiranje', afterDeadline: false },
   hidro: { code: 'HIDRO2026DEMO', course: 'Izmišljeni seminar iz urbane hidrologije', title: 'Kratki osvrt: gradski vrtovi', afterDeadline: true },
+  // Made by novi-zadatak.mjs (INT-35, second run on 25. 11.) in the seminar course, due later the same day.
+  danas: { code: 'UPIS2026DEMO', course: 'Izmišljeni seminar iz ekologije grada', title: 'Recenzija danas: gradsko zelenilo', afterDeadline: false },
 };
 const zadatak = ZADACI[which];
 if (!zadatak) throw new Error(`nepoznat zadatak ${which}`);
