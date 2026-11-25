@@ -841,4 +841,102 @@ ${(await r.text()).slice(0, 1500)}`);
     await page.goto(BASE + '/app/web/rad/0da788a3-e8e5-44d2-b4eb-edd52f71ff1e').catch(() => {}); await page.waitForTimeout(12000);
     log('TEKST ' + (await page.locator('body').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 300));
   },
+  // INT-34: what merged after INT-33 (WEB 47fa401d / SRV aff4a7d2) — V16 forms and mentor consent, V19 anonymous
+  // peer review (API; the local seed has one submitted work, so allocation must refuse with too_few_submissions),
+  // V15 analysis catalogue and stateless run (no route mounts the analysis screens yet). Invented data only.
+  async int34(page) {
+    const Z = '0da788a3-e8e5-44d2-b4eb-edd52f71ff1e', DM = 'e8efbf5a-3061-460d-b791-f4c11e81f7a1';
+    const ADMIN = 'sim:nastavnik:demo-admin@demo.ductus.test', W = BASE + '/app/web';
+    const zbroj = { PROLAZ: 0, PAD: 0 };
+    const call = async (v, who, method, path, data, ok) => {
+      if (typeof data === 'function' || typeof data === 'boolean') { ok = data; data = undefined; }
+      const r = await page.request.fetch('/api/v1' + path, { method, headers: H, data }).catch((e) => ({ status: () => 0, text: async () => e.message }));
+      const st = r.status(), t = await r.text().catch(() => '');
+      const pass = ok === true ? st >= 200 && st < 300 : ok === false ? st === 403 || st === 404 : ok(st, t);
+      zbroj[pass ? 'PROLAZ' : 'PAD']++;
+      log(`${pass ? 'PROLAZ' : 'PAD'} ${v} ${ok === false ? 'NEG' : 'POZ'} ${who} ${st} ${method} ${path} ${t.replace(/\s+/g, ' ').slice(0, 220)}`);
+      try { return JSON.parse(t); } catch { return null; }
+    };
+    const as = async (who) => { await page.context().clearCookies(); await signIn(page, who); };
+    const text = async (u, ...want) => {
+      await page.goto(W + u).catch(() => {}); await page.waitForTimeout(7000); await skipGuide(page);
+      const body = await page.locator('body').first().innerText({ timeout: 5000 }).catch(() => '');
+      for (const w of want) { const pass = body.includes(w); zbroj[pass ? 'PROLAZ' : 'PAD']++; log(`${pass ? 'PROLAZ' : 'PAD'} EKRAN ${u} sadrži „${w}”`); }
+      if (!want.every((w) => body.includes(w))) log('TEKST ' + body.replace(/\s+/g, ' ').slice(0, 900));
+      await page.screenshot({ path: IZLAZ + 'int34-' + u.replace(/[^a-z0-9]+/gi, '-').slice(-40) + '.png', fullPage: true });
+    };
+    const code = (st, t, c) => st === 409 && t.includes(c);
+
+    log('=== V16 administrator: obrazac završnog rada');
+    await as(ADMIN);
+    await call('V16', ADMIN, 'POST', '/institution/thesis-forms', { code: 'prijava-teme', title: 'Izmišljena prijava teme rada', workTypes: ['bachelor_thesis', 'master_thesis'], active: true }, true);
+    await call('V16', ADMIN, 'GET', '/institution/thesis-forms', (st, t) => st === 200 && t.includes('Izmišljena prijava teme'));
+
+    log('=== V16 student mentorstva (demo-student-2): predaje obrazac');
+    await as('demo-student-2');
+    await call('V16', 'demo-student-2', 'GET', `/works/${DM}/thesis-forms`, (st, t) => st === 200 && t.includes('prijava-teme'));
+    await call('V16', 'demo-student-2', 'PUT', `/works/${DM}/thesis-forms/prijava-teme`, { state: 'submitted' }, true);
+    await call('V16', 'demo-student-2', 'PUT', `/works/${DM}/mentor-consent`, { given: true, comment: 'Student sam sebi.' }, (st) => st === 403 || st === 404);
+    await call('V16', 'demo-student-2', 'PUT', `/works/${DM}/thesis-forms/prijava-teme`, { state: 'accepted' }, (st) => st === 403 || st === 409);
+
+    log('=== V16 mentor: prihvaća obrazac, daje suglasnost, ekran');
+    await as('demo-teacher');
+    await call('V16', 'demo-teacher', 'PUT', `/works/${DM}/thesis-forms/prijava-teme`, { state: 'accepted' }, true);
+    await call('V16', 'demo-teacher', 'PUT', `/works/${DM}/mentor-consent`, { given: true, comment: 'Izmišljena suglasnost mentora.' }, true);
+    await text('/nastavnik/mentorstva', 'Izmišljena prijava teme', 'Izmišljena suglasnost mentora');
+
+    log('=== V16 student mentorstva čita stanje');
+    await as('demo-student-2');
+    await call('V16', 'demo-student-2', 'GET', `/works/${DM}/thesis-forms`, (st, t) => st === 200 && t.includes('"accepted"'));
+    await call('V16', 'demo-student-2', 'GET', `/works/${DM}/mentor-consent`, (st, t) => st === 200 && t.includes('"given"'));
+
+    log('=== V16 strani računi');
+    await as('demo-student');
+    await call('V16', 'demo-student', 'GET', `/works/${DM}/thesis-forms`, false);
+    await call('V16', 'demo-student', 'GET', `/works/${DM}/mentor-consent`, false);
+    await as('demo-teacher-2');
+    await call('V16', 'demo-teacher-2', 'GET', `/works/${DM}/thesis-forms`, false);
+    await call('V16', 'demo-teacher-2', 'PUT', `/works/${DM}/mentor-consent`, { given: false, comment: 'Tuđi mentor.' }, false);
+    await call('V16', 'demo-teacher-2', 'POST', '/institution/thesis-forms', { code: 'tudi-obrazac', title: 'Izmišljeni tuđi obrazac', workTypes: ['bachelor_thesis'], active: true }, (st) => st === 403);
+
+    log('=== V19 nastavnik kolegija: krug recenzije na Z');
+    await as('demo-teacher');
+    const P = `/teacher/assignments/${Z}/peer-review`;
+    const round = { opensAt: '2026-11-26T08:00:00.000Z', dueAt: '2026-12-10T22:00:00.000Z', reviewsPerStudent: 2, rubrics: [{ key: 'jasnoca', label: 'Izmišljena jasnoća argumenta' }, { key: 'izvori', label: 'Izmišljeni izvori' }] };
+    await call('V19', 'demo-teacher', 'PUT', P, round, true);
+    await call('V19', 'demo-teacher', 'GET', P, (st, t) => st === 200 && t.includes('not_allocated') && t.includes('minSubmissions'));
+    await call('V19', 'demo-teacher', 'POST', P + '/allocations', (st, t) => code(st, t, 'too_few_submissions'));
+    await call('V19', 'demo-teacher', 'GET', P + '/overview', (st, t) => st === 200 && t.includes('"allocations":[]'));
+    await call('V19', 'demo-teacher', 'PUT', P, { ...round, opensAt: round.dueAt, dueAt: round.opensAt }, (st) => st === 422);
+
+    log('=== V19 student kolegija i strani računi');
+    await as('demo-student');
+    await call('V19', 'demo-student', 'GET', `/student/assignments/${Z}/peer-review/tasks`, (st, t) => st === 200 && t.includes('"none"'));
+    await call('V19', 'demo-student', 'GET', `/student/assignments/${Z}/peer-review/received`, (st, t) => st === 200 && t.includes('"reviews":[]'));
+    await call('V19', 'demo-student', 'GET', P, false);
+    await call('V19', 'demo-student', 'GET', '/student/peer-review/tasks/00000000-0000-4000-8000-000000000001/work', false);
+    await call('V19', 'demo-student', 'POST', '/student/peer-review/tasks/00000000-0000-4000-8000-000000000001/review', { byRubric: [{ key: 'jasnoca', text: 'Izmišljeno.' }, { key: 'izvori', text: 'Izmišljeno.' }] }, false);
+    await as('demo-student-2');
+    await call('V19', 'demo-student-2', 'GET', `/student/assignments/${Z}/peer-review/tasks`, false);
+    await as('demo-teacher-2');
+    await call('V19', 'demo-teacher-2', 'GET', P, false);
+    await call('V19', 'demo-teacher-2', 'PUT', P, round, false);
+    await call('V19', 'demo-teacher-2', 'GET', P + '/overview', false);
+
+    log('=== V15 analiza (student, bez montiranog ekrana)');
+    await as('demo-student');
+    const cat = await call('V15', 'demo-student', 'GET', '/analysis/catalogue', (st, t) => st === 200 && t.includes('descriptive'));
+    log('KATALOG ' + JSON.stringify(cat).slice(0, 300));
+    const cols = [{ name: 'sati', kind: 'numeric' }, { name: 'ocjena', kind: 'numeric' }, { name: 'smjer', kind: 'category' }];
+    const rows = [[2, 3, 'A'], [4, 3.5, 'B'], [6, 4.5, 'A'], [8, null, 'B'], [5, 4, 'A']];
+    for (const [id, vars] of [['descriptive', ['sati', 'ocjena']], ['frequencies', ['smjer']], ['correlation', ['sati', 'ocjena']]]) {
+      const ver = cat?.analyses?.find((a) => a.id === id)?.version ?? '1.0.0';
+      await call('V15', 'demo-student', 'POST', '/analysis/runs', { analysisId: id, analysisVersion: ver, variables: vars, columns: cols, rows }, (st, t) => st === 200 && t.includes(id));
+    }
+    await call('V15', 'demo-student', 'POST', '/analysis/runs', { analysisId: 'descriptive', analysisVersion: '1.0.0', variables: ['smjer'], columns: cols, rows }, (st) => st === 422);
+    await call('V15', 'demo-student', 'POST', '/analysis/runs', { analysisId: 'descriptive', analysisVersion: '1.0.0', variables: ['sati'], columns: cols, rows: Array.from({ length: 600 }, (_, i) => [i, 1, 'A']) }, (st) => st === 413 || st === 422);
+    await page.context().clearCookies();
+    await call('V15', 'bez prijave', 'GET', '/analysis/catalogue', (st) => st === 401);
+    log(`ZBROJ PROLAZ=${zbroj.PROLAZ} PAD=${zbroj.PAD}`);
+  },
 };
