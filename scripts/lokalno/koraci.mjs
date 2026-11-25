@@ -844,6 +844,78 @@ ${(await r.text()).slice(0, 1500)}`);
   // INT-34: what merged after INT-33 (WEB 47fa401d / SRV aff4a7d2) — V16 forms and mentor consent, V19 anonymous
   // peer review (API; the local seed has one submitted work, so allocation must refuse with too_few_submissions),
   // V15 analysis catalogue and stateless run (no route mounts the analysis screens yet). Invented data only.
+  // V19 screens (WEB #717 student, #718 teacher) and V17 work template (WEB #729) on the real stack, over the
+  // assignment "danas" that int35.mjs danas allocated and reviewed. Logs the text of each screen and the API
+  // calls that fail; anonymity is checked by the author names (from the teacher overview) not being shown.
+  async ekraniV19(page) {
+    const A = '7d45112c-de89-46ce-8cc8-37007faccffd', W = BASE + '/app/web';
+    const R = (i) => `sim:student:demo-recenzent-${i}@demo.ductus.test`;
+    const zbroj = { PROLAZ: 0, PAD: 0 };
+    const mark = (pass, what) => { zbroj[pass ? 'PROLAZ' : 'PAD']++; log(`${pass ? 'PROLAZ' : 'PAD'} ${what}`); };
+    const los = [];
+    page.on('response', (r) => { const u = r.url(); if (u.includes('/api/') && r.status() >= 400) los.push(`${r.status()} ${r.request().method()} ${u.split('/api')[1].slice(0, 110)}`); });
+    const as = async (who) => { await page.context().clearCookies(); await signIn(page, who); };
+    // The fake OIDC lists no button for sim: accounts; its form takes any account, as seed-predaja.ts posts it.
+    const asSim = async (who) => {
+      await page.context().clearCookies();
+      await page.goto(BASE + '/'); const link = page.getByRole('link', { name: 'Prijava preko AAI@EduHr', exact: true });
+      await link.waitFor({ timeout: 20000 }); await page.goto(BASE + (await link.getAttribute('href')));
+      await page.locator('button[name="account"]').first().waitFor({ timeout: 20000 });
+      await page.evaluate((acc) => { const b = document.querySelector('button[name="account"]'); b.value = acc; b.click(); }, who);
+      await page.waitForURL((u) => u.origin === BASE && u.pathname.startsWith('/app/web/'), { timeout: 30000 });
+      log(`prijava ${who}: uspjela`);
+    };
+    const screen = async (u, name) => {
+      los.length = 0;
+      await page.goto(W + u).catch(() => {}); await page.waitForTimeout(8000); await skipGuide(page);
+      const body = (await page.locator('main').first().innerText({ timeout: 5000 }).catch(() => page.locator('body').innerText().catch(() => ''))).replace(/\s+/g, ' ');
+      log(`STR ${name} ${u} api4xx5xx=[${[...new Set(los)].join('; ')}]`);
+      log(`TEKST ${body.slice(0, 1100)}`);
+      await page.screenshot({ path: IZLAZ + 'v19-' + name + '.png', fullPage: true });
+      return body;
+    };
+
+    log('=== nastavnik (demo-teacher): krug, dodjela, pregled');
+    await as('demo-teacher');
+    const ov = await (await page.request.get(`/api/v1/teacher/assignments/${A}/peer-review/overview`, { headers: H })).json().catch(() => null);
+    const names = [...new Set((ov?.allocations ?? []).flatMap((a) => [a.author, a.reviewer]).flatMap((x) => (x ? [[x.givenName, x.familyName].filter(Boolean).join(' ')] : [])))].filter(Boolean);
+    log(`imena iz pregleda: ${names.length} (${names.join(', ')})`);
+    const t = await screen(`/nastavnik/zadatak/${A}/recenzija`, 'nastavnik');
+    mark(!/Učitavanje|nije dostupn|nisu dostupn/i.test(t) && t.length > 80, 'EKRAN nastavnik: krug se prikazuje');
+    mark(names.length > 0 && names.some((n) => t.includes(n)), 'EKRAN nastavnik: dodjele imenom');
+    mark(los.filter((l) => /^5/.test(l)).length === 0, 'EKRAN nastavnik: bez 5xx');
+
+    log('=== student recenzent (demo-recenzent-1): zadaci, anonimni rad, primljene');
+    await asSim(R(1));
+    const s = await screen(`/zadatak/${A}/recenzija`, 'student');
+    mark(!/Učitavanje|nije dostupn|nisu dostupn/i.test(s) && s.length > 80, 'EKRAN student: zadaci recenzije');
+    const tasks = [...new Set(await page.locator('a[href*="/recenzija/rad/"]').evaluateAll((as) => as.map((a) => a.getAttribute('href'))))];
+    log(`poveznice na radove: ${tasks.length}`);
+    // int35.mjs danas already sent both reviews of demo-recenzent-1, so a task may show as sent instead of a link.
+    const sent = (s.match(/Rad \d+ · Recenzija je poslana/g) ?? []).length;
+    log(`poslane recenzije na ekranu: ${sent}`);
+    mark(tasks.length + sent === 2, 'EKRAN student: dva rada za recenziju (k=2), poveznica ili poslano');
+    for (const [i, h] of tasks.entries()) {
+      const w = await screen(h.replace(/^.*\/app\/web/, ''), 'rad-' + (i + 1));
+      mark(w.includes('Izmišljeni rad recenzenta'), `EKRAN rad ${i + 1}: tekst rada`);
+      mark(!names.some((n) => w.includes(n)) && !/demo-recenzent/.test(w), `EKRAN rad ${i + 1}: anoniman (bez imena autora)`);
+    }
+    const p = await screen(`/zadatak/${A}/recenzija/primljene`, 'primljene');
+    mark(!/Učitavanje/i.test(p) && p.length > 40, 'EKRAN student: primljene recenzije');
+    mark(!names.some((n) => p.includes(n)) && !/demo-recenzent/.test(p), 'EKRAN primljene: recenzent anoniman');
+
+    log('=== NEG: nastavnik drugog kolegija (demo-teacher-2)');
+    await as('demo-teacher-2');
+    const n = await screen(`/nastavnik/zadatak/${A}/recenzija`, 'neg-nastavnik2');
+    mark(!names.some((x) => n.includes(x)), 'NEG nastavnik drugog kolegija ne vidi dodjele');
+
+    log('=== V17 predložak rada (administrator)');
+    await asSim('sim:nastavnik:demo-admin@demo.ductus.test');
+    const a = await screen('/ustanova/predlozak-rada', 'predlozak');
+    mark(!/Učitavanje|nije dostupn|nisu dostupn/i.test(a) && a.length > 40, 'EKRAN administrator: predložak rada');
+    mark(los.filter((l) => /^5/.test(l)).length === 0, 'EKRAN predložak: bez 5xx');
+    log(`ZBROJ PROLAZ=${zbroj.PROLAZ} PAD=${zbroj.PAD}`);
+  },
   async int34(page) {
     const Z = '0da788a3-e8e5-44d2-b4eb-edd52f71ff1e', DM = 'e8efbf5a-3061-460d-b791-f4c11e81f7a1';
     const ADMIN = 'sim:nastavnik:demo-admin@demo.ductus.test', W = BASE + '/app/web';
