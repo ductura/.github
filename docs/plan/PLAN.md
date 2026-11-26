@@ -99,6 +99,20 @@ Iz analize naloga 24. 11. (`_analiza/nalog-2411/`, prijedlozi u [`PRIJEDLOZI-241
 | Dopune Ustava P-1–P-4 | Tekstovi su u nacrt-PR-ovima #48 (P-1), #49 (P-2), #50 (P-3), #63 (P-4, ispitni način). Do Danielove potvrde teksta (i pravnog mišljenja za P-3 i P-4) mjerodavne su odluke u ovom planu i `PLAN-MIGRACIJE.md`. P-1 je u pilotu (C13); ispitni način (P-4) nema zadataka u redu i ne gradi se prije potvrde teksta. |
 | Stanje reda | `STANJE.md` je regeneriran 24. 11. 05:31: 686 zadataka, 664 spojeno, 3 u PR-u, 5 u radu, 11 zadržano. |
 
+## 6c. Lekta kao izvor pravila (Daniel 26. 11. 2026.)
+
+Daniel 26. 11.: „slobodno možeš već preuzeti … sa mog lekta repozitorija … ja ti dajem dopuštenje”. Lekta (lekta.hr, `danielrisavi77-create/Lekta`) je Danielova, pa je M4.1 (licenca i pravo redistribucije) riješen za Ducturu.
+
+| Tema | Što vrijedi |
+|---|---|
+| M4.1 | Riješen: Ductura smije kopirati pravila, profile i predloške iz Lekte. Lekta se samo čita, u nju se ne piše (D-224 ostaje). |
+| M4.2 | Paket pravila gradi se u Ducturi kao izvadak iz Lekte, s verzijom (commit Lekte) i testom zanošenja koji uspoređuje izvadak s tim commitom. Prvi fakultet je FPZG. |
+| Izvori za FPZG | `.claude/katedra-pkg/katedra-lite/references/fakulteti/fpzg.json`, `.claude/katedra-pkg/fpzg-diplomski/assets/fpzg-diplomski.json`, `references/{struktura,stranice-i-izvori,kucni-stil}.md`, `assets/ref_fpzg.docx` (naslovnica i stilovi), `data/profiles/fpzg-partial.json`, `data/title-pages/`, službene upute u `data/sources/fpzg/`. |
+| C-19 „Pravila oblika” | Sadržaj je zadan: pravila oblika FPZG-a iz izvatka. Provjera je samo formalna i informativna, nikad ne blokira predaju (D-222). |
+| C-12 | Lektini profili kao postavka ustanove dolaze iz istog izvatka (SRV-7E, SRV-1101). |
+| Ostali fakulteti | `data/profiles/` (364) i `data/sources/` ulaze istim putem kad pilot dobije drugu ustanovu; ne u pilotu. |
+| OA-10 | Lekta nema primjer izvoza popisa studenata iz Merlina ili ISVU-a. OA-10 i dalje čeka primjer izvoza (izmišljeni podaci); format se ne izmišlja. |
+
 ## 7. Nepromjenjiva pravila
 
 - Bez deploya i produkcijskih migracija; migracija na bazi se nikad ne mijenja (D-91).
