@@ -73,7 +73,7 @@ Iz analize naloga 24. 11. (`_analiza/nalog-2411/`, prijedlozi u [`PRIJEDLOZI-241
 | # | Odluka |
 |---|---|
 | C12 | Opseg pilota se ne smanjuje (Daniel). Redoslijed kao u odjeljku 5; stupac „nakon pilota” (13 NF stavki) ostaje nakon pilota. |
-| C13 | P-1 (podrijetlo teksta) je u pilotu i ostaje: tekst P-1-NACRT se potvrđuje, a PRODUCT pravilo 4 usklađuje se s njim zasebnim PR-om u Ductusu. NF5-Q4 (ritam po dijelu teksta u pregledu nastavnika) nije u pilotu i ostaje zadržan; ide nakon pilota. |
+| C13 | P-1 (podrijetlo teksta) je u pilotu i ostaje: tekst P-1 je konačan (`docs/plan/P-1.md`), a PRODUCT pravilo 4 usklađuje se s njim zasebnim PR-om u Ductusu. NF5-Q4 (ritam po dijelu teksta u pregledu nastavnika) nije u pilotu i ostaje zadržan; ide nakon pilota. |
 | C3 | A9 (AI detektor) se ne gradi (D-01, C21). A8 (biometrija tipkanja): vidi §6e, Daniel 26. 11. — ulazi u plan, uz DPIA i izričitu privolu (GDPR čl. 9). |
 | C9, C14 | A1 (oznaka skriptiranog unosa) se ne gradi u pilotu, a kao model strojnog učenja nikad (pravilo 13). Ostaje zadržan. |
 | C15 | AI asistent je u fazi A isključen (`ai_disabled`); u fazi B tek nakon Q-10, DPIA i pravnog mišljenja. NF-4 se označava „uvjetno”. |
@@ -129,7 +129,7 @@ Daniel je odgovorio u anketi odluka (artifact „Odluke Ductura”) i 26. 11. u 
 | # | Pitanje | Odgovor | Posljedica |
 |---|---|---|---|
 | C12 | Rez opsega za pilot | Sve iz plana ide u pilot | Nema reza; stupci „nužno” i „nakon 15. 1.” ostaju u pilotu (kao §6a). |
-| C13 | Ritam i tekst P-1 | Potvrdi P-1 kakav jest; Q4 (ritam) samo kao sirovi prikaz, nakon 15. 1. | P-1-NACRT je potvrđen. NF5-Q4 se otpušta kao sirovi prikaz ritma, u stupcu „nakon 15. 1.”. |
+| C13 | Ritam i tekst P-1 | Potvrdi P-1 kakav jest; Q4 (ritam) samo kao sirovi prikaz, nakon 15. 1. | P-1 je potvrđen (konačni tekst `docs/plan/P-1.md`). NF5-Q4 se otpušta kao sirovi prikaz ritma, u stupcu „nakon 15. 1.”. |
 | C14 | A1 autotipkač (zastavica) | Da, u pilot | A1 ide u pilot kao zastavica (pravilo 13: nikad model strojnog učenja). Mijenja §6a. |
 | C3 | A8 i A9 | Da → razriješeno 26. 11. | Daniel u chatu: „ne želimo AI detektor, ali želimo biometriju tipkanja”. **A8 (biometrija tipkanja) ulazi u plan; A9 (AI detektor) se ne gradi** (C21 ostaje „stani”). A8 su biometrijski podaci (GDPR čl. 9): prije uključenja za prave studente treba DPIA i izričita privola. Gradnja tek kroz stavku u planu. |
 | C21 | Detektor | Stani (ne radimo do daljnjeg) | Ništa vezano uz detektor se ne gradi. |
