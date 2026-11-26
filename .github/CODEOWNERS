@@ -1,0 +1,18 @@
+# Vlasnici datoteka u ductura/.github (DAN-1527). Zadnje podudaranje pobjeđuje.
+# GitHub CODEOWNERS ne nasljeđuje iz organizacije; ovaj repo drži zajedničke
+# workflowe pa svaka izmjena ovih putanja traži pregled vlasnika.
+
+# Zadano: sve što ništa niže ne imenuje.
+*                   @ductura/vlasnici
+
+# Zajednički workflowi i Dependabot.
+/.github/           @ductura/vlasnici
+
+# Skripte koje workflowi pokreću, uključujući gate (risk-floor).
+/scripts/           @ductura/vlasnici
+
+# Provjera razilaženja postavki repozitorija (drift/expected.json).
+/drift/             @ductura/vlasnici
+
+# Plan migracije.
+/docs/plan/         @ductura/vlasnici
