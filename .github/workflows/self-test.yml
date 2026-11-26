@@ -61,8 +61,8 @@ jobs:
         run: node scripts/permissions-check.mjs .github/workflows
 
   # Tests of scripts/mutate (DAN-1090-POPRAVAK), including the two acceptance
-  # tests that run the real, pinned Stryker. Deliberately not in the needs of
-  # ci-ok: the required checks stay as they were.
+  # tests that run the real, pinned Stryker. In the needs of ci-ok like every
+  # job (scripts/ci-ok.test.mjs requires it); the required check is unchanged.
   mutate-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -361,7 +361,7 @@ jobs:
   # The reusable ci-ok.yml called for real, as other repositories call it.
   ci-ok-reusable:
     if: ${{ always() }}
-    needs: [actionlint, pin-check, permissions-check, gate, engineering-gate, tests-table, node-ok, node-ok-multiline, node-fail, red-aggregate, presets, lint-presets, secret-scan, secret-scan-negative, osv-scan, osv-scan-negative, dependency-review]
+    needs: [actionlint, pin-check, permissions-check, mutate-tests, gate, engineering-gate, tests-table, node-ok, node-ok-multiline, node-fail, red-aggregate, presets, lint-presets, secret-scan, secret-scan-negative, osv-scan, osv-scan-negative, dependency-review]
     uses: ./.github/workflows/ci-ok.yml
     with:
       results: ${{ toJSON(needs) }}
@@ -374,7 +374,7 @@ jobs:
   ci-ok:
     name: ci-ok
     if: ${{ always() }}
-    needs: [actionlint, pin-check, permissions-check, gate, engineering-gate, tests-table, node-ok, node-ok-multiline, node-fail, red-aggregate, presets, lint-presets, secret-scan, secret-scan-negative, osv-scan, osv-scan-negative, dependency-review, ci-ok-reusable]
+    needs: [actionlint, pin-check, permissions-check, mutate-tests, gate, engineering-gate, tests-table, node-ok, node-ok-multiline, node-fail, red-aggregate, presets, lint-presets, secret-scan, secret-scan-negative, osv-scan, osv-scan-negative, dependency-review, ci-ok-reusable]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
