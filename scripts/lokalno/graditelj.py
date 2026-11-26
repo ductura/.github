@@ -34,7 +34,7 @@ REPOI = {
     "gh": "ductura/.github",
     "ductus": "danielrisavi77-create/Ductus",
 }
-KOORDINACIJA = ("ductus", 2058)  # orkestrator 25. 11.: #2055 je arhiva
+KOORDINACIJA = ("ductus", 2059)  # orkestrator 26. 11.: #2055 i #2058 su arhiva
 POLJA = ("zadatak", "korak", "sljedece", "blokada")
 LOSE = {"failure", "timed_out", "cancelled", "action_required", "startup_failure"}
 
