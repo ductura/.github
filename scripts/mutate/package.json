@@ -1,0 +1,19 @@
+{
+  "name": "@ductura/mutate",
+  "private": true,
+  "description": "Mutation testing of the files a pull request changes (DAN-1090): Stryker with the Vitest runner, pinned; nothing is published from here",
+  "type": "module",
+  "scripts": {
+    "mutate": "node mutate.mjs",
+    "test": "node --test --test-concurrency=1 mutate.test.mjs"
+  },
+  "dependencies": {
+    "@stryker-mutator/core": "10.1.1",
+    "@stryker-mutator/vitest-runner": "10.1.1",
+    "vitest": "5.1.0"
+  },
+  "overrides": {
+    "minimatch": "11.0.6",
+    "qs": "6.16.2"
+  }
+}

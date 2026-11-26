@@ -1,0 +1,100 @@
+# Reusable mutation testing of the files a pull request changes (DAN-1090):
+# Stryker with the Vitest runner, pinned in scripts/mutate (10.1.1), over the
+# changed JS/TS sources only; prints every surviving mutant and fails when one
+# survives. Not a gate: never a required status, never in ci-ok.
+# Caller (a job of its own, outside ci-ok):
+#   mutate:
+#     permissions: { contents: read }
+#     uses: ductura/.github/.github/workflows/mutate.yml@<40-char SHA> # <tag>
+#     with:
+#       tool-sha: <the same 40-char SHA>
+#       base: ${{ github.event.pull_request.base.sha }}
+# or `files:` instead of `base:` (paths relative to working-directory).
+# The project needs package.json, pnpm-lock.yaml and .nvmrc in working-directory.
+name: mutate
+on:
+  workflow_call:
+    inputs:
+      tool-sha:
+        description: The full SHA of this repository the caller pins in `uses:`
+        type: string
+        required: true
+      working-directory:
+        description: Project directory (relative), with package.json, pnpm-lock.yaml and .nvmrc
+        type: string
+        default: "."
+      base:
+        description: Diff base (SHA or ref); the sources changed in base...HEAD are mutated
+        type: string
+        default: ""
+      files:
+        description: Further files to mutate, relative to working-directory, separated by spaces or newlines
+        type: string
+        default: ""
+      vitest-config:
+        description: Vitest config file relative to working-directory; empty for Vitest's default
+        type: string
+        default: ""
+permissions:
+  contents: read
+jobs:
+  mutate:
+    name: Mutation testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Check the inputs
+        shell: bash
+        env:
+          TOOL_SHA: ${{ inputs.tool-sha }}
+          WORKDIR: ${{ inputs.working-directory }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$TOOL_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::tool-sha must be a full 40-character SHA"
+            exit 1
+          fi
+          if [[ "$WORKDIR" == /* || "/$WORKDIR/" == */../* ]]; then
+            echo "::error::working-directory must be relative and stay inside the repository"
+            exit 1
+          fi
+      # The caller's code and this tool side by side: the tool is never part of the project.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: project
+          persist-credentials: false
+          # base...HEAD needs the history; '' is falsy, so 0 must come last.
+          fetch-depth: ${{ inputs.base == '' && 1 || 0 }}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ductura/.github
+          ref: ${{ inputs.tool-sha }}
+          path: tool
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          package_json_file: project/${{ inputs.working-directory }}/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: project/${{ inputs.working-directory }}/.nvmrc
+      - name: Install the project
+        working-directory: project/${{ inputs.working-directory }}
+        run: pnpm install --frozen-lockfile
+      - name: Install the pinned Stryker (package-lock.json, no scripts)
+        working-directory: tool/scripts/mutate
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Mutate the changed sources
+        shell: bash
+        env:
+          WORKDIR: ${{ inputs.working-directory }}
+          BASE: ${{ inputs.base }}
+          MUTATE_FILES: ${{ inputs.files }}
+          VITEST_CONFIG: ${{ inputs.vitest-config }}
+        run: |
+          set -euo pipefail
+          args=(--project "project/$WORKDIR")
+          if [ -n "$BASE" ]; then args+=(--base "$BASE"); fi
+          if [ -n "$VITEST_CONFIG" ]; then args+=(--vitest-config "$VITEST_CONFIG"); fi
+          node tool/scripts/mutate/mutate.mjs "${args[@]}"
