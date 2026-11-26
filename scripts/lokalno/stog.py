@@ -1,7 +1,9 @@
 """stog: lokalni stog Ducture za graditelja (izmišljeni podaci, samo lokalno).
 
 Upotreba (C:\\Python314\\python.exe, PYTHONIOENCODING=utf-8):
-  stog.py status                 RAM, portovi, Docker, iz kojeg stabla radi SRV
+  stog.py status                 RAM, portovi, Docker, iz kojeg stabla rade SRV i WEB i
+                                 koliko su commita iza svoje baze (zastarjela kopija daje
+                                 „Stranica ne postoji” za rute koje su u bazi već spojene)
   stog.py start <stablo> [--local-iz <stablo>]
                                  pokreće `pnpm lokalno` u stablu i ostaje u prvom planu;
                                  pokreći kao pozadinski Bash zadatak (odvojeni proces tiho umre)
@@ -36,6 +38,8 @@ PORTOVI = {4000: "SRV", 3100: "Preloader", 8000: "Edge", 5173: "WEB", 54329: "ba
 HTTP = {8000: "/", 3100: "/"}
 MIN_RAM_START_GB = 4.0
 MIN_RAM_GB = 1.5
+# Baza grane iz koje radna stabla stoga moraju biti svježa.
+BAZE = {"SRV": "migracija/kopija-ductus-backend", "WEB": "migracija/kopija-ductus-front"}
 
 
 def slobodni_ram_gb() -> float:
@@ -84,6 +88,51 @@ def stablo_iz(ime: str) -> Path:
     return p
 
 
+def stablo_iz_naredbe(naredba: str) -> str | None:
+    """Ime radnog stabla pod _lokalno iz naredbenog retka procesa (npr. next dev iz g-demo-web)."""
+    m = re.search(r"[\\/]_lokalno[\\/]([^\\/\"' ]+)", naredba or "")
+    return m.group(1) if m and not m.group(1).startswith("_") else None
+
+
+def web_stablo() -> str | None:
+    """Stablo iz kojeg radi WEB: naredbeni redak procesa koji sluša na 5173 (samo čitanje)."""
+    ps = ("$c=Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue|Select-Object -First 1;"
+          "if($c){(Get-CimInstance Win32_Process -Filter \"ProcessId=$($c.OwningProcess)\").CommandLine}")
+    try:
+        r = subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True, timeout=30)
+        return stablo_iz_naredbe(r.stdout)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def iza_baze(ime: str, baza: str) -> str:
+    """Koliko je commita HEAD stabla iza origin/<baza>; dohvaća samo tu granu."""
+    stablo = LOKALNO / ime
+    if not stablo.is_dir():
+        return f"{ime}: ne postoji"
+    try:
+        subprocess.run(["git", "fetch", "-q", "origin", baza], cwd=stablo, capture_output=True, timeout=90)
+        r = subprocess.run(["git", "rev-list", "--count", f"HEAD..origin/{baza}"], cwd=stablo,
+                           capture_output=True, text=True, timeout=30)
+        n = int(r.stdout.strip())
+    except Exception as e:  # noqa: BLE001
+        return f"{ime}: svježina nepoznata ({type(e).__name__})"
+    return f"{ime}: svjež prema origin/{baza}" if n == 0 else         f"{ime}: UPOZORENJE {n} commita iza origin/{baza}; nove rute iz baze ovdje ne postoje"
+
+
+def svjezina() -> list[str]:
+    """Po jedan redak za SRV i WEB stablo stoga koje radi."""
+    redovi = []
+    if STANJE.is_file() and port_otvoren(4000):
+        ime = json.loads(STANJE.read_text(encoding="utf-8")).get("stablo")
+        if ime:
+            redovi.append("SRV " + iza_baze(ime, BAZE["SRV"]))
+    if port_otvoren(5173):
+        ime = web_stablo()
+        redovi.append("WEB " + (iza_baze(ime, BAZE["WEB"]) if ime else "stablo nepoznato (proces na 5173 nije pod _lokalno)"))
+    return redovi
+
+
 def je_spojnica(p: Path) -> bool:
     try:
         return p.is_symlink() or bool(os.readlink(p))
@@ -109,6 +158,8 @@ def status() -> int:
         print(f"SRV stablo: {s.get('stablo')} (pokrenuto {s.get('pokrenuto')}, log {s.get('log')})")
     else:
         print("SRV stablo: nepoznato (nije pokrenut ovim alatom)")
+    for red in svjezina():
+        print(red)
     return 0
 
 

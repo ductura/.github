@@ -174,6 +174,9 @@ def pocetak() -> int:
             if t.get(k):
                 print(f"  {k}: {t[k]}")
     print(stog_kratko())
+    import stog  # noqa: E402  (stog_kratko je već dodao putanju)
+    for red in stog.svjezina():
+        print("  " + red)
     for ref in t.get("prs", []):
         try:
             z, pali, sha = stanje_pr(ref)
@@ -286,6 +289,13 @@ def samotest() -> int:
     log = ("2026-11-24T21:27:46.1Z \x1b[31m  ✘ 3 [app] e2e/a.spec.ts:50\x1b[0m\n2026-11-24T21:27:46.2Z ok\n"
            "2026-11-24T21:27:46.3Z   1 failed\n2026-11-24T21:27:46.4Z   1 failed\n")
     assert kljucni_redovi(log) == ["✘ 3 [app] e2e/a.spec.ts:50", "1 failed"], kljucni_redovi(log)
+    sys.path.insert(0, str(Path(__file__).parent))
+    import stog  # noqa: E402
+    n = r'"C:\Program Files\nodejs\node.exe" D:\Ductura\_lokalno\g-demo-web\node_modules\next\dist\server\lib\start-server.js'
+    assert stog.stablo_iz_naredbe(n) == "g-demo-web", stog.stablo_iz_naredbe(n)
+    assert stog.stablo_iz_naredbe("node D:/Ductura/_lokalno/g-pop4/packages/app/x.js") == "g-pop4"
+    assert stog.stablo_iz_naredbe(r"node D:\Ductura\_lokalno\_alati\x.js") is None
+    assert stog.stablo_iz_naredbe("node D:/drugo/app.js") is None and stog.stablo_iz_naredbe("") is None
     print("samotest prolazi")
     return 0
 
