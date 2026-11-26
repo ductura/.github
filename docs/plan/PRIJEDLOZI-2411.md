@@ -57,7 +57,7 @@ Ostale ideje:
 
 | Stavka | Zašto | Odluka |
 |---|---|---|
-| NF-5 t. 4: ritam po dijelu teksta u pregledu nastavnika | Sadašnje pravilo 4 to ne dopušta. P-1-NACRT bi dopustio samo sirovi prikaz, bez mjere. U redu je kao NF5-Q4-RITAM-PREGLED s oznakom `drzi`. | zadržano, nakon pilota (C13) |
+| NF-5 t. 4: ritam po dijelu teksta u pregledu nastavnika | Sadašnje pravilo 4 to ne dopušta. P-1 dopušta samo sirovi prikaz, bez mjere. U redu je kao NF5-Q4-RITAM-PREGLED s oznakom `drzi`. | zadržano, nakon pilota (C13) |
 | A1: oznaka mogućeg skriptiranog unosa | To je mjera iz vremena (pravilo 4), a kao ML ili AI analiza krši i pravilo 13. Čita se kao tvrdnja o autorstvu (D-01). U redu je kao A1-AUTOTIPKAC-ZASTAVICA s oznakom `drzi`. | zadržano, ne gradi se u pilotu (C9, C14) |
 | Lab S12–S34 (otpornost zapisa) | **Ne ulazi u plan.** Lab danas cilja stari Ductus i rutu `/rad` (`Lab/server/targets.ts:9,42`), a ne isporučeni `packages/app` iza Preloadera. Rezultati ne bi vrijedili za proizvod. | Lab se preusmjerava na `packages/app` (C22) |
 

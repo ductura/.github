@@ -265,7 +265,7 @@ Ovaj odjeljak bilježi što je stvarno spojeno u grane za migraciju. Izvor je `_
 | 9 | Zapis procesa | Spojeno, osim P-1: Karta podrijetla i ritam unosa (odgođeno). |
 | 10 | Bogati sadržaj, stranice (shema v4), izvoz | Spojeno. |
 | 11 | Provjere teksta, etape, konzultacije, Merlin, produljenje | Spojeno, osim P-1: pragovi i naziv obrasca Izjave; N-14 i N-15 čekaju nacrt. |
-| 12 | Pomoćnik | Spojen kostur bez stvarnog AI pružatelja. Pružatelj, `aitext` i oznaka podudaranja čekaju Q-10/D-194 (rok 15. 12.). |
+| 12 | Pomoćnik | Spojen kostur bez stvarnog AI pružatelja. Pružatelj je OpenAI (D-316); `aitext` i oznaka podudaranja grade se po `docs/plan/P-1.md`. |
 
 Valovi 1–11: svih 70 ID-jeva iz kataloga spojeno, osim gore navedenih odgoda.
 
@@ -276,7 +276,7 @@ Spojeni u grane. Paket `val13.json` (20 zadataka: M3, M7, M8, M10) i `val13-osta
 #### Što ostaje
 
 1. Faza 3: izvršiti A01–A10 na stvarnom stogu (INT-08, INT-09) i popraviti što padne.
-2. Odluke vlasnika: Q-10/D-194 (AI pružatelj; bira Daniel), potvrda teksta P-1 (nacrt `docs/plan/P-1-NACRT.md`), nacrti N-14/N-15.
+2. Odluke vlasnika: Q-10/D-194 pružatelj ODLUČEN (OpenAI, D-316, 26. 11.; model ostaje Danielu), tekst P-1 KONAČAN (`docs/plan/P-1.md`, 26. 11.), nacrti N-14/N-15.
 3. Faza 4: „Spoji n” repo po repo u `main`.
 4. Faza 5: objava na Danielovu riječ.
 
@@ -433,7 +433,7 @@ Ovo nastavlja „Pet faza” i `PLAN.md` §5. Svaki korak ima vrata koja provjer
 | D3 | Računi i tajne | Račune (Render, Vercel, baza, S3) i tajne otvara i upisuje Daniel. Orkestrator piše samo konfiguraciju bez tajni i ne stvara račune. |
 | D4 | Redoslijed u `main` | Institution_server, zatim Institution_front_web_chrome, Preloader zadnji. Nikad dva repoa odjednom. |
 | D5 | Način spajanja grana→`main` | Merge commit, bez squasha: čuva se povijest i veza commita sa zadacima i dokazima. |
-| D6 | Q-10 / D-194: AI pružatelj | **Ostaje Danielu** (pravilo: pružatelja i model bira samo Daniel). Rok 15. 12. 2026.; do tada je pomoćnik kostur. |
+| D6 | Q-10 / D-194: AI pružatelj | **ODLUČENO 26. 11. 2026.: OpenAI (ChatGPT), D-316.** Model bira samo Daniel. |
 | D7 | Pravno mišljenje i DPIA | Obavezni prije stvarnih studenata (F5). Proba 22. 2. 2027. ide samo s izmišljenim podacima. Narudžbu radi Daniel; orkestrator priprema popis obrada i tokova podataka. |
 | D8 | Licence | Jedan zadatak popisuje licence svih ovisnosti, fontova i prototipa prije F5; nalazi idu Danielu na potvrdu. |
 
