@@ -60,6 +60,26 @@ jobs:
       - name: Every job has permissions
         run: node scripts/permissions-check.mjs .github/workflows
 
+  # Tests of scripts/mutate (DAN-1090-POPRAVAK), including the two acceptance
+  # tests that run the real, pinned Stryker. Deliberately not in the needs of
+  # ci-ok: the required checks stay as they were.
+  mutate-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Install the pinned Stryker (package-lock.json, no scripts)
+        working-directory: scripts/mutate
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Mutate tests
+        working-directory: scripts/mutate
+        run: npm test
+
   # Verdict core and runner of the engineering gate (scripts/gate) over invented PRs.
   gate:
     runs-on: ubuntu-latest

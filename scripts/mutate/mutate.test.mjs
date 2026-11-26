@@ -53,7 +53,7 @@ test("a project outside the tool directory uses its own vitest", () => {
   }
 });
 
-// Codex review on #110: Stryker reads mutate as globs; [id] is a literal name.
+// Review on #110: Stryker reads mutate as globs; [id] is a literal name.
 test("a file name with glob characters is mutated as that exact file", () => {
   const dir = copyOf("weak");
   try {
