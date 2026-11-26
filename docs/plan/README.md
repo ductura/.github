@@ -5,6 +5,7 @@
 - [Detaljni plan i pravila](PLAN-MIGRACIJE.md)
 - [Stanje (generirano)](STANJE.md)
 - [Arhiva](PLAN-ARHIVA.md)
+- [Zadaci iz istraživanja repoa (ISTR-1 do ISTR-6)](ISTRAZIVANJE-2511.md)
 
 Izmjene se pregledavaju kroz PR u ovom repozitoriju; u `main` ulaze na vlasnikov „Spoji n”.
 
