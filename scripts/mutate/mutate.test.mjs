@@ -2,12 +2,12 @@
 // The two acceptance fixtures run real Stryker over real Vitest.
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { cpSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { UsageError, checkBase, describe, parseArgs, selectFiles, strykerOptions, survivors } from "./lib.mjs";
+import { UsageError, checkBase, describe, globLiteral, parseArgs, selectFiles, strykerOptions, survivors } from "./lib.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const cli = path.join(here, "mutate.mjs");
@@ -48,6 +48,24 @@ test("a project outside the tool directory uses its own vitest", () => {
     const r = run(["--project", dir, "src/adult.ts"]);
     assert.equal(r.code, 1, r.out);
     assert.match(r.out, /::error::surviving mutant src\/adult\.ts:3:/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// Codex review on #110: Stryker reads mutate as globs; [id] is a literal name.
+test("a file name with glob characters is mutated as that exact file", () => {
+  const dir = copyOf("weak");
+  try {
+    renameSync(path.join(dir, "src/adult.ts"), path.join(dir, "src/[id].ts"));
+    writeFileSync(path.join(dir, "src/i.ts"), "export const i = 1 + 1;\n");
+    const testFile = path.join(dir, "src/adult.test.ts");
+    writeFileSync(testFile, readFileSync(testFile, "utf8").replace("./adult.ts", "./[id].ts"));
+    const r = run(["--project", dir, "src/[id].ts"]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /mutate: 5 mutant\(s\), [1-9] surviving/);
+    assert.match(r.out, /::error::surviving mutant src\/\[id\]\.ts:3:/);
+    assert.doesNotMatch(r.out, /src\/i\.ts:/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -135,6 +153,22 @@ test("selectFiles keeps JS/TS sources and drops tests and declarations", () => {
   assert.throws(() => selectFiles(["C:/x.ts"]), UsageError);
 });
 
+test("globLiteral makes every glob character literal and refuses braces", () => {
+  assert.equal(globLiteral("src/a-b_c.d.ts"), "src/a-b_c.d.ts");
+  assert.equal(globLiteral("app/(group)/[id]/*?.tsx"), "app/[(]group[)]/[[]id[]]/[*][?].tsx");
+  assert.equal(globLiteral("!x.ts"), "./!x.ts");
+  assert.throws(() => globLiteral("src/{a,b}.ts"), UsageError);
+});
+
+// The escaped patterns go through the same minimatch Stryker uses.
+test("an escaped path matches only itself in Stryker's matcher", async () => {
+  const { minimatch } = await import("minimatch");
+  const files = ["/p/[id].ts", "/p/i.ts", "/p/d.ts", "/p/(g)/a.ts", "/p/g/a.ts", "/p/a*b?.ts", "/p/axb1.ts", "/p/+(x).ts", "/p/x.ts", "/p/@(y)!.ts", "/p/y.ts"];
+  for (const file of ["/p/[id].ts", "/p/(g)/a.ts", "/p/a*b?.ts", "/p/+(x).ts", "/p/@(y)!.ts"]) {
+    assert.deepEqual(files.filter((f) => minimatch(f, globLiteral(file))), [file], file);
+  }
+});
+
 test("checkBase accepts refs and SHAs only", () => {
   for (const ok of ["main", "origin/main", "0123456789abcdef0123456789abcdef01234567", "v1.2.3"]) assert.equal(checkBase(ok), ok);
   for (const bad of ["-x", "--output=f", "a..b", "a b", "", "@{-1}", "HEAD~1"]) assert.throws(() => checkBase(bad), UsageError, bad);
@@ -147,6 +181,7 @@ test("Stryker options: vitest runner, no bail, never debug logging, the given fi
   assert.equal(o.logLevel, "info");
   assert.equal(o.fileLogLevel, "off");
   assert.deepEqual(o.mutate, ["src/a.ts"]);
+  assert.deepEqual(strykerOptions({ files: ["app/[id]/page.tsx"], configFile: "c" }).mutate, ["app/[[]id[]]/page.tsx"]);
   assert.equal(o.configFile, "/tmp/c.json");
   assert.equal(o.thresholds.break, null);
   assert.deepEqual(o.ignorePatterns, [".stryker-tmp"]);

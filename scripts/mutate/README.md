@@ -8,6 +8,7 @@ node scripts/mutate/mutate.mjs --project <projekt> [--base <ref>] [--vitest-conf
 ```
 
 - Datoteke su relativne prema projektu: iz argumenata, iz `MUTATE_FILES` (odvojene razmakom ili novim retkom) i, uz `--base`, iz `git diff <base>...HEAD`. Testovi (`*.test.*`, `*.spec.*`, `__tests__/`), `.d.ts` i ne-JS/TS datoteke se preskaču.
+- Stryker čita `mutate` kao glob, pa se putanja predaje doslovno (`src/routes/[id].ts` mutira samo tu datoteku). Putanja s vitičastim zagradama `{}` ne može se doslovno zadati i daje grešku (2).
 - Izlazni kod: `0` nijedan mutant nije preživio ili nema što mutirati; `1` barem jedan je preživio (`Survived` ili `NoCoverage`), svaki se ispisuje kao `::error::surviving mutant <datoteka>:<redak>:<stupac> ...`; `2` greška (krivi ulaz, crveni početni testovi, Stryker pao).
 - Stryker i Vitest runner prikvačeni su na točno 10.1.1 (`package.json`, `package-lock.json`); `minimatch` i `qs` podignuti su kroz `overrides` zbog poznatih ranjivosti.
 - Konfiguracija je fiksna u `lib.mjs`: `stryker.config.*` projekta se ne čita, `logLevel` je uvijek `info` (stryker-js#6272), `disableBail: true` pa runner šalje Vitestu `bail: 0` (#6335).

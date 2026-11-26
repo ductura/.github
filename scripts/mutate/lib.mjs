@@ -45,6 +45,17 @@ export function checkBase(base) {
   return base;
 }
 
+// Stryker reads `mutate` as globs; a changed file is a literal path, so
+// src/routes/[id].ts must not match src/routes/i.ts. Backslash escapes do not
+// survive (Stryker turns every \\ into /), so each glob character becomes a
+// one-character class; that also disarms extglobs, which need "(". Braces
+// cannot be escaped (brace expansion runs before classes): such a path is an
+// error, never another file. A leading ! would negate the pattern.
+export function globLiteral(file) {
+  if (/[{}]/.test(file)) throw new UsageError(`cannot select a path with braces: ${file}`);
+  return (file.startsWith("!") ? "./" : "") + file.replace(/[?*()[\]]/g, (c) => `[${c}]`);
+}
+
 // Fixed options; the caller's own stryker config is never read (configFile is
 // an empty file of ours). logLevel stays info: debug crashes on Vitest 5
 // (stryker-js#6272). disableBail: a bail race records killed mutants as
@@ -55,7 +66,7 @@ export function strykerOptions({ files, configFile, vitestConfig, concurrency })
     configFile,
     testRunner: "vitest",
     plugins: ["@stryker-mutator/vitest-runner"],
-    mutate: files,
+    mutate: files.map(globLiteral),
     coverageAnalysis: "perTest",
     disableBail: true,
     logLevel: "info",
