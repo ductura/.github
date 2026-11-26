@@ -74,7 +74,7 @@ Iz analize naloga 24. 11. (`_analiza/nalog-2411/`, prijedlozi u [`PRIJEDLOZI-241
 |---|---|
 | C12 | Opseg pilota se ne smanjuje (Daniel). Redoslijed kao u odjeljku 5; stupac „nakon pilota” (13 NF stavki) ostaje nakon pilota. |
 | C13 | P-1 (podrijetlo teksta) je u pilotu i ostaje: tekst P-1-NACRT se potvrđuje, a PRODUCT pravilo 4 usklađuje se s njim zasebnim PR-om u Ductusu. NF5-Q4 (ritam po dijelu teksta u pregledu nastavnika) nije u pilotu i ostaje zadržan; ide nakon pilota. |
-| C3 | A8 (biometrija tipkanja) i A9 (AI detektor) se ne grade: biometrijski podaci (GDPR čl. 9) i tvrdnja o autorstvu (D-01). |
+| C3 | A9 (AI detektor) se ne gradi (D-01, C21). A8 (biometrija tipkanja): vidi §6e, Daniel 26. 11. — ulazi u plan, uz DPIA i izričitu privolu (GDPR čl. 9). |
 | C9, C14 | A1 (oznaka skriptiranog unosa) se ne gradi u pilotu, a kao model strojnog učenja nikad (pravilo 13). Ostaje zadržan. |
 | C15 | AI asistent je u fazi A isključen (`ai_disabled`); u fazi B tek nakon Q-10, DPIA i pravnog mišljenja. NF-4 se označava „uvjetno”. |
 | C22 | Lab se preusmjerava na `packages/app` iza Preloadera. Do tada se rezultati Laba S12–S34 ne navode kao svojstvo proizvoda. |
@@ -117,7 +117,7 @@ Daniel 26. 11.: „slobodno možeš već preuzeti … sa mog lekta repozitorija 
 
 | Tema | Što vrijedi |
 |---|---|
-| Q-10 / D-194 | OpenAI, ali bez API kredita koje plaća Ductura ili fakultet: student se spaja svojim ChatGPT računom i koristi svoju pretplatu. Prije gradnje treba provjeriti nudi li OpenAI službenu prijavu ChatGPT računom za vanjske aplikacije i pod kojim uvjetima; bez toga se ništa ne gradi. Anketa C15 „Uključen” (§6e): asistent je u fazi A uključen tek kad je izvedivost potvrđena i pravno mišljenje (C16) stiglo; do tada `ai_disabled`. |
+| Q-10 / D-194 | OpenAI, ali bez API kredita koje plaća Ductura ili fakultet: student se spaja svojim ChatGPT računom i koristi svoju pretplatu. Izvedivost je potvrdio Daniel 26. 11.: OpenAI nudi „Sign in with ChatGPT” za vanjske aplikacije (developers.openai.com/siwc); uvjete programa provjerava pisac prije gradnje. Anketa C15 „Uključen” (§6e): gradnja je dopuštena; za prave studente `ai_disabled` dok ne stigne pravno mišljenje (C16). |
 | ED-42 | Nove SRV rute za prijedloge nastavnika (list, post, accept, reject) nad postojećom domenom `server/collaboration/suggestions`: zadatak SRV-ED42-PRIJEDLOZI (kritičan). |
 | ED-43 | Nova radnja `send` u `collaboration.revision-requests.post` (slanje dorade, runda +1): zadatak SRV-ED43-DORADA-POSALJI (kritičan). |
 | I340 | WEB PR-ovi #340, #341 i #343 (revizije pariteta) zatvoreni bez spajanja. |
@@ -131,9 +131,9 @@ Daniel je odgovorio u anketi odluka (artifact „Odluke Ductura”) i 26. 11. u 
 | C12 | Rez opsega za pilot | Sve iz plana ide u pilot | Nema reza; stupci „nužno” i „nakon 15. 1.” ostaju u pilotu (kao §6a). |
 | C13 | Ritam i tekst P-1 | Potvrdi P-1 kakav jest; Q4 (ritam) samo kao sirovi prikaz, nakon 15. 1. | P-1-NACRT je potvrđen. NF5-Q4 se otpušta kao sirovi prikaz ritma, u stupcu „nakon 15. 1.”. |
 | C14 | A1 autotipkač (zastavica) | Da, u pilot | A1 ide u pilot kao zastavica (pravilo 13: nikad model strojnog učenja). Mijenja §6a. |
-| C3 | A8 i A9 | Da | **U sukobu s C21** („Detektor: stani”) i s D-01; A8 (biometrija tipkanja) traži GDPR čl. 9 i DPIA. Ne gradi se dok Daniel ne razriješi C3 prema C21. |
+| C3 | A8 i A9 | Da → razriješeno 26. 11. | Daniel u chatu: „ne želimo AI detektor, ali želimo biometriju tipkanja”. **A8 (biometrija tipkanja) ulazi u plan; A9 (AI detektor) se ne gradi** (C21 ostaje „stani”). A8 su biometrijski podaci (GDPR čl. 9): prije uključenja za prave studente treba DPIA i izričita privola. Gradnja tek kroz stavku u planu. |
 | C21 | Detektor | Stani (ne radimo do daljnjeg) | Ništa vezano uz detektor se ne gradi. |
-| C15 | AI asistent u fazi A | Uključen | Mijenja §6a: asistent je u fazi A uključen, ali samo preko studentova ChatGPT računa (§6d, Q-10). Dok se ne potvrdi službena izvedivost i pravno mišljenje (C16), ostaje `ai_disabled`. |
+| C15 | AI asistent u fazi A | Uključen | Mijenja §6a: asistent je u fazi A uključen, ali samo preko studentova ChatGPT računa (§6d, Q-10). Izvedivost je potvrdio Daniel 26. 11. (OpenAI „Sign in with ChatGPT”), pa se smije graditi kroz stavku u planu. Za prave studente ostaje `ai_disabled` dok ne stigne pravno mišljenje (C16). |
 | Q10 | AI pružatelj | OpenAI | Vidi §6d. |
 | C2 | A2 | U pilot | Mijenja §6a. |
 | C6 | Safe Exam Browser | U pilot | Mijenja §6a. |
@@ -171,10 +171,8 @@ Daniel je odgovorio u anketi odluka (artifact „Odluke Ductura”) i 26. 11. u 
 
 | Odluka | Rok |
 |---|---|
-| Q-10 / D-194: odlučeno OpenAI preko studentova ChatGPT računa (§6d); otvoreno je samo je li to službeno izvedivo | 15. 12. 2026. |
 | D-71: ključ za potpis u KMS-u (AWS račun) | prije staginga |
 | C17: osnivanje d.o.o.; C16: narudžba pravnog mišljenja i pentesta (odobreno, §6e) | C17 odmah; C16 15. 12. |
-| C3 prema C21: A8 i A9 „Da”, a detektor „stani” (§6e) | prije bilo kakve gradnje A8/A9 |
 | C23: zamjenik s pristupom za hitne slučajeve | 15. 12. |
 | C1, C11: čekaju odgovor Srca | kad stigne odgovor |
 | Potvrda teksta dopuna Ustava P-1–P-4 (nacrt-PR-ovi #48, #49, #50, #63) | P-1 prije PRODUCT pravila 4 (C13) |
