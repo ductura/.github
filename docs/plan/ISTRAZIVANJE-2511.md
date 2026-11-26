@@ -37,7 +37,7 @@ Redoslijed: ISTR-3 i ISTR-6 su mali i neovisni. ISTR-1 ide prije ISTR-2 jer oba 
   - TSA-u ide samo hash, nikad sadržaj ni osobni podatak.
   - Dva TSA-a prema planu B5.
   - Izbor TSA-a i FINA ostaju odluke iz plana.
-  - Prije pisca treba stavka u planu, prema pravilu „plan prije pisca”.
+  - Prije pisca treba stavka u planu, prema pravilu „plan prije pisca”. Nacrt stavke (PRIJEDLOG): [ISTR-2-TSA.md](ISTR-2-TSA.md).
 - **Gotovo kad:**
   - Dnevni korijen ima dva žiga ili zapisanu prazninu.
   - CLI provjerava žig bez mreže.
