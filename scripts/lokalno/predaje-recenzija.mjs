@@ -33,10 +33,12 @@ async function acknowledge(api) {
   const list = async () => (await (await api('student/assignments')).json()).courses ?? [];
   if (!(await list()).some((c) => c.name === zadatak.course))
     await (await api('student/enrollments', { code: zadatak.code })).body?.cancel();
-  const id = (await list()).find((c) => c.name === zadatak.course)?.assignments.find((a) => a.title === zadatak.title)?.id;
-  if (!id) throw new Error(`nema zadatka „${zadatak.title}”`);
+  // An edited assignment shows its version as a suffix (" · v2"); seedSubmission needs the shown title.
+  const found = (await list()).find((c) => c.name === zadatak.course)?.assignments.find((a) => a.title === zadatak.title || a.title.startsWith(`${zadatak.title} · `));
+  if (!found) throw new Error(`nema zadatka „${zadatak.title}”`);
+  const { id, title } = found;
   const n = await (await api(`student/assignments/${id}/notice`)).json();
-  if (n.acknowledgedAt) return;
+  if (n.acknowledgedAt) return title;
   const input = Object.fromEntries(fp.NOTICE_FINGERPRINT_FIELDS.map((k) => [k, n[k]]));
   const fingerprint = createHash('sha256').update(`${fp.NOTICE_FINGERPRINT_FORMAT_V1}\n${canonicalizeJcs(fp.noticeFingerprintPayload(input))}`).digest('hex');
   for (const [path, body] of [[`student/assignments/${id}/notice-read`, { versionNo: n.versionNo }], [`institution/assignments/${id}/acknowledgment`, { versionNo: n.versionNo, fingerprint }]]) {
@@ -44,6 +46,7 @@ async function acknowledge(api) {
     if (r.status !== 200) throw new Error(`/api/v1/${path}: HTTP ${r.status} ${(await r.text()).slice(0, 120)}`);
     await r.body?.cancel();
   }
+  return title;
 }
 
 assertLocal(process.env);
@@ -53,9 +56,10 @@ let fails = 0;
 for (let i = 1; i <= Number(n); i++) {
   const api = await seed.signIn(origin, ISSUER, `sim:student:demo-recenzent-${i}@demo.ductus.test`);
   try {
-    await acknowledge(api);
+    const title = await acknowledge(api);
     await seed.seedSubmission(api, {
       ...zadatak,
+      title,
       text: `Izmišljeni rad recenzenta ${i}: ${TOPICS[(i - 1) % TOPICS.length]}. Tekst služi samo za lokalnu provjeru recenzije.`,
     });
     console.log(`demo-recenzent-${i} (${which}): predano`);

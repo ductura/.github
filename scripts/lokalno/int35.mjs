@@ -24,7 +24,8 @@ globalThis.fetch = (url, init = {}) => {
   return plainFetch(url, init);
 };
 
-// The seminar course holds two assignments since 25. 11., so the assignment is picked by its title.
+// The seminar course holds two assignments since 25. 11., so the assignment is picked by its title;
+// an edited assignment shows its version as a suffix (" · v2"), which is accepted too.
 const [COURSE, TITLE] = {
   hidro: ['Izmišljeni seminar iz urbane hidrologije', 'Kratki osvrt: gradski vrtovi'],
   seminar: ['Izmišljeni seminar iz ekologije grada', 'Seminarski rad: kućno kompostiranje'],
@@ -37,7 +38,7 @@ const sessions = new Map();
 const as = async (who) => sessions.get(who) ?? sessions.set(who, await seed.signIn(origin, ISSUER, who)).get(who);
 const short = (who) => who.replace(/^sim:student:|@demo\.ductus\.test$/g, '');
 
-const A = (await (await (await as(R(1)))('student/assignments')).json()).courses.find((c) => c.name === COURSE)?.assignments.find((a) => a.title === TITLE)?.id;
+const A = (await (await (await as(R(1)))('student/assignments')).json()).courses.find((c) => c.name === COURSE)?.assignments.find((a) => a.title === TITLE || a.title.startsWith(`${TITLE} · `))?.id;
 if (!A) throw new Error(`recenzent 1 nije upisan u ${COURSE}; prvo predaje-recenzija.mjs`);
 const T = `teacher/assignments/${A}/peer-review`, S = `student/assignments/${A}/peer-review`;
 console.log(`zadatak ${which}: ${A}`);
@@ -62,7 +63,10 @@ const round = { opensAt: '2026-11-25T00:00:00.000Z', dueAt: '2026-12-10T22:00:00
 const before = await call('demo-teacher', 'GET', T, undefined, true);
 const works = before?.submittedWorks ?? 0;
 console.log(`predanih radova ${works}, najmanje ${before?.minSubmissions}, stanje ${before?.state}`);
-if (!before?.round?.allocatedAt) {
+// A round allocated in an earlier run covers the works submitted then; a work submitted later is not
+// in it, so the overview is checked against `works` only when this run allocated.
+const fresh = !before?.round?.allocatedAt;
+if (fresh) {
   await call('demo-teacher', 'PUT', T, round, true, `krug k=${K}`);
   await call('demo-teacher', 'GET', T, undefined, is(200, '"not_allocated"'), 'krug spremljen');
   await call('demo-teacher', 'POST', `${T}/allocations`, undefined, is(201, `"allocated":${works * K}`), `dodjela ${works}×${K}`);
@@ -70,7 +74,11 @@ if (!before?.round?.allocatedAt) {
 await call('demo-teacher', 'GET', T, undefined, is(200, '"open"'), 'krug otvoren');
 await call('demo-teacher', 'POST', `${T}/allocations`, undefined, is(409, 'already_allocated'), 'druga dodjela');
 await call('demo-teacher', 'PUT', T, round, is(409, 'already_allocated'), 'izmjena nakon dodjele');
-await call('demo-teacher', 'GET', `${T}/overview`, undefined, (s, t) => s === 200 && JSON.parse(t).allocations.length === works * K && t.includes('givenName'), `${works * K} dodjela, obje strane imenom`);
+await call('demo-teacher', 'GET', `${T}/overview`, undefined, (s, t) => {
+  const n = s === 200 ? JSON.parse(t).allocations.length : -1;
+  console.log(`dodjela u pregledu ${n}`);
+  return s === 200 && (fresh ? n === works * K : n % K === 0 && n >= before.minSubmissions * K && n <= works * K) && t.includes('givenName');
+}, fresh ? `${works * K} dodjela, obje strane imenom` : 'dodjele iz ranijeg pokreta, obje strane imenom');
 
 console.log('=== recenzenti: zadaci, anonimni rad, recenzija');
 const tasks = {};
