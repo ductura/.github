@@ -113,6 +113,15 @@ Daniel 26. 11.: „slobodno možeš već preuzeti … sa mog lekta repozitorija 
 | Ostali fakulteti | `data/profiles/` (364) i `data/sources/` ulaze istim putem kad pilot dobije drugu ustanovu; ne u pilotu. |
 | OA-10 | Lekta nema primjer izvoza popisa studenata iz Merlina ili ISVU-a. OA-10 i dalje čeka primjer izvoza (izmišljeni podaci); format se ne izmišlja. |
 
+## 6d. Odluke u chatu 26. 11. 2026. (Daniel)
+
+| Tema | Što vrijedi |
+|---|---|
+| Q-10 / D-194 | OpenAI, ali bez API kredita koje plaća Ductura ili fakultet: student se spaja svojim ChatGPT računom i koristi svoju pretplatu. Prije gradnje treba provjeriti nudi li OpenAI službenu prijavu ChatGPT računom za vanjske aplikacije i pod kojim uvjetima; bez toga se ništa ne gradi. C15 ostaje: u fazi A asistent je isključen, u fazi B tek nakon DPIA i pravnog mišljenja. |
+| ED-42 | Nove SRV rute za prijedloge nastavnika (list, post, accept, reject) nad postojećom domenom `server/collaboration/suggestions`: zadatak SRV-ED42-PRIJEDLOZI (kritičan). |
+| ED-43 | Nova radnja `send` u `collaboration.revision-requests.post` (slanje dorade, runda +1): zadatak SRV-ED43-DORADA-POSALJI (kritičan). |
+| I340 | WEB PR-ovi #340, #341 i #343 (revizije pariteta) zatvoreni bez spajanja. |
+
 ## 7. Nepromjenjiva pravila
 
 - Bez deploya i produkcijskih migracija; migracija na bazi se nikad ne mijenja (D-91).
@@ -125,7 +134,7 @@ Daniel 26. 11.: „slobodno možeš već preuzeti … sa mog lekta repozitorija 
 
 | Odluka | Rok |
 |---|---|
-| Q-10 / D-194: AI pružatelj | 15. 12. 2026. |
+| Q-10 / D-194: odlučeno OpenAI preko studentova ChatGPT računa (§6d); otvoreno je samo je li to službeno izvedivo | 15. 12. 2026. |
 | D-71: ključ za potpis u KMS-u (AWS račun) | prije staginga |
 | C17: pravna osoba; C10: model cijene; C16: budžet za pravno mišljenje i pentest | C17 odmah; C16 15. 12. |
 | C8 i C20: pitanje Srcu o Clarityju i paralelni razgovor uz Q-21 (nacrt postoji) | prije sastanka s FPZG-om; Q-21 30. 11. |
