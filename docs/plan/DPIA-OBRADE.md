@@ -77,3 +77,7 @@ Dokumenti Ductusa (`docs/ductus/privacy/04`) predlagali su UpCloud, Scaleway i d
 
 - Nije DPIA. DPIA radi ustanova s pravnikom i službenikom za zaštitu podataka.
 - Ne mijenja kod ni rokove. Kad se kod promijeni, ovaj popis treba osvježiti iz istih izvora.
+
+## Povezani nacrti
+
+Pravni nacrti PRAVO-PRIVATNOST (politika privatnosti, uvjeti, kolačići, evidencija obrada, ugovor o obradi, rokovi čuvanja, DPIA za OpenAI) su u `docs/pravo/README.md`. Ovaj popis obrada i njegove odluke ostaju kakvi jesu.
