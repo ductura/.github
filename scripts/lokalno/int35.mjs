@@ -113,19 +113,27 @@ await call('demo-teacher-2', 'GET', `${T}/overview`, undefined, false, 'nastavni
 await call('demo-teacher-2', 'POST', `${T}/allocations`, undefined, false, 'nastavnik drugog kolegija');
 
 console.log('=== autor: primljene recenzije, povlačenje');
-const rec = await call(R(1), 'GET', `${S}/received`, undefined, (s, t) => s === 200 && JSON.parse(t).reviews.length >= 1 && t.includes('Izmišljena jasnoća') && anonymous(t), 'primljene recenzije bez recenzenta');
+// A rerun withdraws one more review each time, so the author is the first reviewer who still has one.
+let author = R(1);
+for (let i = 1; i <= N; i++) {
+  if ((await (await (await as(R(i)))(`${S}/received`)).json()).reviews?.length) { author = R(i); break; }
+}
+console.log(`autor ${short(author)}`);
+const rec = await call(author, 'GET', `${S}/received`, undefined, (s, t) => s === 200 && JSON.parse(t).reviews.length >= 1 && t.includes('Izmišljena jasnoća') && anonymous(t), 'primljene recenzije bez recenzenta');
 const got = rec?.reviews?.length ?? 0;
 const rid = rec?.reviews?.[0]?.reviewId ?? '00000000-0000-4000-8000-000000000001';
-await call(R(1), 'POST', `${T}/reviews/${rid}/withdrawal`, { reason: 'Student sam sebi.' }, false, 'student povlači');
+// Every run withdraws one more review, so the overview is compared with the count before this run.
+const withdrawnBefore = (await (await (await as('demo-teacher'))(`${T}/overview`)).json()).allocations.filter((a) => a.state === 'withdrawn').length;
+await call(author, 'POST', `${T}/reviews/${rid}/withdrawal`, { reason: 'Student sam sebi.' }, false, 'student povlači');
 await call('demo-teacher-2', 'POST', `${T}/reviews/${rid}/withdrawal`, { reason: 'Tuđi kolegij.' }, false, 'nastavnik drugog kolegija povlači');
 await call('demo-teacher', 'POST', `${T}/reviews/${rid}/withdrawal`, { reason: '   ' }, is(422), 'prazan razlog');
 await call('demo-teacher', 'POST', `${T}/reviews/${rid}/withdrawal`, { reason: 'Izmišljeni razlog povlačenja.' }, is(201, rid), 'povlačenje');
 await call('demo-teacher', 'POST', `${T}/reviews/${rid}/withdrawal`, { reason: 'Opet.' }, is(409, 'conflict'), 'drugo povlačenje');
-await call(R(1), 'GET', `${S}/received`, undefined, (s, t) => s === 200 && JSON.parse(t).reviews.length === got - 1 && !t.includes(rid), 'povučena se ne vidi');
+await call(author, 'GET', `${S}/received`, undefined, (s, t) => s === 200 && JSON.parse(t).reviews.length === got - 1 && !t.includes(rid), 'povučena se ne vidi');
 await call('demo-teacher', 'GET', `${T}/overview`, undefined, (s, t) => {
   const st = JSON.parse(t).allocations.map((a) => a.state);
-  return s === 200 && st.filter((x) => x === 'withdrawn').length === 1 && st.filter((x) => x !== 'pending').length === N * K;
-}, 'nastavnik vidi 1 withdrawn i sve recenzije recenzenata');
+  return s === 200 && st.filter((x) => x === 'withdrawn').length === withdrawnBefore + 1 && st.filter((x) => x !== 'pending').length === N * K;
+}, 'nastavnik vidi jednu povučenu više i sve recenzije recenzenata');
 
 for (const api of sessions.values()) await (await api('auth/logout', {})).body?.cancel();
 console.log(`ZBROJ PROLAZ=${sum.PROLAZ} PAD=${sum.PAD}`);
