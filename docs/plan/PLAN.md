@@ -52,7 +52,7 @@ Pojedini zadaci i njihovo stanje su u `STANJE.md`; ovdje je samo red prioriteta.
 2. **V2** na trenutnim glavama, `vs-run.json` u bazu.
 3. **Stupac „nužno za probu”** (40 stavki): najprije popravci mrtvih ili neistinitih tokova probe, zatim ostale nužne funkcije (P-1 podrijetlo teksta, P-D1…P-D8, NF stavke označene „nužno”).
 4. **Blokade staginga i probe:** potpis izvan dev-a (D-71, sada 503; ključ u KMS-u daje Daniel) i Docker slika bez `config/` (obrazac izjave). Bez njih A01–A10 ne rade na stagingu.
-5. **Stupac „nakon 15. 1.”** (73 stavke) po redu iz `02c`; ono što ne stigne do 22. 2. isporučuje se tijekom pilota.
+5. **Stupac „nakon 15. 1.”** (73 stavke) po redu iz `02c`; ono što ne stigne do 22. 2. isporučuje se tijekom pilota. Ovdje su i dorade iz chata 26. 11. (§6d): SRV rute ED-42 (prijedlozi nastavnika: SRV-ED42-PRIJEDLOZI) i ED-43 (slanje dorade: SRV-ED43-DORADA-POSALJI), zatim montaža na WEB-u kad rute uđu u ugovor.
 6. VIZ dorada po prototipu (V3).
 7. F4 (grana → `main`) nakon kontrolne točke 30. 11. i Danielova „Spoji n”, zatim proba i objava po odjeljku „Faze nakon V2” u `PLAN-MIGRACIJE.md`.
 
@@ -117,10 +117,47 @@ Daniel 26. 11.: „slobodno možeš već preuzeti … sa mog lekta repozitorija 
 
 | Tema | Što vrijedi |
 |---|---|
-| Q-10 / D-194 | OpenAI, ali bez API kredita koje plaća Ductura ili fakultet: student se spaja svojim ChatGPT računom i koristi svoju pretplatu. Prije gradnje treba provjeriti nudi li OpenAI službenu prijavu ChatGPT računom za vanjske aplikacije i pod kojim uvjetima; bez toga se ništa ne gradi. C15 ostaje: u fazi A asistent je isključen, u fazi B tek nakon DPIA i pravnog mišljenja. |
+| Q-10 / D-194 | OpenAI, ali bez API kredita koje plaća Ductura ili fakultet: student se spaja svojim ChatGPT računom i koristi svoju pretplatu. Prije gradnje treba provjeriti nudi li OpenAI službenu prijavu ChatGPT računom za vanjske aplikacije i pod kojim uvjetima; bez toga se ništa ne gradi. Anketa C15 „Uključen” (§6e): asistent je u fazi A uključen tek kad je izvedivost potvrđena i pravno mišljenje (C16) stiglo; do tada `ai_disabled`. |
 | ED-42 | Nove SRV rute za prijedloge nastavnika (list, post, accept, reject) nad postojećom domenom `server/collaboration/suggestions`: zadatak SRV-ED42-PRIJEDLOZI (kritičan). |
 | ED-43 | Nova radnja `send` u `collaboration.revision-requests.post` (slanje dorade, runda +1): zadatak SRV-ED43-DORADA-POSALJI (kritičan). |
 | I340 | WEB PR-ovi #340, #341 i #343 (revizije pariteta) zatvoreni bez spajanja. |
+
+## 6e. Odgovori ankete 25.–26. 11. 2026. (Daniel)
+
+Daniel je odgovorio u anketi odluka (artifact „Odluke Ductura”) i 26. 11. u chatu dopustio da se odgovori upišu u plan. Gdje se razlikuju od §6a, vrijedi ovaj odjeljak. Upis u plan nije nalog za gradnju: zadaci za nove funkcije idu u red tek kroz plan PR i Danielovo odobrenje (bez novog koda dok to ne stigne, Daniel 26. 11.).
+
+| # | Pitanje | Odgovor | Posljedica |
+|---|---|---|---|
+| C12 | Rez opsega za pilot | Sve iz plana ide u pilot | Nema reza; stupci „nužno” i „nakon 15. 1.” ostaju u pilotu (kao §6a). |
+| C13 | Ritam i tekst P-1 | Potvrdi P-1 kakav jest; Q4 (ritam) samo kao sirovi prikaz, nakon 15. 1. | P-1-NACRT je potvrđen. NF5-Q4 se otpušta kao sirovi prikaz ritma, u stupcu „nakon 15. 1.”. |
+| C14 | A1 autotipkač (zastavica) | Da, u pilot | A1 ide u pilot kao zastavica (pravilo 13: nikad model strojnog učenja). Mijenja §6a. |
+| C3 | A8 i A9 | Da | **U sukobu s C21** („Detektor: stani”) i s D-01; A8 (biometrija tipkanja) traži GDPR čl. 9 i DPIA. Ne gradi se dok Daniel ne razriješi C3 prema C21. |
+| C21 | Detektor | Stani (ne radimo do daljnjeg) | Ništa vezano uz detektor se ne gradi. |
+| C15 | AI asistent u fazi A | Uključen | Mijenja §6a: asistent je u fazi A uključen, ali samo preko studentova ChatGPT računa (§6d, Q-10). Dok se ne potvrdi službena izvedivost i pravno mišljenje (C16), ostaje `ai_disabled`. |
+| Q10 | AI pružatelj | OpenAI | Vidi §6d. |
+| C2 | A2 | U pilot | Mijenja §6a. |
+| C6 | Safe Exam Browser | U pilot | Mijenja §6a. |
+| C7 | Vremenski žig | U pilot | Mijenja §6a; kvalificirani žig traži pružatelja (trošak, Daniel). |
+| C19 | K5 | Da, uz D-04 | Kao §6a. |
+| C18 | Klauzule K1, K6, K2 | Da | Ulaze u ugovor s FPZG-om (uz Q-3). |
+| C4 | Merlin ili ostali LMS | Merlin prvi | Kao §6a. |
+| C22 | Lab na `packages/app` | Da | Kao §6a. |
+| C16 | 10.000 EUR za pravno mišljenje i pentest | Da, odobreno | Narudžbu i plaćanje radi Daniel. |
+| C17 | Pravna osoba | Mora biti d.o.o. (napomena) | Osniva Daniel. |
+| C10 | Model cijene | Besplatno u pilotu, kasnije odluka | |
+| C1, C11 | D-260, smještaj na Srcu | Čekaj odgovor Srca | |
+| C8 | Pitanje Srcu o Clarityju | Ne šalji | Nacrt 04a se ne šalje. |
+| C20 | Srce paralelno uz Q-21 | Da, paralelno | |
+| C23 | Zamjenik | Još nemam | Ostaje otvoreno. |
+| C24 | Erasmus+ | Samo ako FPZG koordinira | |
+| DAN-1521/1522 | Asistent: kandidati i Moji kolegiji | Samo kolegiji na kojima je dodijeljen, samo čitanje predaja | Odluka za DAN-1521 i DAN-1522. |
+| I718 | Pristup mentora (SRV#718) | Ostaje `course_teacher`; mentor pristup samo kroz dodjelu mentorstva | |
+| Q5 | Produljenje roka (N-13, ADR Q-5) | Nastavnik odobrava pojedinačno, uz razlog | |
+| RAZLOG | Razlozi produljenja u izvozu | Da, razlog se vidi u izvozu nastavnika | |
+| N-14, N-15 | Nacrti | Odobreni kakvi jesu | |
+| OPSEG | Mobilna, Web_other, desktop | Već sada: sve u opseg | Mijenja „nakon probe”. |
+| I340 | Zatvaranje #340, #341, #343 | Zatvori | Zatvoreno 26. 11. |
+| DEMO-4 | (chat 26. 11.) | Bez novog koda | DEMO-4 se ne gradi. |
 
 ## 7. Nepromjenjiva pravila
 
@@ -136,14 +173,12 @@ Daniel 26. 11.: „slobodno možeš već preuzeti … sa mog lekta repozitorija 
 |---|---|
 | Q-10 / D-194: odlučeno OpenAI preko studentova ChatGPT računa (§6d); otvoreno je samo je li to službeno izvedivo | 15. 12. 2026. |
 | D-71: ključ za potpis u KMS-u (AWS račun) | prije staginga |
-| C17: pravna osoba; C10: model cijene; C16: budžet za pravno mišljenje i pentest | C17 odmah; C16 15. 12. |
-| C8 i C20: pitanje Srcu o Clarityju i paralelni razgovor uz Q-21 (nacrt postoji) | prije sastanka s FPZG-om; Q-21 30. 11. |
-| C18: klauzule K1, K2, K6 u ugovor s FPZG-om | uz Q-3 |
+| C17: osnivanje d.o.o.; C16: narudžba pravnog mišljenja i pentesta (odobreno, §6e) | C17 odmah; C16 15. 12. |
+| C3 prema C21: A8 i A9 „Da”, a detektor „stani” (§6e) | prije bilo kakve gradnje A8/A9 |
 | C23: zamjenik s pristupom za hitne slučajeve | 15. 12. |
-| C1, C11, C21, C24: ovise o odgovoru Srca, README pokusa i FPZG-u | kad stigne odgovor |
+| C1, C11: čekaju odgovor Srca | kad stigne odgovor |
 | Potvrda teksta dopuna Ustava P-1–P-4 (nacrt-PR-ovi #48, #49, #50, #63) | P-1 prije PRODUCT pravila 4 (C13) |
 | NF-6: rok čuvanja ključa pečaćene poruke | prije pilota |
-| Opseg nakon probe (mobile, Web_other, desktop) | nakon 22. 2. 2027. |
 | Računi i tajne za staging i objavu (D3), narudžba pravnog mišljenja i DPIA (D7); ostale odluke D1–D8 su u `PLAN-MIGRACIJE.md`, „Faze nakon V2” | prije probe / F5 |
 
 ## 9. Ubrzani razvoj (kako)
