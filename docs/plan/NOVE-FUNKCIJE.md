@@ -213,4 +213,10 @@ Pravila:
 7. Vlasnik je istog dana uz val 17 odabrao i valove 19 i 20 (odgovor orkestratoru 24. 11. 2026.). Za njih vrijede ista pravila 1, 4, 5 i 6, s pregledima razlike V19-PREGLED i V20-PREGLED (`docs/nalazi/val19-razlika.md`, `docs/nalazi/val20-razlika.md`) i ID-jevima `SRV-V19-*`, `WEB-V19-*`, `SRV-V20-*`, `WEB-V20-*`.
    - **Val 19:** dnevnik stručne prakse koji mentor potpisuje; grupni rad s doprinosom iz zabilježenih događaja (C-6 a), bez rangiranja i bez sankcija; anonimna recenzija među studentima koju uključuje nastavnik. Samo izmišljeni podaci.
    - **Val 20:** samo dijelovi bez tuđih servisa: font za disleksiju, način čitanja, čitanje naglas kroz Web Speech API (C-14), hrvatski stilovi citiranja na postojećem `domain/citation`. Pravopis, gramatika, Struna te uvoz iz Hrčka i CROSBI-ja čekaju pristanak ili licencu tih servisa i ne grade se.
-8. Ostali valovi nakon pilota (13, 14, 15, 16, 18, 21, 22) ne kreću bez zasebne odluke vlasnika. Valovi 15, 16, 18 i 22 te K-1 imaju pisane preduvjete (Srce, DPIA, licenca, novi repo) i nisu spremni.
+8. Vlasnik je 25. 11. 2026. odobrio i sve ostale valove („Može, idemo na sve valove”): 13, 14, 15, 16, 18, 21 i 22. Za njih vrijede pravila 1, 4, 5 i 6, s pregledima razlike V<n>-PREGLED (`docs/nalazi/val<n>-razlika.md`) i ID-jevima `SRV-V<n>-*` i `WEB-V<n>-*`. Pisani preduvjeti i dalje vrijede i grade se samo dijelovi bez njih:
+   - **Val 15:** bez novog repoa i bez kopiranja koda pod AGPL ili GPL licencom. U postojećim repoima samo ugovor `/api/v1` za analize i web prikaz rezultata na izmišljenim podacima; zaseban servis za izračune otvara se tek uz vlasnikovu odluku.
+   - **Val 16:** tema, odobrenje mentora, etape, povjerenstvo i termin obrane. Pohrana u Dabar čeka dogovor sa Srcem i ustanovom i ne gradi se.
+   - **Val 18:** upitnici i kvalitativno kodiranje samo s izmišljenim podacima; sa stvarnim ispitanicima tek po DPIA-i.
+   - **Val 21:** po područjima, prvo društvene znanosti i STEM; programski zadaci s testovima samo ako izolirano okruženje ne traži novi servis ni račun.
+   - **Val 22:** samo sučelje i lažni (mock) ISVU na izmišljenim podacima. Stvarno povezivanje čeka ugovor sa Srcem i ustanovom, DPIA i pravnu osnovu; nikad struganje stranica ni tuđe lozinke.
+   K-1 i dalje čeka zasebnu odluku.
