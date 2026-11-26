@@ -15,6 +15,7 @@
     { "name": "Aplication_server" },
     { "name": "Aplication_front" },
     { "name": "Desktop_macos" },
-    { "name": "Desktop_windows" }
+    { "name": "Desktop_windows" },
+    { "name": "Lab" }
   ]
 }

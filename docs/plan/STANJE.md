@@ -14,12 +14,22 @@ Generirano 25. 11. 2026. (oko 20:35 UTC) iz GitHub REST-a (otvoreni PR-ovi i gla
 | ductura/Institution_front_web_chrome | `main` | `a59455ab5e3c25b07629592cea43886127daf9eb` |
 | ductura/Institution_front_web_chrome | `migracija/kopija-ductus-front` | `ce922d458fab3206ff1787d65e0d58680343a373` |
 
-## Otvoreni PR-ovi u migracijske baze
+## Otvoreni PR-ovi po repozitoriju
+
+Tablica navodi sve repozitorije organizacije (osim `.github`); `scripts/drift.test.mjs` iz nje provjerava `drift/expected.json`. Brojke za ovu tablicu osvježene 26. 11. 2026. oko 06:05 UTC iz GitHub REST-a (svi otvoreni PR-ovi, bilo koja baza).
 
 | Repo | Otvoreno | Od toga nacrta |
 |---|---|---|
-| Institution_server | 10 | 0 |
-| Institution_front_web_chrome | 10 | 4 |
+| Institution_server | 9 | 1 |
+| Institution_front_web_chrome | 10 | 5 |
+| Aplication_server | 2 | 0 |
+| Aplication_front | 4 | 1 |
+| Institution_web_mobile | 1 | 0 |
+| Web_other | 1 | 0 |
+| Preloader | 2 | 0 |
+| Desktop_windows | 6 | 4 |
+| Desktop_macos | 1 | 0 |
+| Lab | 40 | 37 |
 
 Institution_server (#): #740 SRV-V13-IZVOZ-PPTX, #744 SRV-V15-KORELACIJA, #751 SRV-V15-HTTP, #764 SRV-V18-UPITNIK-ISPUNJAVANJE, #765 SRV-V14-KIND, #766 SRV-V13-EVIDENCE-SLAJD, #767 SRV-V18-KODIRANJE-GRADIVO, #768 SRV-V18-KODIRANJE-SIFRARNIK, #769 SRV-V16-TEMA-PRIJEDLOG, #770 SRV-V18-UPITNIK-IZVOZ. (#511 je nacrt prijedloga prema `main`.)
 
