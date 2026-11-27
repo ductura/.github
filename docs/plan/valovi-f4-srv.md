@@ -79,6 +79,24 @@ Zadaci su međusobno neovisni. Datoteke ugovora po zadatku se ne preklapaju, osi
 | 19 | Provjera i zatvaranje B | F4-OPE-R06 (`institution.admin-actions.get` postoji; uvoz popisa u dnevniku čeka OPE-03), F4-PM1-R04-SRV (`student.working-criteria.get` postoji; ostaje WEB izvadak), 1.10 (`work.milestones.delete` postoji) | — | ne | — |
 | 20 | REGRESIJA-BAZE-SRV | nema; provjera vrha grane, izvještaj na #2058 | — | ne | — |
 
+### Stanje vala 1 (27. 11. popodne)
+
+Ova tablica ima prednost pred retcima gore kad se razlikuju.
+
+| # | Zadatak | Stanje |
+|---|---|---|
+| 1 | SRV-ZADATAK-422-PARSE | Gotovo bez koda: zatvorio ga je SRV#717 (INT-32). Pitanje za WEB (`documentKind: "text"` uz `workKind: "spreadsheet"`) ide u plan WEB valova. |
+| 5 | F4-STU-R08-SRV | SRV#947: `courseName` i `mentorName` (niz za prikaz; više nastavnika spojeno s ", "). `differsFromFacultyRules` **ovisi o P01b** (vezanje zadatka na verziju pravila). Nova SECURITY DEFINER funkcija se ne radi bez ODOBRENO. |
+| 6 | F4-V13-R05 | Zatvoreno bez promjene: `live.document.get` se ne mijenja (orkestrator, c.7219251307). |
+| 7 | F4-EDI-R12-SRV | Gotovo bez koda: `student.work-sources.get` već vraća nastavnikove izvore s `requirement`. |
+| 8 | F4-NAS-R14-SRV | Gotovo bez koda: `teacher.assignment-overview.get` već daje po studentu `submitted`, `requestedMinute` i `afterDeadline`. |
+| 12 | 1.2 | Zatvoreno bez promjene ugovora, odluka (c). `contracts:breaking` dodavanje statusa i izmjenu `summary` smatra prijelomnim; WEB 403 čita kao opći forbidden. |
+| 13 | 1.5 | SRV#948. |
+| 15 | F4-V18-22-R05 | Nije val 1: treba pohrana provenance-share (val 2, migracija) i ožičenje (val 3). **Odgođeno nakon pilota**, zajedno sa shemom v4. |
+| 16 | F4-PM2-R18 | Rastavljeno po preporuci A (vlasnik, 27. 11.): (1) ugovor `ductus-import-manifest-v2` (SRV#946, samo dokument); (2) migracija `file_format` s `odt` (val 2); (3) čitač ODT-a; (4) tragovi u PDF čitaču. Koraci 2–4 kreću tek kad se spoji korak 1. |
+
+Verzije: zbog paralelnih PR-ova vrijedi pravilo da onaj koji prvi bude spreman dobiva sljedeći minor, a drugi spaja bazu i ide na idući minor (npr. #947 i #948: 1.183.0 i 1.184.0). Brojevi u §3 su zato samo okvirni.
+
 Retci 18 i 19 završavaju kao GOTOVO bez koda s dokazom (put do rute i testa) ili, ako nešto nedostaje, kao novi redak u valu 2.
 
 ## 5. Val 2 (9 zadataka, migracije)
