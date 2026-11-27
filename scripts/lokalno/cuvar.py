@@ -15,6 +15,7 @@ Zamjenjuje ručne petlje „mjeri RAM pa ubij” u pojedinim sesijama.
 from __future__ import annotations
 
 import ctypes
+import shutil
 import subprocess
 import sys
 import time
@@ -57,6 +58,15 @@ def argumenti(argv: list[str]) -> tuple[float, float, str | None, list[str]]:
     return prag, start, vrijednosti["--log"], naredba
 
 
+def pripremi(naredba: list[str], which=shutil.which) -> str | list[str]:
+    """Jedan argument ide kroz shell. Inače se prvi argument razrješava preko PATH/PATHEXT,
+    jer CreateProcess bez nastavka dodaje samo .exe pa `pnpm` (pnpm.cmd) ne bi bio nađen."""
+    if len(naredba) == 1:
+        return naredba[0]
+    puna = which(naredba[0])
+    return [puna or naredba[0], *naredba[1:]]
+
+
 def presuda(slobodno: float, prag: float) -> bool:
     """True kad treba gasiti."""
     return slobodno < prag
@@ -78,7 +88,7 @@ def pokreni(argv: list[str]) -> int:
         return 2
     izlaz = open(log, "w", encoding="utf-8") if log else None
     print(f"cuvar: pokrećem uz {ram:.1f} GB slobodno, prag {prag:.1f} GB", flush=True)
-    p = subprocess.Popen(" ".join(naredba) if len(naredba) == 1 else naredba, shell=len(naredba) == 1,
+    p = subprocess.Popen(pripremi(naredba), shell=len(naredba) == 1,
                          stdout=izlaz, stderr=subprocess.STDOUT if izlaz else None)
     najmanje = ram
     try:
@@ -107,6 +117,9 @@ def samotest() -> int:
         except ValueError:
             continue
         raise AssertionError(los)
+    assert pripremi(["pnpm build"]) == "pnpm build"
+    assert pripremi(["pnpm", "build"], which=lambda x: r"C:\n\pnpm.CMD") == [r"C:\n\pnpm.CMD", "build"]
+    assert pripremi(["nema", "x"], which=lambda x: None) == ["nema", "x"]
     assert presuda(1.4, 1.5) and not presuda(1.5, 1.5) and not presuda(3.0, 1.5)
     print("samotest prolazi")
     return 0
