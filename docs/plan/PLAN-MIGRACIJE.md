@@ -2807,6 +2807,7 @@ ISVU adapter (F-07) nije korak ove tablice: ide u zaseban tiket s rokom „prije
 | M3.7 | Nalazi evidencije, lokalnog zapisa i rekonstrukcije (samo ID): F-001, F-003 do F-008, F-028, F-029, F-030, F-034, F-037, F-038, F-043, F-048, F-049, F-154 | B, F | | DAN-140, DAN-145, DAN-146, DAN-147 do DAN-152, DAN-164, DAN-165, DAN-167, DAN-170, DAN-175, DAN-180, DAN-181, #913 |
 | M3.8 | Produkcijski potpisnik preko KMS-a; puni M3, ne osnovica (D-208) | B | B0.1 (M11.1) | DAN-295 |
 | M3.9 | Specifikacija i izvedba dnevnog korijena i žiga s CLI verifikatorom (B5, D-72, D-93); D-72 je ODLUČEN (D-209), a M3.9-P05 i P07 grade se tek nakon tog zapisa | B | M3.2 | DAN-55; izvedba DAN-391 |
+| M3.9a | Žig vremena dnevne kontrolne točke: port RFC 3161 (PKI.js), lažni TSA u `packages/test-fakes`, provjera spremljenog žiga u `evidence:verify` bez mreže (ISTR-2; D-72, D-209; odluke O-1 do O-6 u [ISTR-2-TSA.md](ISTR-2-TSA.md) §8). Risk: critical. Koraci 1 i 2 kreću odmah, korak 3 nakon M3.9-P05 | B | M3.2, ISTR-1 | uz DAN-391 |
 | M3.10 | Fuzz parsera B-8 i B-12 (zasad fast-check, Jazzer tek nakon provjere licence i ovisnosti, D-213) te proba izgubljenog odgovora nakon prihvata bez Toxiproxyja (D-211) | P, B | | DAN-320 |
 | M3.11 | Oznake stanja spremanja po rječniku i izlaz iz blokirane odjave; Z-02 slijedi D-118, bez blokirane odjave (D-216) | F | | DAN-99, DAN-103 |
 | M3.12 | Kratki sintetički spike šifriranja i roka (D-122); datum unutar faze do 20. 12. 2026. (D-207) | B | | novo |
