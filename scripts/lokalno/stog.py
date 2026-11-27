@@ -8,6 +8,13 @@ Upotreba (C:\\Python314\\python.exe, PYTHONIOENCODING=utf-8):
                                  pokreće `pnpm lokalno` u stablu i ostaje u prvom planu;
                                  pokreći kao pozadinski Bash zadatak (odvojeni proces tiho umre)
   stog.py upit "<sql>" [...]     upit u glavnu bazu stoga, samo za čitanje (READ ONLY transakcija)
+  stog.py stop <port> [...]      gasi stablo procesa koji sluša na portu, samo ako radi iz stabla
+                                 pod _lokalno (TaskStop na Windowsu ostavi `next start` živim)
+  stog.py samotest               provjera čistih funkcija
+
+Status provjerava i Preloader: stablo na 3100 mora sadržavati granu Preloadera koju WEB-ov
+posao sistem uzima (`preloader_ref` iz .github/workflows/sistem.yml stabla na 5173). Stari edge
+šalje /aplikacija na staru putanju i sistemski testovi padnu s 404.
 
 Pravila ugrađena u alat:
   - lozinka baze čita se iz compose.yaml u memoriju i ide samo u okolinu procesa; nikad se ne ispisuje
@@ -94,15 +101,34 @@ def stablo_iz_naredbe(naredba: str) -> str | None:
     return m.group(1) if m and not m.group(1).startswith("_") else None
 
 
-def web_stablo() -> str | None:
-    """Stablo iz kojeg radi WEB: naredbeni redak procesa koji sluša na 5173 (samo čitanje)."""
-    ps = ("$c=Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue|Select-Object -First 1;"
-          "if($c){(Get-CimInstance Win32_Process -Filter \"ProcessId=$($c.OwningProcess)\").CommandLine}")
+def slusac(port: int) -> tuple[int, str] | None:
+    """PID i naredbeni redak procesa koji sluša na portu (samo čitanje)."""
+    ps = (f"$c=Get-NetTCPConnection -LocalPort {port} -State Listen -ErrorAction SilentlyContinue|Select-Object -First 1;"
+          "if($c){$c.OwningProcess;(Get-CimInstance Win32_Process -Filter \"ProcessId=$($c.OwningProcess)\").CommandLine}")
     try:
         r = subprocess.run(["powershell", "-NoProfile", "-Command", ps], capture_output=True, text=True, timeout=30)
-        return stablo_iz_naredbe(r.stdout)
     except Exception:  # noqa: BLE001
         return None
+    redovi = r.stdout.strip().splitlines()
+    if not redovi or not redovi[0].strip().isdigit():
+        return None
+    return int(redovi[0]), " ".join(redovi[1:])
+
+
+def stablo_na_portu(port: int) -> str | None:
+    s = slusac(port)
+    return stablo_iz_naredbe(s[1]) if s else None
+
+
+def web_stablo() -> str | None:
+    """Stablo iz kojeg radi WEB: naredbeni redak procesa koji sluša na 5173 (samo čitanje)."""
+    return stablo_na_portu(5173)
+
+
+def preloader_ref(sistem_yml: str) -> str | None:
+    """Zadana grana Preloadera u WEB-ovu poslu sistem: `inputs.preloader_ref || '<grana>'`."""
+    m = re.search(r"inputs\.preloader_ref\s*\|\|\s*['\"]([^'\"]+)['\"]", sistem_yml)
+    return m.group(1) if m else None
 
 
 def iza_baze(ime: str, baza: str) -> str:
@@ -130,7 +156,23 @@ def svjezina() -> list[str]:
     if port_otvoren(5173):
         ime = web_stablo()
         redovi.append("WEB " + (iza_baze(ime, BAZE["WEB"]) if ime else "stablo nepoznato (proces na 5173 nije pod _lokalno)"))
+        if port_otvoren(3100) and ime:
+            redovi.append("Preloader " + preloader_svjezina(ime))
     return redovi
+
+
+def preloader_svjezina(web_ime: str) -> str:
+    yml = LOKALNO / web_ime / ".github" / "workflows" / "sistem.yml"
+    ref = preloader_ref(yml.read_text(encoding="utf-8")) if yml.is_file() else None
+    if ref is None:
+        return f"grana nepoznata (nema preloader_ref u {web_ime}/.github/workflows/sistem.yml)"
+    ime = stablo_na_portu(3100)
+    if ime is None:
+        return f"stablo nepoznato (proces na 3100 nije pod _lokalno); WEB sistem uzima {ref}"
+    red = iza_baze(ime, ref)
+    if "UPOZORENJE" in red:
+        red += f" (WEB sistem uzima {ref}: prebaci {ime}, izgradi Preloader i ponovno pokreni Preloader i edge)"
+    return red
 
 
 def je_spojnica(p: Path) -> bool:
@@ -218,12 +260,65 @@ def upit(argv: list[str]) -> int:
     return subprocess.run(["node", "-e", UPIT_JS, *argv], cwd=stablo, env=env, timeout=120).returncode
 
 
+def smije_gasiti(port: int, naredba: str) -> str | None:
+    """Razlog odbijanja ili None. Gase se samo procesi iz stabla pod _lokalno, nikad baza u Dockeru."""
+    if port == 54329:
+        return "port 54329 je baza u Dockeru; alat ne zaustavlja Docker"
+    if stablo_iz_naredbe(naredba) is None:
+        return "proces nije pokrenut iz stabla pod _lokalno"
+    return None
+
+
+def stop(argv: list[str]) -> int:
+    if not argv or not all(a.isdigit() for a in argv):
+        raise SystemExit("upotreba: stog.py stop <port> [...]")
+    kod = 0
+    for port in map(int, argv):
+        s = slusac(port)
+        if s is None:
+            print(f"{port}: nitko ne sluša")
+            continue
+        pid, naredba = s
+        razlog = smije_gasiti(port, naredba)
+        if razlog:
+            print(f"{port}: ODBIJENO, {razlog}")
+            kod = 2
+            continue
+        r = subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True, text=True, timeout=30)
+        for _ in range(10):
+            if not port_otvoren(port):
+                break
+            time.sleep(0.5)
+        stanje = "ugašen" if not port_otvoren(port) else "i dalje sluša"
+        print(f"{port}: PID {pid} iz {stablo_iz_naredbe(naredba)} {stanje} (taskkill {r.returncode})")
+        kod = kod or (0 if stanje == "ugašen" else 1)
+    return kod
+
+
+def samotest() -> int:
+    yml = "        with:\n          ref: ${{ inputs.preloader_ref || 'migracija/nextjs' }}\n"
+    assert preloader_ref(yml) == "migracija/nextjs"
+    assert preloader_ref('ref: ${{ inputs.preloader_ref || "main" }}') == "main"
+    assert preloader_ref("ref: main") is None
+    nxt = r'node "D:\Ductura\_lokalno\g-pre64\node_modules\.bin\..\next\dist\bin\next" start -p 3100'
+    assert stablo_iz_naredbe(nxt) == "g-pre64"
+    assert stablo_iz_naredbe(r"node D:\Ductura\_lokalno\_alati\x.mjs") is None
+    assert smije_gasiti(3100, nxt) is None
+    assert smije_gasiti(54329, nxt) is not None
+    assert smije_gasiti(8000, r"node C:\Users\x\krug.mjs") is not None
+    print("samotest prolazi")
+    return 0
+
+
 def main() -> int:
-    IZLAZ.mkdir(parents=True, exist_ok=True)
-    if len(sys.argv) < 2 or sys.argv[1] not in {"status", "start", "upit"}:
+    naredbe = {"status": lambda: status(), "start": lambda: start(sys.argv[2:]), "upit": lambda: upit(sys.argv[2:]),
+               "stop": lambda: stop(sys.argv[2:]), "samotest": samotest}
+    if len(sys.argv) < 2 or sys.argv[1] not in naredbe:
         print(__doc__)
         return 1
-    return {"status": lambda: status(), "start": lambda: start(sys.argv[2:]), "upit": lambda: upit(sys.argv[2:])}[sys.argv[1]]()
+    if sys.argv[1] != "samotest":
+        IZLAZ.mkdir(parents=True, exist_ok=True)
+    return naredbe[sys.argv[1]]()
 
 
 if __name__ == "__main__":
