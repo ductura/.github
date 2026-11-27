@@ -1,6 +1,6 @@
 # ISTR-2: žig vremena RFC 3161 za dnevnu kontrolnu točku (nacrt stavke plana, B5)
 
-**Status: PRIJEDLOG.** Ovo je samo dokument, bez koda. U `main` ulazi tek na Danielov „Spoji n”. Prema pravilu „plan prije pisca” pisac ne kreće dok stavka nije u planu.
+**Status: U PLANU (M3.9a), odluke O-1 do O-6 donesene 27. 11. 2026.** Daniel je odluke prepustio orkestratoru („to ti odluči”); zapis je u §8. Ovo je dokument, bez koda.
 
 Kartica: [ISTR-2 `tsa-rfc3161-pkijs`](ISTRAZIVANJE-2511.md#istr-2-tsa-rfc3161-pkijs-srv-dio-b5). Repo izvedbe: `ductura/Institution_server` (SRV).
 
@@ -99,45 +99,20 @@ Risk: prema donjoj granici standard, a predlaže se **critical**, jer je ovo lan
 - Dan bez novih listova daje isti potpis i nov žig (ADR §7 t. 9).
 - CLI prolazi kao stvarni proces bez mreže, na ispravnom žigu i na svakom negativnom slučaju.
 
-## 8. OTVORENO: odlučuje Daniel
+## 8. Odluke (27. 11. 2026.)
 
-Nacrt ništa od ovoga ne odlučuje. Uz svako pitanje navedeno je što bez odgovora ne smije krenuti.
+Daniel je 27. 11. 2026. u chatu orkestratora odluke prepustio orkestratoru („ove odluke za O01 do O06 to ti odluči”). Orkestrator je izabrao opcije koje najbolje čuvaju provjeru bez mreže i najmanje lome postojeći ADR. Ako Daniel kasnije odluči drukčije, mijenja se samo konfiguracija (O-1, O-2, O-4) ili se otvara nova stavka (O-3, O-5, O-6).
 
-- **O-1. FINA** (D-72: uvjetna).
-  - (a) U pilotu je nema, jer nije GO preduvjet.
-  - (b) Uvodi se kao treći TSA kad postoji obrt ili kad FPZG postane ugovorna strana.
-  - (c) Zamjenjuje jedan od besplatnih TSA-ova, kad uvjet bude ispunjen.
+| Pitanje | Odluka | Razlog |
+| --- | --- | --- |
+| **O-1. FINA** | **(b)** U pilotu je nema. Uvodi se kao **treći** TSA (uz DigiCert i Sectigo) kad postoji obrt ili kad FPZG postane ugovorna strana. | Prati D-72 i D-209. Popis TSA-ova je u konfiguraciji, pa nema promjene koda. Treći TSA dodaje neovisnost i ništa ne oduzima. |
+| **O-2. Rezervni TSA** | **(c)** Nema rezervnog TSA-a. Dan bez valjanog žiga daje alarm i zapisanu prazninu, a idući dan se ponovno žigosava nad istim potpisom. | Ostaje u okviru ADR-a §5 t. 5 i §7 t. 9 (dan bez novih listova dobiva nov žig nad istim potpisom). Ne uvodi trećeg javnog pružatelja bez provjere. |
+| **O-3. Sidra povjerenja** | **(a)** Korijenski certifikati obaju TSA-ova fiksirani su u repou i mijenjaju se samo kroz PR. | Provjera je ponovljiva bez mreže i ne ovisi o spremištu stroja. Ne lomi se pri rotaciji certifikata TSA-a, za razliku od (c). |
+| **O-4. Ponovni pokušaji** | **(a)** Više pokušaja s eksponencijalnim backoffom unutar dnevnog prozora, svaki s novim nonceom. Što ostane bez žiga, pokriva O-2 (c). | Kratki ispadi ne stvaraju praznine. Gornja granica pokušaja ide u konfiguraciju. |
+| **O-5. Lanac za provjeru bez mreže** | **(b)** Uz `.tsr` (s `certReq = true`) spremaju se i objavljuju posrednički i korijenski certifikat **te CRL ili OCSP odgovor iz trenutka žiga**. | Žig ostaje provjerljiv i nakon isteka ili opoziva certifikata TSA-a. To je smisao evidencije koja mora vrijediti godinama. |
+| **O-6. Točni bajtovi** | **(a)** Prvo se SRV zapis uskladi s bilješkom iz ADR-a (M3.9-P05), pa se žigosavaju bajtovi cijele potpisane bilješke. | Jedan known-answer vektor umjesto dva i nijedan stvarni žig nad oblikom koji se napušta. Koraci 1 i 2 ne čekaju ovu odluku. |
 
-  Popis TSA-ova je u konfiguraciji, pa nijedna opcija ne traži promjenu koda. Ništa ne blokira.
-- **O-2. Rezervni TSA kad jedan padne.**
-  - (a) Nema rezerve: jedan žig znači uspjeh dana, a nula znači alarm (ADR §5 t. 5).
-  - (b) Treći javni TSA služi samo kao rezerva.
-  - (c) Nema rezerve, ali se dan bez žiga ponovno žigosava idući dan nad istim potpisom.
-
-  Blokira prvu stvarnu točku, ne izvedbu s lažnim TSA-om.
-- **O-3. Sidra povjerenja.**
-  - (a) Korijenski certifikati obaju TSA-ova fiksirani su u repou i mijenjaju se kroz PR.
-  - (b) Koristi se spremište certifikata sustava ili Node.js-a.
-  - (c) Pinning TSA ili posredničkog certifikata: strože je, ali se lomi pri rotaciji.
-
-  Blokira korak 4 (CLI) i prvu stvarnu točku.
-- **O-4. Politika ponovnih pokušaja.**
-  - (a) Više pokušaja s backoffom unutar dnevnog prozora.
-  - (b) Jedan pokušaj, a praznina se zapisuje.
-  - (c) Ponovni pokušaj idućeg dana za propušteni dan.
-
-  Svaki pokušaj ima nov nonce. Blokira korak 3.
-- **O-5. Čuvanje lanca za provjeru bez mreže.**
-  - (a) `.tsr` s `certReq = true` nosi certifikat TSA-a, a posrednički i korijenski certifikat spremaju se i objavljuju uz bilješku.
-  - (b) Uz lanac se spremaju i CRL ili OCSP odgovor iz trenutka žiga, pa provjera ostaje moguća i nakon isteka ili opoziva certifikata.
-  - (c) Sprema se samo `.tsr`, a verifikator lanac dobiva zasebno.
-
-  Blokira korake 3 i 4.
-- **O-6. Točni bajtovi koji se žigosavaju** (§2).
-  - (a) Prvo se SRV zapis uskladi s bilješkom iz ADR-a (M3.9-P05), a tek onda se žigosava.
-  - (b) Odmah se žigosavaju točni pohranjeni bajtovi današnjeg zapisa `evidence-daily-root`, a prijelaz na bilješku kasnije dobiva nov known-answer vektor.
-
-  Blokira korake 3 i 4, ali ne korake 1 i 2.
+Posljedica za redoslijed: koraci 1 i 2 kreću odmah. Korak 3 čeka M3.2 i M3.9-P05 (O-6). Korak 4 čeka korak 3.
 
 ## 9. Redoslijed
 
