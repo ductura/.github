@@ -13,6 +13,8 @@ Upotreba (C:\\Python314\\python.exe, PYTHONIOENCODING=utf-8):
   stog.py upit "<sql>" [...]     upit u glavnu bazu stoga, samo za čitanje (READ ONLY transakcija)
   stog.py stop <port> [...]      gasi stablo procesa koji sluša na portu, samo ako radi iz stabla
                                  pod _lokalno (TaskStop na Windowsu ostavi `next start` živim)
+  stog.py docker-upali           pali Docker Desktop i kontejner baze (start to radi sam)
+  stog.py docker-ugasi           gasi kontejner baze i Docker Desktop kad stog ne radi
   stog.py samotest               provjera čistih funkcija
 
 Status provjerava i Preloader: stablo na 3100 mora sadržavati granu Preloadera koju WEB-ov
@@ -23,7 +25,9 @@ Pravila ugrađena u alat:
   - lozinka baze čita se iz compose.yaml u memoriju i ide samo u okolinu procesa; nikad se ne ispisuje
   - start traži >= 4 GB slobodnog RAM-a i slobodan port 4000
   - lokalni S3 (.local) mora biti prava mapa, ne spojnica; --local-iz radi pravu kopiju
-  - alat ne zaustavlja Docker, compose stog ni procese koje nije pokrenuo
+  - Daniel 27. 11.: kad stog ne radi, Docker se gasi; start ga pali sam
+  - docker-ugasi odbija ako radi ijedan port stoga, ako bazu koristi neki klijent ili ako
+    radi neki drugi kontejner; alat ne zaustavlja procese koje nije pokrenuo
   - --seed redovni briše i stvara samo bazu ductus_redovni; ostale baze (ductus, ductus_legal,
     ductus_pr693_2511) nikad ne dira i upisuje samo seed-int04.sql iz WEB stabla
 """
@@ -48,7 +52,8 @@ STANJE = ALATI / "stanje.json"
 IZLAZ = ALATI / "izlaz"
 PORTOVI = {4000: "SRV", 3100: "Preloader", 8000: "Edge", 5173: "WEB", 54329: "baza (postgres-main)", 8090: "lažni OIDC"}
 HTTP = {8000: "/", 3100: "/"}
-MIN_RAM_START_GB = 4.0
+# Daniel 27. 11.: jednokratno niži prag uz STOG_MIN_RAM_START_GB (ne ispod 1,5 GB)
+MIN_RAM_START_GB = max(1.5, float(os.environ.get("STOG_MIN_RAM_START_GB", "4.0")))
 MIN_RAM_GB = 1.5
 # Baza grane iz koje radna stabla stoga moraju biti svježa.
 BAZE = {"SRV": "migracija/kopija-ductus-backend", "WEB": "migracija/kopija-ductus-front"}
@@ -285,6 +290,67 @@ def cekaj_srv(p: subprocess.Popen, sekundi: int = 600) -> bool:
     return False
 
 
+# Spremnik compose baze (postgres-main); start ga pali ako je zaustavljen.
+BAZA_KONTEJNER_IME = "ductura-server-postgres-main-1"
+
+
+def docker_radi() -> bool:
+    try:
+        return subprocess.run(["docker", "info", "--format", "{{.ServerVersion}}"], capture_output=True, text=True, timeout=90).returncode == 0
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def docker_upali() -> int:
+    if not docker_radi():
+        print("palim Docker Desktop…", flush=True)
+        subprocess.run(["docker", "desktop", "start", "--timeout", "240"], capture_output=True, text=True, timeout=300)
+        for _ in range(60):
+            if docker_radi():
+                break
+            time.sleep(4)
+        else:
+            print("ODBIJENO: Docker se nije upalio u 4 minute")
+            return 2
+    if not port_otvoren(54329):
+        r = subprocess.run(["docker", "start", BAZA_KONTEJNER_IME], capture_output=True, text=True, timeout=120)
+        if r.returncode != 0:
+            print(f"ODBIJENO: kontejner baze se nije pokrenuo ({r.stderr.strip()[:200]})")
+            return 2
+        for _ in range(30):
+            if port_otvoren(54329):
+                break
+            time.sleep(2)
+    print("Docker i baza rade")
+    return 0
+
+
+def docker_ugasi() -> int:
+    if not docker_radi():
+        print("Docker već ne radi")
+        return 0
+    zauzeti = [f"{p} {i}" for p, i in PORTOVI.items() if p != 54329 and port_otvoren(p)]
+    if zauzeti:
+        print("ODBIJENO: stog još radi: " + ", ".join(zauzeti))
+        return 2
+    d = subprocess.run(["docker", "ps", "--format", "{{.Names}}"], capture_output=True, text=True, timeout=30)
+    baza = kontejner_baze()
+    drugi = [n for n in d.stdout.split() if n != baza]
+    if drugi:
+        print("ODBIJENO: rade drugi kontejneri: " + ", ".join(drugi))
+        return 2
+    if baza is not None:
+        q = "select count(*) from pg_stat_activity where backend_type='client backend' and pid<>pg_backend_pid()"
+        r = subprocess.run(["docker", "exec", baza, "psql", "-U", "ductus", "-d", "ductus", "-tAc", q], capture_output=True, text=True, timeout=60)
+        if r.returncode != 0 or r.stdout.strip() != "0":
+            print(f"ODBIJENO: bazu koristi klijent ili provjera nije uspjela ({(r.stdout or r.stderr).strip()[:80]})")
+            return 2
+        subprocess.run(["docker", "stop", baza], capture_output=True, text=True, timeout=120)
+    subprocess.run(["docker", "desktop", "stop", "--timeout", "120"], capture_output=True, text=True, timeout=180)
+    print("Docker ugašen" if not docker_radi() else "upozorenje: Docker još radi")
+    return 0
+
+
 def start(argv: list[str]) -> int:
     if not argv:
         raise SystemExit("upotreba: stog.py start <stablo> [--local-iz <stablo>] [--seed redovni --web <web-stablo>]")
@@ -307,6 +373,8 @@ def start(argv: list[str]) -> int:
         return 2
     if port_otvoren(4000):
         print("ODBIJENO: port 4000 je zauzet, SRV već radi (stog.py status)")
+        return 2
+    if docker_upali() != 0:
         return 2
     local = stablo / ".local"
     if je_spojnica(local):
@@ -449,7 +517,8 @@ def samotest() -> int:
 
 def main() -> int:
     naredbe = {"status": lambda: status(), "start": lambda: start(sys.argv[2:]), "upit": lambda: upit(sys.argv[2:]),
-               "stop": lambda: stop(sys.argv[2:]), "samotest": samotest}
+               "stop": lambda: stop(sys.argv[2:]), "samotest": samotest,
+               "docker-upali": docker_upali, "docker-ugasi": docker_ugasi}
     if len(sys.argv) < 2 or sys.argv[1] not in naredbe:
         print(__doc__)
         return 1
