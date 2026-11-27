@@ -9,6 +9,12 @@ export const IZLAZ = LOKALNO + '/_alati/izlaz/';
 mkdirSync(IZLAZ, { recursive: true });
 export const OUT = IZLAZ + 'korak.txt';
 export const BASE = 'http://localhost:8000';
+// Karta ruta (jedino mjesto): web osnova, povratak nakon prijave, prijava i ulaz Preloadera (na / je naslovnica).
+export const APP_PATH = '/aplikacija';
+export const APP_URL = BASE + APP_PATH;
+export const APP_HOME = APP_PATH + '/';
+export const APP_LOGIN = APP_PATH + '/prijava';
+export const ENTRY_PATH = '/ulaz';
 export const H = { Origin: BASE, 'Sec-Fetch-Site': 'same-origin', 'Content-Type': 'application/json' };
 /** Playwright iz WEB stabla, tek kad zatreba (testovi i CI ga nemaju). */
 export const chromium = () => createRequire(WEB + '/package.json')('@playwright/test').chromium;
@@ -21,7 +27,7 @@ export class PrijavaError extends Error {}
 export async function signIn(page, account) {
   for (let i = 0; i < 3; i++) {
     try {
-      await page.goto(BASE + '/');
+      await page.goto(BASE + ENTRY_PATH);
       const link = page.getByRole('link', { name: 'Prijava preko AAI@EduHr', exact: true });
       await link.waitFor({ timeout: 20000 });
       // Izravno na href: klik na poveznicu na sporom računalu zapinje na „stabilnosti” elementa.
@@ -33,7 +39,7 @@ export async function signIn(page, account) {
       } else {
         await page.locator(`button[name="account"][value="${account}"]`).click({ timeout: 20000 });
       }
-      await page.waitForURL((u) => u.origin === BASE && u.pathname.startsWith('/app/web/'), { timeout: 30000 });
+      await page.waitForURL((u) => u.origin === BASE && u.pathname.startsWith(APP_HOME), { timeout: 30000 });
       log(`prijava ${account}: pokušaj ${i + 1} uspio`);
       return;
     } catch (e) {
