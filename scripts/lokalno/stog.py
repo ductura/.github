@@ -242,11 +242,27 @@ def psql(kontejner: str, baza: str, ulaz: str) -> subprocess.CompletedProcess:
                           input=ulaz, capture_output=True, text=True, encoding="utf-8", timeout=180)
 
 
-def kontejner_baze() -> str | None:
-    r = subprocess.run(["docker", "ps", "--filter", "publish=54329", "--format", "{{.Names}}"],
-                       capture_output=True, text=True, timeout=30)
-    imena = [x for x in r.stdout.split() if x]
+def kontejner_s_portom(redovi: str, port: int = 54329) -> str | None:
+    """Iz `docker ps --format {{.Names}}|{{.Ports}}` bira jedini spremnik čiji je port domaćina `port`."""
+    uzorak = re.compile(rf"(?:^|[\s,])(?:[\d.]+|\[[^\]]*\]):{port}->")
+    imena = sorted({ime for red in redovi.splitlines() if "|" in red
+                    for ime, portovi in [red.split("|", 1)] if uzorak.search(" " + portovi)})
     return imena[0] if len(imena) == 1 else None
+
+
+def kontejner_baze() -> str | None:
+    r = subprocess.run(["docker", "ps", "--format", "{{.Names}}|{{.Ports}}"], capture_output=True, text=True, timeout=30)
+    return kontejner_s_portom(r.stdout) if r.returncode == 0 else None
+
+
+def ugasi_stablo(p: subprocess.Popen) -> None:
+    """Gasi samo stablo procesa koje je ovaj start pokrenuo."""
+    if p.poll() is None:
+        subprocess.run(["taskkill", "/PID", str(p.pid), "/T", "/F"], capture_output=True, timeout=60)
+        try:
+            p.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            pass
 
 
 def pripremi_redovni(kontejner: str) -> int:
@@ -325,10 +341,15 @@ def start(argv: list[str]) -> int:
         p = subprocess.Popen("pnpm lokalno --izvor=http://localhost:8000", cwd=stablo, env=env, stdout=out, stderr=subprocess.STDOUT, shell=True)
         if seed_int04 is not None and kontejner is not None:
             if not cekaj_srv(p):
-                print("SRV se nije podigao; seed INT-04 nije primijenjen (vidi log)", flush=True)
-            else:
-                r = psql(kontejner, baza, seed_int04.read_text(encoding="utf-8"))
-                print("seed INT-04 primijenjen" if r.returncode == 0 else f"seed INT-04 PAO: {r.stderr.strip()[:300]}", flush=True)
+                print("SRV se nije podigao; seed INT-04 nije primijenjen, gasim pokrenuti SRV (vidi log)", flush=True)
+                ugasi_stablo(p)
+                return 1
+            r = psql(kontejner, baza, seed_int04.read_text(encoding="utf-8"))
+            if r.returncode != 0:
+                print(f"seed INT-04 PAO, gasim pokrenuti SRV: {r.stderr.strip()[:300]}", flush=True)
+                ugasi_stablo(p)
+                return 1
+            print("seed INT-04 primijenjen", flush=True)
         kod = p.wait()
     print(f"SRV završio, izlaz {kod}")
     return kod
@@ -411,6 +432,11 @@ def samotest() -> int:
             raise AssertionError(zabranjena)
         except SystemExit:
             pass
+    assert kontejner_s_portom("ductura-server-postgres-main-1|127.0.0.1:54329->5432/tcp") == "ductura-server-postgres-main-1"
+    assert kontejner_s_portom("a|0.0.0.0:54329->5432/tcp, [::]:54329->5432/tcp") == "a"
+    assert kontejner_s_portom("a|0.0.0.0:32768->54329/tcp") is None
+    assert kontejner_s_portom("a|0.0.0.0:543290->5432/tcp") is None
+    assert kontejner_s_portom("a|127.0.0.1:54329->5432/tcp\nb|127.0.0.1:54329->5432/tcp") is None
     assert opcija(["g-x", "--seed", "redovni", "--web", "g-w"], "--web") == "g-w" and opcija(["g-x"], "--seed") is None
     try:
         opcija(["g-x", "--seed", "--web", "g-w"], "--seed")
