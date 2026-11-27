@@ -10,17 +10,23 @@ Upotreba (C:\\Python314\\python.exe, PYTHONIOENCODING=utf-8):
   graditelj.py prati [minuta]     petlja za Monitor: ispisuje red samo kad se nešto promijeni
                                   (CI zaključak PR-a, nova poruka za graditelja, stog pao);
                                   sama završava nakon zadanih minuta (zadano 25)
+  graditelj.py ocisti [--obrisi]  izgradne mape (.next, dist, test-results, playwright-report) u
+                                  stablima pod _lokalno iz kojih ne radi nijedan proces, s veličinom,
+                                  i stabla čija je grana obrisana na originu (spojeni PR-ovi);
+                                  --obrisi briše samo te izgradne mape, nikad stabla ni grane
   graditelj.py samotest           provjera čistih funkcija bez mreže (pokreće je CI test)
 
 Kontrolna točka je u DUCTURA_LOKALNO/_alati/graditelj.json. Nije izvor istine: zadatak, status i
 nositelja vode Linear i #2055; `pocetak` ih uspoređuje s točkom i javlja razliku.
-Alat samo čita GitHub; ništa ne objavljuje, ne spaja i ne gasi.
+Alat samo čita GitHub; ništa ne objavljuje, ne spaja i ne gasi. Jedino `ocisti --obrisi` briše
+izgradne mape koje se ponovno izgrade.
 """
 from __future__ import annotations
 
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -253,7 +259,137 @@ def prati(argv: list[str]) -> int:
     return 0
 
 
+
+# ---------- ocisti ----------
+
+IZGRADNE = {".next", "dist", "test-results", "playwright-report", "blob-report"}
+PRESKOCI = {"node_modules", ".git", ".pnpm-store"}
+# Stabla koja graditelj ne dira (dogovor s orkestratorom); ocisti ih ni ne čita.
+ZABRANJENA = {"g-loksrv2", "g-int29", "g-int08"}
+
+
+def izgradne_mape(stablo: Path, dubina: int = 3) -> list[Path]:
+    """Izgradne mape do zadane dubine, bez ulaska u node_modules i .git."""
+    nadeno: list[Path] = []
+    def obidi(mapa: Path, d: int) -> None:
+        try:
+            djeca = [x for x in mapa.iterdir() if x.is_dir() and not x.is_symlink()]
+        except OSError:
+            return
+        for x in djeca:
+            if x.name in IZGRADNE:
+                nadeno.append(x)
+            elif x.name not in PRESKOCI and d < dubina:
+                obidi(x, d + 1)
+    obidi(stablo, 1)
+    return nadeno
+
+
+def velicina(mapa: Path) -> int:
+    ukupno = 0
+    for korijen, _, datoteke in os.walk(mapa):
+        for f in datoteke:
+            try:
+                ukupno += os.path.getsize(os.path.join(korijen, f))
+            except OSError:
+                pass
+    return ukupno
+
+
+def grana_nestala(status_b: str) -> bool:
+    """Prvi red `git status -b --porcelain`: upstream obrisan na originu (spojen PR)."""
+    return status_b.startswith("## ") and "[gone]" in status_b
+
+
+def stablo_pod(naredba: str, korijen: Path) -> str | None:
+    """Ime radnog stabla neposredno pod korijenom (DUCTURA_LOKALNO) iz naredbenog retka procesa."""
+    n = (naredba or "").replace("\\", "/")
+    k = str(korijen).replace("\\", "/").rstrip("/").lower() + "/"
+    i = n.lower().find(k)
+    if i < 0:
+        return None
+    ime = re.split(r"[/\"' ]", n[i + len(k):], maxsplit=1)[0]
+    return ime if ime and not ime.startswith("_") else None
+
+
+def aktivna_stabla(naredbe: list[str], korijen: Path) -> set[str]:
+    return {ime for n in naredbe if (ime := stablo_pod(n, korijen))}
+
+
+def naredbe_procesa() -> list[str]:
+    """Naredbeni retci svih procesa. Baca RuntimeError kad popis ne uspije, jer se bez njega
+    ne zna koja su stabla aktivna."""
+    r = subprocess.run(["powershell", "-NoProfile", "-Command",
+                        "Get-CimInstance Win32_Process | ForEach-Object { $_.CommandLine }"],
+                       capture_output=True, text=True, timeout=60)
+    retci = [x for x in r.stdout.splitlines() if x.strip()]
+    if r.returncode != 0 or not retci:
+        raise RuntimeError(f"popis procesa nije uspio (izlaz {r.returncode})")
+    return retci
+
+
+def obrisi_mapu(m: Path) -> tuple[int, list[str]]:
+    """Briše mapu; vraća (oslobođeno bajtova, greške). Zaključane datoteke ostaju i javljaju se."""
+    prije = velicina(m)
+    greske: list[str] = []
+    shutil.rmtree(m, onexc=lambda _f, put, e: greske.append(f"{put}: {e.__class__.__name__}"))
+    ostalo = velicina(m) if m.exists() else 0
+    return prije - ostalo, greske
+
+
+def ocisti(argv: list[str]) -> int:
+    obrisi = "--obrisi" in argv
+    try:
+        naredbe = naredbe_procesa()
+    except (RuntimeError, OSError, subprocess.TimeoutExpired) as e:
+        if obrisi:
+            print(f"ODBIJENO: {e}; bez popisa procesa ne znam koja su stabla aktivna, ništa ne brišem")
+            return 2
+        print(f"upozorenje: {e}; aktivna stabla nepoznata, ispis uključuje sva stabla")
+        naredbe = []
+    aktivna = {ime for ime in aktivna_stabla(naredbe, LOKALNO) if (LOKALNO / ime).is_dir()}
+    ukupno = 0
+    neuspjelo: list[str] = []
+    nestale = []
+    for stablo in sorted(x for x in LOKALNO.iterdir() if x.is_dir() and not x.name.startswith("_")):
+        if stablo.name in ZABRANJENA or not (stablo / ".git").exists():
+            continue
+        r = subprocess.run(["git", "status", "-b", "--porcelain"], cwd=stablo, capture_output=True, text=True, encoding="utf-8")
+        prvi = (r.stdout.splitlines() or [""])[0]
+        if grana_nestala(prvi):
+            nestale.append(stablo.name)
+        if stablo.name in aktivna:
+            continue
+        for m in izgradne_mape(stablo):
+            ime = f"{stablo.name}/{m.relative_to(stablo).as_posix()}"
+            if not obrisi:
+                v = velicina(m)
+                ukupno += v
+                print(f"{ime}: {v / 1024**2:.0f} MB")
+                continue
+            v, greske = obrisi_mapu(m)
+            ukupno += v
+            if greske:
+                neuspjelo.append(ime)
+                print(f"{ime}: djelomično, oslobođeno {v / 1024**2:.0f} MB, ostalo {len(greske)} stavki (npr. {greske[0]})")
+            else:
+                print(f"{ime}: {v / 1024**2:.0f} MB obrisano")
+    print(f"ukupno {ukupno / 1024**3:.2f} GB" + (" oslobođeno" if obrisi else " (graditelj.py ocisti --obrisi briše)")
+          + f"; preskočena aktivna stabla: {', '.join(sorted(aktivna)) or 'nema'}")
+    if neuspjelo:
+        print("nije potpuno obrisano (zaključano ili bez prava): " + ", ".join(neuspjelo))
+    if nestale:
+        print("grana obrisana na originu (stablo se može ukloniti s git worktree remove): " + ", ".join(nestale))
+    return 1 if neuspjelo else 0
+
+
 def samotest() -> int:
+    k = Path(r"D:\builds")
+    assert stablo_pod(r"node D:\builds\g-x\node_modules\next\dist\bin\next start", k) == "g-x"
+    assert stablo_pod(r"node d:/BUILDS/g-y/server.js", k) == "g-y"
+    assert stablo_pod(r"node D:\builds\_alati\x.js", k) is None
+    assert stablo_pod(r"node D:\buildsX\g-z\a.js", k) is None
+    assert aktivna_stabla([r"x D:\Ductura\_lokalno\g-a\b", "y"], Path(r"D:\Ductura\_lokalno")) == {"g-a"}
     assert pr_ref("web#638") == ("web", 638)
     for los in ("x#1", "web638", "web#"):
         try:
@@ -296,6 +432,16 @@ def samotest() -> int:
     assert stog.stablo_iz_naredbe("node D:/Ductura/_lokalno/g-pop4/packages/app/x.js") == "g-pop4"
     assert stog.stablo_iz_naredbe(r"node D:\Ductura\_lokalno\_alati\x.js") is None
     assert stog.stablo_iz_naredbe("node D:/drugo/app.js") is None and stog.stablo_iz_naredbe("") is None
+    assert grana_nestala("## feat/x...origin/feat/x [gone]") and not grana_nestala("## main...origin/main [behind 2]")
+    assert not grana_nestala(" M [gone].txt")
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        k = Path(d)
+        for rel in ("packages/app/.next/x", "dist", "node_modules/a/dist", "e2e/test-results", "a/b/c/d/dist"):
+            (k / rel).mkdir(parents=True)
+        nadeno = sorted(m.relative_to(k).as_posix() for m in izgradne_mape(k))
+        assert nadeno == ["dist", "e2e/test-results", "packages/app/.next"], nadeno
+    assert aktivna_stabla([r"node D:\Ductura\_lokalno\g-ka03\node_modules\next start", r"node D:\Ductura\_lokalno\_alati\x"], Path(r"D:\Ductura\_lokalno")) == {"g-ka03"}
     print("samotest prolazi")
     return 0
 
@@ -312,6 +458,8 @@ def main() -> int:
         return ci(argv)
     if naredba == "prati":
         return prati(argv)
+    if naredba == "ocisti":
+        return ocisti(argv)
     if naredba == "samotest":
         return samotest()
     print(__doc__)
