@@ -9,6 +9,7 @@ Pokreću se s Pythonom 3.12+ uz `PYTHONIOENCODING=utf-8`. Radna stabla, zapisi i
 | `stog.py status` | Prikazuje slobodni RAM, portove (SRV 4000, Preloader 3100, Edge 8000, WEB 5173, baza 54329, OIDC 8090), Docker i stablo iz kojeg radi SRV. |
 | `stog.py start <stablo> [--local-iz <stablo>]` | Pokreće `pnpm lokalno`. Odbija ako je slobodno manje od 4 GB RAM-a, ako je port 4000 zauzet ili ako je `.local` spojnica. `--local-iz` radi pravu kopiju lokalnog S3. Pokreni ga kao pozadinski zadatak. |
 | `stog.py upit "<sql>"` | Upit u bazu stoga samo za čitanje (`READ ONLY` transakcija). |
+| `cuvar.py [--prag 1.5] [--start 4] [--log f] -- <naredba>` | Zajednički RAM čuvar za teške provjere. Odbija pokretanje ispod `--start` GB (izlaz 2), a stablo procesa koje je sam pokrenuo gasi kad slobodni RAM padne ispod praga (izlaz 3). Druge procese ne dira. Inače vraća izlaz naredbe i javlja najmanji izmjereni slobodni RAM. Prag ispod 1,5 GB nije dopušten. |
 | `tok.py korak <ime>` | Pokreće korak iz `koraci.mjs` u pravom pregledniku (Playwright iz WEB stabla, `TOK_WEB`). Izlaz: 0 gotovo, 1 greška u koraku, 2 nepoznat korak, 3 neuspjela prijava (nije pad proizvoda), 4 stog ne radi. |
 | `tok.py testovi <stablo> [putanje]` | Pokreće vitest i odvaja nove padove od poznatih (`poznati-padovi.json`). Odbija `tests/db` dok port 54329 drži baza stoga. |
 | `graditelj.py pocetak` | Jedan sažet pregled nakon pokretanja sesije ili kompresije konteksta: kontrolna točka, RAM i stog, CI PR-ova iz točke, stanje radnih stabala i poruke za graditelja na Ductus #2055 od zadnjeg čitanja. |
