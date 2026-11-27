@@ -23,7 +23,7 @@ Radi Graditelj na lokalnom stogu. Ne treba nijedan račun, pa može krenuti odma
 
 **L1. Povrat baze**
 1. Stog s `stog.py start --seed redovni` (port 54329).
-2. `pg_dump -Fc` baza `ductus`, `ductus_logs` i `ductus_legal` u mapu izvan repoa.
+2. `pg_dump -Fc` baza `ductus_redovni`, `ductus_logs` i `ductus_legal` u mapu izvan repoa. Uz `--seed redovni` server i seed rade nad `ductus_redovni` (`stog.py`, `BAZA_REDOVNI`), ne nad `ductus`, pa je ona izvor glavne baze.
 3. Povrat u novu bazu istog kontejnera, npr. `ductus_proba_povrata`. Nikad u postojeće baze, i nikad u `ductus_pr693_2511`.
 4. Izmjeri vrijeme izvoza i povrata. To je prva lokalna točka za RTO.
 
@@ -32,6 +32,15 @@ Radi Graditelj na lokalnom stogu. Ne treba nijedan račun, pa može krenuti odma
 - ista zadnja verzija migracije;
 - pgTAP `000-rls-everywhere.sql` i `002-matrix-coverage.sql` prolaze nad vraćenom bazom, jer `pg_dump` mora vratiti RLS, politike i uloge;
 - server pokrenut nad vraćenom bazom: ista sintetička revizija rada daje isti hash i potpis (DAN-889).
+
+**L2b. Niža revizija nakon povrata (R-8)**
+
+PLAN-MIGRACIJE R-8 traži da proba uključi nižu reviziju na poslužitelju nakon povrata (Ductus#87 c.6880906459, varijanta A).
+1. Backup uzeti dok demo student ima rad na reviziji N.
+2. Nakon backupa u Chromeu napisati još koraka, tako da poslužitelj i lokalni dnevnik klijenta budu na N+k.
+3. Vratiti bazu iz backupa. Poslužitelj je sada na N, a klijent na N+k.
+4. Provjeriti: klijent ponovno šalje lokalne korake kao nove revizije s novim potpisanim potvrdama, lanac dokaza nosi oznaku „obnovljeno iz lokalne kopije nakon povrata”, i nijedan korak nije izgubljen ni udvostručen.
+5. Ako klijent ili poslužitelj to još ne podržavaju, korak je PAD i postaje zadatak za pisca.
 
 **L3. `restore-drill` nad pravim izvozom**
 - Pokrenuti `scripts/operations/restore-drill/cli.ts` s metom `http://localhost:4000` i izmišljenom ustanovom `5d5d5d5d-…`.
@@ -48,7 +57,7 @@ Migracije su samo naprijed, pa rollback znači vratiti kod na reviziju N−1 nad
 **L5. Pohrana objekata**
 - Utvrditi što lokalni stog koristi za pohranu sadržaja.
 - Isti postupak: kopija, povrat, usporedba hasheva preko `restore-drill`.
-- Ako lokalno nema pohrane objekata, L5 se seli u fazu S.
+- Ako lokalno nema pohrane objekata, L5 se lokalno bilježi kao NEPROVEDENO; povrat bucketa svejedno je obavezan u fazi S (S2b).
 
 **Rezultat:** jedan komentar na Ductus#2059 po koraku, u obliku `GRADITELJ · PROBA POVRATA L<n> PROLAZ|PAD <sha>`. Uz komentar idu izmjerena vremena i broj redaka, bez vrijednosti iz baze.
 
@@ -64,8 +73,16 @@ Kreće čim staging radi. Ovo je stavka „P-OPORAVAK” iz PRIJEDLOZI-2611.
 **S2. Proba povrata**
 1. Povrat staging baze u novu instancu.
 2. Staging server privremeno usmjeren na nju; varijable mijenja Daniel.
-3. Ponoviti L2 i L3.
+3. Ponoviti L2, L2b i L3.
 4. Izmjeriti RTO od odluke do prve uspješne prijave, s DNS-om i tajnama.
+
+**S2b. Povrat bucketa**
+
+Obavezan, bez obzira na L5. Provjera hasheva nad postojećim bucketom ne dokazuje da se kopija može vratiti.
+1. Vratiti repliku bucketa (§4.7, `rclone sync` na drugi račun) u novi, privremeni bucket.
+2. Staging server privremeno usmjeriti na vraćeni bucket i vraćenu bazu; varijable mijenja Daniel.
+3. `restore-drill` nad vraćenom bazom i vraćenim bucketom: hashevi objekata i potvrde se slažu.
+4. Preduvjet: izabran dobavljač pohrane (D-08). Dok nije, staging commit rada vraća 503 `storage`, pa S2b čeka D-08 i ostaje otvorena stavka.
 
 **S3. Rollback na stagingu**
 - Ručni deploy prethodnog commita u Renderu (`autoDeployTrigger: "off"`). Deploy radi Daniel.
@@ -77,17 +94,17 @@ Kreće čim staging radi. Ovo je stavka „P-OPORAVAK” iz PRIJEDLOZI-2611.
 
 ## Faza M: mjesečno
 
-Nakon prve uspješne S2 proba se ponavlja jednom mjesečno, kako §4.7 traži. Zapis ide u `OPERATIONS.md` u SRV-u. Prozor održavanja baze upisuje se izvan rokova predaje (D-69).
+Nakon prve uspješne S2 i S2b proba se ponavlja jednom mjesečno, kako §4.7 traži: povrat i baze i bucketa u privremeno okruženje, L2b i `ductus verify` nad uzorkom. Zapis ide u `OPERATIONS.md` u SRV-u. Prozor održavanja baze upisuje se izvan rokova predaje (D-69).
 
 ## Predloženi zadaci (otvara orkestrator nakon F4)
 
 | ID | Tko | Ovisi o | Opis |
 |---|---|---|---|
-| POGON-POVRAT-LOK | Graditelj | F4 | L1, L2 i L5 na lokalnom stogu, zapis na #2059 |
+| POGON-POVRAT-LOK | Graditelj | F4 | L1, L2, L2b i L5 na lokalnom stogu, zapis na #2059 |
 | POGON-IZVOZ-PROBE | pisac SRV | — | Izvoz ulaza za `restore-drill` iz vraćene baze (samo izmišljena ustanova, zatvoreni kodovi u ispisu), uz test |
 | POGON-DRILL-LOK | Graditelj | POGON-POVRAT-LOK, POGON-IZVOZ-PROBE | L3 |
 | POGON-ROLLBACK-LOK | Graditelj | F4 | L4. Svaki PAD postaje zadatak za pisca. |
-| POGON-POVRAT-STG | Graditelj + Daniel | P-STAGING, S1 | S2 do S4 |
+| POGON-POVRAT-STG | Graditelj + Daniel | P-STAGING, S1, D-08 (za S2b) | S2, S2b, S3 i S4 |
 | DOC-4.7-RENDER | pisac (dokumenti) | S1 | Uskladiti §4.7 s odlukom o hostingu od 26. 11. |
 
 ## Odluke koje čekaju Daniela
