@@ -4,9 +4,12 @@ Upotreba (C:\\Python314\\python.exe, PYTHONIOENCODING=utf-8):
   stog.py status                 RAM, portovi, Docker, iz kojeg stabla rade SRV i WEB i
                                  koliko su commita iza svoje baze (zastarjela kopija daje
                                  „Stranica ne postoji” za rute koje su u bazi već spojene)
-  stog.py start <stablo> [--local-iz <stablo>]
+  stog.py start <stablo> [--local-iz <stablo>] [--seed redovni --web <web-stablo>]
                                  pokreće `pnpm lokalno` u stablu i ostaje u prvom planu;
-                                 pokreći kao pozadinski Bash zadatak (odvojeni proces tiho umre)
+                                 pokreći kao pozadinski Bash zadatak (odvojeni proces tiho umre).
+                                 --seed redovni: podaci kao u CI poslu sistem (WEB sistem.yml):
+                                 nova baza ductus_redovni, migracije i seed.sql (pnpm lokalno),
+                                 pa e2e/sistem/seed-int04.sql iz WEB stabla preko psql u spremniku
   stog.py upit "<sql>" [...]     upit u glavnu bazu stoga, samo za čitanje (READ ONLY transakcija)
   stog.py stop <port> [...]      gasi stablo procesa koji sluša na portu, samo ako radi iz stabla
                                  pod _lokalno (TaskStop na Windowsu ostavi `next start` živim)
@@ -21,6 +24,8 @@ Pravila ugrađena u alat:
   - start traži >= 4 GB slobodnog RAM-a i slobodan port 4000
   - lokalni S3 (.local) mora biti prava mapa, ne spojnica; --local-iz radi pravu kopiju
   - alat ne zaustavlja Docker, compose stog ni procese koje nije pokrenuo
+  - --seed redovni briše i stvara samo bazu ductus_redovni; ostale baze (ductus, ductus_legal,
+    ductus_pr693_2511) nikad ne dira i upisuje samo seed-int04.sql iz WEB stabla
 """
 from __future__ import annotations
 
@@ -47,6 +52,10 @@ MIN_RAM_START_GB = 4.0
 MIN_RAM_GB = 1.5
 # Baza grane iz koje radna stabla stoga moraju biti svježa.
 BAZE = {"SRV": "migracija/kopija-ductus-backend", "WEB": "migracija/kopija-ductus-front"}
+# --seed redovni: zasebna baza koju alat smije obrisati i ponovno stvoriti.
+BAZA_REDOVNI = "ductus_redovni"
+NEDIRATI_BAZE = {"ductus", "ductus_legal", "ductus_pr693_2511", "postgres", "template0", "template1"}
+SEED_INT04 = Path("e2e") / "sistem" / "seed-int04.sql"
 
 
 def slobodni_ram_gb() -> float:
@@ -197,7 +206,7 @@ def status() -> int:
         print(f"Docker: nedostupan ({type(e).__name__})")
     if STANJE.is_file():
         s = json.loads(STANJE.read_text(encoding="utf-8"))
-        print(f"SRV stablo: {s.get('stablo')} (pokrenuto {s.get('pokrenuto')}, log {s.get('log')})")
+        print(f"SRV stablo: {s.get('stablo')}, baza {s.get('baza', 'ductus')}, seed {s.get('seed', 'demo')} (pokrenuto {s.get('pokrenuto')}, log {s.get('log')})")
     else:
         print("SRV stablo: nepoznato (nije pokrenut ovim alatom)")
     for red in svjezina():
@@ -205,11 +214,93 @@ def status() -> int:
     return 0
 
 
+def opcija(argv: list[str], ime: str) -> str | None:
+    if ime not in argv:
+        return None
+    i = argv.index(ime)
+    if i + 1 >= len(argv) or argv[i + 1].startswith("--"):
+        raise SystemExit(f"{ime} traži vrijednost")
+    return argv[i + 1]
+
+
+def baza_za_seed(seed: str | None) -> str:
+    """Ime baze za SRV: zadano `ductus`, za --seed redovni zasebna ductus_redovni."""
+    if seed is None:
+        return "ductus"
+    if seed != "redovni":
+        raise SystemExit(f"nepoznat seed: {seed} (dopušteno: redovni)")
+    assert BAZA_REDOVNI not in NEDIRATI_BAZE
+    return BAZA_REDOVNI
+
+
+def psql(kontejner: str, baza: str, ulaz: str) -> subprocess.CompletedProcess:
+    """psql preko lokalnog socketa u spremniku (seed-int04.sql to traži), kao CI-jev docker compose exec.
+    Piše samo u ductus_redovni; `postgres` služi samo za DROP/CREATE te baze."""
+    if baza in NEDIRATI_BAZE - {"postgres"}:
+        raise SystemExit(f"ODBIJENO: alat ne piše u bazu {baza}")
+    return subprocess.run(["docker", "exec", "-i", kontejner, "psql", "-U", "ductus", "-d", baza, "-v", "ON_ERROR_STOP=1", "-q"],
+                          input=ulaz, capture_output=True, text=True, encoding="utf-8", timeout=180)
+
+
+def kontejner_s_portom(redovi: str, port: int = 54329) -> str | None:
+    """Iz `docker ps --format {{.Names}}|{{.Ports}}` bira jedini spremnik čiji je port domaćina `port`."""
+    uzorak = re.compile(rf"(?:^|[\s,])(?:[\d.]+|\[[^\]]*\]):{port}->")
+    imena = sorted({ime for red in redovi.splitlines() if "|" in red
+                    for ime, portovi in [red.split("|", 1)] if uzorak.search(" " + portovi)})
+    return imena[0] if len(imena) == 1 else None
+
+
+def kontejner_baze() -> str | None:
+    r = subprocess.run(["docker", "ps", "--format", "{{.Names}}|{{.Ports}}"], capture_output=True, text=True, timeout=30)
+    return kontejner_s_portom(r.stdout) if r.returncode == 0 else None
+
+
+def ugasi_stablo(p: subprocess.Popen) -> None:
+    """Gasi samo stablo procesa koje je ovaj start pokrenuo."""
+    if p.poll() is None:
+        subprocess.run(["taskkill", "/PID", str(p.pid), "/T", "/F"], capture_output=True, timeout=60)
+        try:
+            p.wait(timeout=30)
+        except subprocess.TimeoutExpired:
+            pass
+
+
+def pripremi_redovni(kontejner: str) -> int:
+    r = psql(kontejner, "postgres", f"DROP DATABASE IF EXISTS {BAZA_REDOVNI} WITH (FORCE);\nCREATE DATABASE {BAZA_REDOVNI} OWNER ductus;\n")
+    if r.returncode != 0:
+        print(f"ODBIJENO: stvaranje baze {BAZA_REDOVNI} nije uspjelo: {r.stderr.strip()[:300]}")
+    return r.returncode
+
+
+def cekaj_srv(p: subprocess.Popen, sekundi: int = 600) -> bool:
+    kraj = time.time() + sekundi
+    while time.time() < kraj and p.poll() is None:
+        try:
+            with urllib.request.urlopen("http://127.0.0.1:4000/api/v1/health", timeout=5) as o:
+                if o.status == 200:
+                    return True
+        except Exception:  # noqa: BLE001
+            pass
+        time.sleep(5)
+    return False
+
+
 def start(argv: list[str]) -> int:
     if not argv:
-        raise SystemExit("upotreba: stog.py start <stablo> [--local-iz <stablo>]")
+        raise SystemExit("upotreba: stog.py start <stablo> [--local-iz <stablo>] [--seed redovni --web <web-stablo>]")
     stablo = stablo_iz(argv[0])
-    local_iz = argv[argv.index("--local-iz") + 1] if "--local-iz" in argv else None
+    local_iz = opcija(argv, "--local-iz")
+    seed = opcija(argv, "--seed")
+    baza = baza_za_seed(seed)
+    seed_int04 = None
+    if seed is not None:
+        web = opcija(argv, "--web")
+        if web is None:
+            raise SystemExit("--seed redovni traži --web <web-stablo> (odatle se uzima e2e/sistem/seed-int04.sql)")
+        seed_int04 = stablo_iz(web) / SEED_INT04
+        if not seed_int04.is_file():
+            print(f"ODBIJENO: {seed_int04} ne postoji")
+            return 2
     ram = slobodni_ram_gb()
     if ram < MIN_RAM_START_GB:
         print(f"ODBIJENO: slobodno {ram:.1f} GB, za start treba {MIN_RAM_START_GB:.0f} GB")
@@ -232,12 +323,33 @@ def start(argv: list[str]) -> int:
         print(f"upozorenje: {local} ne postoji; radovi zapisani iz drugog stabla dat će 409 record_mismatch (--local-iz <stablo>)")
     env = dict(os.environ)
     from urllib.parse import quote
-    env["DATABASE_URL"] = f"postgres://ductus:{quote(lozinka_baze(stablo), safe='')}@127.0.0.1:54329/ductus"
+    kontejner = None
+    if seed is not None:
+        kontejner = kontejner_baze()
+        if kontejner is None:
+            print("ODBIJENO: nije nađen jedan spremnik baze na portu 54329")
+            return 2
+        if pripremi_redovni(kontejner) != 0:
+            return 2
+        print(f"baza {BAZA_REDOVNI} stvorena iznova u {kontejner}", flush=True)
+    env["DATABASE_URL"] = f"postgres://ductus:{quote(lozinka_baze(stablo), safe='')}@127.0.0.1:54329/{baza}"
     log = LOKALNO / f"srv-{stablo.name}.log"
-    STANJE.write_text(json.dumps({"stablo": stablo.name, "log": str(log), "pokrenuto": time.strftime("%Y-%m-%d %H:%M:%S")}, ensure_ascii=False), encoding="utf-8")
-    print(f"pokrećem pnpm lokalno u {stablo.name}, log {log}", flush=True)
+    STANJE.write_text(json.dumps({"stablo": stablo.name, "log": str(log), "baza": baza, "seed": seed or "demo",
+                                  "pokrenuto": time.strftime("%Y-%m-%d %H:%M:%S")}, ensure_ascii=False), encoding="utf-8")
+    print(f"pokrećem pnpm lokalno u {stablo.name} (baza {baza}), log {log}", flush=True)
     with open(log, "w", encoding="utf-8") as out:
         p = subprocess.Popen("pnpm lokalno --izvor=http://localhost:8000", cwd=stablo, env=env, stdout=out, stderr=subprocess.STDOUT, shell=True)
+        if seed_int04 is not None and kontejner is not None:
+            if not cekaj_srv(p):
+                print("SRV se nije podigao; seed INT-04 nije primijenjen, gasim pokrenuti SRV (vidi log)", flush=True)
+                ugasi_stablo(p)
+                return 1
+            r = psql(kontejner, baza, seed_int04.read_text(encoding="utf-8"))
+            if r.returncode != 0:
+                print(f"seed INT-04 PAO, gasim pokrenuti SRV: {r.stderr.strip()[:300]}", flush=True)
+                ugasi_stablo(p)
+                return 1
+            print("seed INT-04 primijenjen", flush=True)
         kod = p.wait()
     print(f"SRV završio, izlaz {kod}")
     return kod
@@ -245,7 +357,7 @@ def start(argv: list[str]) -> int:
 
 UPIT_JS = r"""
 const R=require("module").createRequire(process.cwd()+"/package.json");const {Client}=R("pg");
-(async()=>{const c=new Client({host:"127.0.0.1",port:54329,user:"ductus",database:"ductus",password:process.env.STOG_PG});
+(async()=>{const c=new Client({host:"127.0.0.1",port:54329,user:"ductus",database:process.env.STOG_DB||"ductus",password:process.env.STOG_PG});
 await c.connect();await c.query("BEGIN TRANSACTION READ ONLY");
 for(const q of process.argv.slice(1)){try{const r=await c.query(q);console.log(JSON.stringify(r.rows).slice(0,3000))}catch(e){console.log("ERR",e.message)}}
 await c.query("ROLLBACK");await c.end()})();
@@ -255,8 +367,9 @@ await c.query("ROLLBACK");await c.end()})();
 def upit(argv: list[str]) -> int:
     if not argv:
         raise SystemExit('upotreba: stog.py upit "<sql>" [...]')
-    stablo = stablo_iz(json.loads(STANJE.read_text(encoding="utf-8"))["stablo"]) if STANJE.is_file() else stablo_iz("g-pdf")
-    env = dict(os.environ, STOG_PG=lozinka_baze(stablo))
+    s = json.loads(STANJE.read_text(encoding="utf-8")) if STANJE.is_file() else {}
+    stablo = stablo_iz(s.get("stablo", "g-pdf"))
+    env = dict(os.environ, STOG_PG=lozinka_baze(stablo), STOG_DB=s.get("baza", "ductus"))
     return subprocess.run(["node", "-e", UPIT_JS, *argv], cwd=stablo, env=env, timeout=120).returncode
 
 
@@ -306,6 +419,30 @@ def samotest() -> int:
     assert smije_gasiti(3100, nxt) is None
     assert smije_gasiti(54329, nxt) is not None
     assert smije_gasiti(8000, r"node C:\Users\x\krug.mjs") is not None
+    assert baza_za_seed(None) == "ductus" and baza_za_seed("redovni") == BAZA_REDOVNI
+    for los in ("demo", "ductus_pr693_2511"):
+        try:
+            baza_za_seed(los)
+            raise AssertionError(los)
+        except SystemExit:
+            pass
+    for zabranjena in ("ductus", "ductus_legal", "ductus_pr693_2511"):
+        try:
+            psql("x", zabranjena, "")
+            raise AssertionError(zabranjena)
+        except SystemExit:
+            pass
+    assert kontejner_s_portom("ductura-server-postgres-main-1|127.0.0.1:54329->5432/tcp") == "ductura-server-postgres-main-1"
+    assert kontejner_s_portom("a|0.0.0.0:54329->5432/tcp, [::]:54329->5432/tcp") == "a"
+    assert kontejner_s_portom("a|0.0.0.0:32768->54329/tcp") is None
+    assert kontejner_s_portom("a|0.0.0.0:543290->5432/tcp") is None
+    assert kontejner_s_portom("a|127.0.0.1:54329->5432/tcp\nb|127.0.0.1:54329->5432/tcp") is None
+    assert opcija(["g-x", "--seed", "redovni", "--web", "g-w"], "--web") == "g-w" and opcija(["g-x"], "--seed") is None
+    try:
+        opcija(["g-x", "--seed", "--web", "g-w"], "--seed")
+        raise AssertionError("prazna opcija")
+    except SystemExit:
+        pass
     print("samotest prolazi")
     return 0
 
