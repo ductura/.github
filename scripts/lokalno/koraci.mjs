@@ -1,5 +1,5 @@
 // tok: koraci INT-31 u pregledniku (izmišljeni podaci, demo računi lažnog OIDC-a). Novi korak = nova metoda u `steps`.
-import { BASE, H, IZLAZ, log, signIn, skipGuide, snap } from './tok-lib.mjs';
+import { APLIKACIJA, APP, BASE, H, IZLAZ, log, signIn, skipGuide, snap } from './tok-lib.mjs';
 
 export const TEZA = '8081cb0a-8a6f-4296-a97d-e1efa6df9be8';
 const DOC = 'd3a030b6-8780-4950-bff7-23d71f7ff17d';
@@ -14,7 +14,7 @@ async function obidi(page, pocetak, max, slijedi = true) {
     await page.goto(u).catch(() => {}); await page.waitForTimeout(5000); await skipGuide(page);
     const h1 = await page.locator('h1').first().innerText({ timeout: 2000 }).catch(() => '-');
     const al = (await page.getByRole('alert').allInnerTexts().catch(() => [])).join(' | ').slice(0, 200);
-    log(`STR ${u.replace(BASE + '/app/web', '')} h1="${h1.slice(0, 60)}" alert="${al}" api4xx5xx=[${[...new Set(los)].join('; ')}]`);
+    log(`STR ${u.replace(APLIKACIJA, '')} h1="${h1.slice(0, 60)}" alert="${al}" api4xx5xx=[${[...new Set(los)].join('; ')}]`);
     if (slijedi) for (const h of await page.locator('a[href*="/nastavnik/"]').evaluateAll((as) => as.map((a) => a.href.split('#')[0]))) if (!vidjeno.has(h) && !red.includes(h)) red.push(h);
   }
   page.dobri = [...dobri];
@@ -25,7 +25,7 @@ export const steps = {
     const SEM = '9ff97f5f-3ebc-40bc-822a-0223b482b7e2';
     await signIn(page, 'demo-student-2');
     page.on('response', async (r) => { const u = r.url(); if (u.includes('/api/')) log(`RESP ${r.request().method()} ${u.split('/api')[1]} ${r.status()} ${(await r.body().catch(() => Buffer.alloc(0))).length}`); });
-    await page.goto(`${BASE}/app/web/rad/${SEM}/predaja/potvrda`); await page.waitForTimeout(6000);
+    await page.goto(`${APLIKACIJA}/rad/${SEM}/predaja/potvrda`); await page.waitForTimeout(6000);
     log('--- klik portfelj');
     await page.getByRole('link', { name: 'Izvoz za portfelj' }).click(); await page.waitForTimeout(5000);
     log(`URL ${page.url()}`);
@@ -65,7 +65,7 @@ export const steps = {
     await signIn(page, 'demo-student-2');
     page.on('response', async (r) => { const u = r.url(); if (/pdf|portable|package|export/.test(u)) log(`RESP ${r.request().method()} ${u.split('/api')[1]} ${r.status()} ${r.headers()['content-type']} ${(await r.body().catch(() => Buffer.alloc(0))).length}`); });
     const pdf = await page.request.get(`/api/v1/student/assignments/${SEM}/submission/pdf`); log(`PDF ${pdf.status()} ${(await pdf.text()).slice(0, 120)}`);
-    await page.goto(`${BASE}/app/web/rad/${SEM}/predaja/potvrda`); await page.waitForTimeout(6000);
+    await page.goto(`${APLIKACIJA}/rad/${SEM}/predaja/potvrda`); await page.waitForTimeout(6000);
     for (const name of ['Preuzmi zapis (PDF s QR kodom)', 'Izvoz za portfelj']) {
       const dl = page.waitForEvent('download', { timeout: 15000 }).catch(() => null);
       await page.getByRole('link', { name }).click(); const d = await dl; await page.waitForTimeout(3000);
@@ -82,7 +82,7 @@ export const steps = {
     const SEM = '9ff97f5f-3ebc-40bc-822a-0223b482b7e2';
     await signIn(page, 'demo-student-2');
     page.on('response', async (r) => { if (r.url().includes('/submission')) log(`RESP ${r.request().method()} ${r.url().split('/api')[1]} ${r.status()} ${(await r.text().catch(() => '')).slice(0, 400)} REQ ${r.request().postData()}`); });
-    await page.goto(`${BASE}/app/web/rad/${SEM}/predaja/slanje`); await page.waitForTimeout(5000);
+    await page.goto(`${APLIKACIJA}/rad/${SEM}/predaja/slanje`); await page.waitForTimeout(5000);
     await page.getByRole('button', { name: 'Predaj rad' }).click(); await page.waitForTimeout(1500);
     await page.getByRole('dialog').getByRole('button', { name: 'Predaj rad' }).click(); await page.waitForTimeout(8000);
     log(`=== nakon klika ${page.url()}\n${(await page.locator('main').first().ariaSnapshot()).slice(0, 3000)}`);
@@ -97,7 +97,7 @@ export const steps = {
     const SEM = '9ff97f5f-3ebc-40bc-822a-0223b482b7e2';
     await signIn(page, 'demo-student-2');
     for (const k of ['pregled', 'izjava', 'slanje', 'potvrda']) {
-      await page.goto(`${BASE}/app/web/rad/${SEM}/predaja/${k}`); await page.waitForTimeout(5000);
+      await page.goto(`${APLIKACIJA}/rad/${SEM}/predaja/${k}`); await page.waitForTimeout(5000);
       log(`=== ${k} ${page.url()}\n${(await page.locator('main').first().ariaSnapshot().catch(e => 'ERR ' + e.message)).slice(0, 2500)}`);
     }
   },
@@ -121,7 +121,7 @@ export const steps = {
       log(`NASTAVNIK etapa ${r.status()} ${(await r.text()).slice(0, 300)}`);
     }
     await signIn(page, 'demo-student-2');
-    await page.goto(`${BASE}/app/web/rad/${TEZA}`); await page.waitForTimeout(6000); await skipGuide(page);
+    await page.goto(`${APLIKACIJA}/rad/${TEZA}`); await page.waitForTimeout(6000); await skipGuide(page);
     await page.getByRole('tab', { name: /Mentor/ }).click(); await page.waitForTimeout(2000);
     const panel = page.getByRole('tabpanel', { name: 'Mentor' });
     const etape = panel.getByRole('group').filter({ hasText: /^Etape/ }).first();
@@ -132,7 +132,7 @@ export const steps = {
   async konz2(page) {
     page.on('response', (r) => { if (r.url().includes('/api/v1/') && r.request().method() === 'GET' && r.status() !== 200) log(`HTTP GET ${r.url().replace(/^.*\/api\/v1/, '')} ${r.status()}`); });
     await signIn(page, 'demo-student-2');
-    await page.goto(`${BASE}/app/web/rad/${TEZA}`); await page.waitForTimeout(6000); await skipGuide(page);
+    await page.goto(`${APLIKACIJA}/rad/${TEZA}`); await page.waitForTimeout(6000); await skipGuide(page);
     await page.getByRole('tab', { name: /Mentor/ }).click(); await page.waitForTimeout(2000);
     const panel = page.getByRole('tabpanel', { name: 'Mentor' });
     await panel.getByRole('button', { name: 'Zatraži konzultacije' }).click(); await page.waitForTimeout(800);
@@ -149,7 +149,7 @@ export const steps = {
   },
   async konz(page) {
     await signIn(page, 'demo-student-2');
-    await page.goto(`${BASE}/app/web/rad/${TEZA}`); await page.waitForTimeout(6000); await skipGuide(page);
+    await page.goto(`${APLIKACIJA}/rad/${TEZA}`); await page.waitForTimeout(6000); await skipGuide(page);
     await page.getByRole('tab', { name: /Mentor/ }).click(); await page.waitForTimeout(2000);
     const panel = page.getByRole('tabpanel', { name: 'Mentor' });
     await panel.getByRole('button', { name: 'Zatraži konzultacije' }).click(); await page.waitForTimeout(1500);
@@ -160,7 +160,7 @@ export const steps = {
   },
   async mentor(page) {
     await signIn(page, 'demo-student-2');
-    await page.goto(`${BASE}/app/web/rad/${TEZA}`); await page.waitForTimeout(6000); await skipGuide(page);
+    await page.goto(`${APLIKACIJA}/rad/${TEZA}`); await page.waitForTimeout(6000); await skipGuide(page);
     const tabs = await page.getByRole('tab').allTextContents(); log('TABS ' + JSON.stringify(tabs));
     const btns = await page.getByRole('button').allTextContents(); log('BUTTONS ' + JSON.stringify(btns.map((b) => b.trim()).filter(Boolean)));
     const m = page.getByRole('tab', { name: /Mentor/ }).or(page.getByRole('button', { name: /^Mentor/ })).first();
@@ -177,13 +177,13 @@ ${(await r.text()).slice(0, 1500)}`);
     }
     page.on('requestfinished', (r) => { if (r.url().includes('/api/v1/')) log(`REQ ${r.method()} ${r.url().replace(/^.*\/api\/v1/, '')}`); });
     page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') log('CONSOLE ' + m.text().slice(0, 300)); });
-    await page.goto(`${BASE}/app/web/rad/${TEZA}`); await page.waitForTimeout(8000); await skipGuide(page);
+    await page.goto(`${APLIKACIJA}/rad/${TEZA}`); await page.waitForTimeout(8000); await skipGuide(page);
     await snap(page, 'rad', 1500);
   },
   async sazetak(page) {
     // INT-31: process-summary for the student's own unsubmitted thesis document and the submitted one.
     await signIn(page, 'demo-student-2');
-    await page.goto(`${BASE}/app/web/zadaci`); await page.waitForTimeout(3000);
+    await page.goto(`${APLIKACIJA}/zadaci`); await page.waitForTimeout(3000);
     for (const id of [DOC, '857f4f02-8dc9-4ce2-9ff4-062199a5d54b']) {
       const r = await page.request.post('/api/v1/process-summary', { data: { documentId: id }, headers: { origin: BASE } });
       log(`SAZETAK ${id.slice(0, 8)} ${r.status()} ${(await r.text()).slice(0, 300)}`);
@@ -202,7 +202,7 @@ ${(await r.text()).slice(0, 1500)}`);
     await signIn(page, 'demo-student-2');
     const n = await page.request.get('/api/v1/notifications/returned-for-revision');
     log(`OBAVIJEST ${n.status()} ${(await n.text()).slice(0, 400)}`);
-    await page.goto(`${BASE}/app/web/rad/${SEM}`); await page.waitForTimeout(8000); await skipGuide(page);
+    await page.goto(`${APLIKACIJA}/rad/${SEM}`); await page.waitForTimeout(8000); await skipGuide(page);
     log('RAD ' + (await page.locator('main').innerText().catch(() => '')).split(String.fromCharCode(10)).filter((l) => /dorad|Predaj|vrać/i.test(l)).slice(0, 8).join(' | '));
     await snap(page, 'dorada', 1000);
   },
@@ -212,7 +212,7 @@ ${(await r.text()).slice(0, 1500)}`);
     const w = await page.request.get('/api/v1/student/assignment-work');
     log(`STANJE ${(await w.text()).slice(0, 600)}`);
     for (const id of ['9ff97f5f-3ebc-40bc-822a-0223b482b7e2', TEZA]) {
-      await page.goto(`${BASE}/app/web/rad/${id}`); await page.waitForTimeout(8000); await skipGuide(page);
+      await page.goto(`${APLIKACIJA}/rad/${id}`); await page.waitForTimeout(8000); await skipGuide(page);
       const ed = page.locator('[contenteditable]').first();
       log(`UREDIVAC ${id.slice(0, 8)} contenteditable=${await ed.getAttribute('contenteditable').catch(() => 'nema')}`);
       await ed.click({ timeout: 5000 }).catch(() => {});
@@ -232,7 +232,7 @@ ${(await r.text()).slice(0, 1500)}`);
   async nastavnik(page) {
     // INT-32: crawl every teacher page linked from the course list as demo-teacher; record URLs for the negative pass.
     await signIn(page, 'demo-teacher');
-    const urls = await obidi(page, [`${BASE}/app/web/nastavnik/kolegiji`], 30);
+    const urls = await obidi(page, [`${APLIKACIJA}/nastavnik/kolegiji`], 30);
     (await import('node:fs')).writeFileSync(IZLAZ + 'nastavnik-urls.json', JSON.stringify(urls, null, 1));
     (await import('node:fs')).writeFileSync(IZLAZ + 'nastavnik-api.json', JSON.stringify(page.dobri, null, 1)); log(`API GET 2xx: ${page.dobri.length}`);
   },
@@ -241,7 +241,7 @@ ${(await r.text()).slice(0, 1500)}`);
     await signIn(page, 'demo-teacher');
     const radovi = ['e9ddf3d0-f590-4be3-a528-e51761009a9a', 'd3a030b6-8780-4950-bff7-23d71f7ff17d', '5c441836-0ff9-4570-950e-97c5b7585a09'];
     const pod = ['pregled', 'konzultacije', 'sazetak', 'usporedba', 'reprodukcija', 'priprema-razgovora', 'predaja'];
-    await obidi(page, radovi.flatMap((r) => pod.map((x) => `${BASE}/app/web/nastavnik/rad/${r}/${x}`)), 21, false);
+    await obidi(page, radovi.flatMap((r) => pod.map((x) => `${APLIKACIJA}/nastavnik/rad/${r}/${x}`)), 21, false);
   },
   async nastavnikPise(page) {
     // INT-32: the mentor writes on the thesis (slot, consultation record, message, stage, note); the student reads it; another teacher is refused.
@@ -260,7 +260,7 @@ ${(await r.text()).slice(0, 1500)}`);
     await pokazi('ETAPA-PUT', await page.request.put(`${W}/thesis-stage`, { ...o, data: { stage: 'defense_scheduled', defenseAt: '2099-12-15T09:00:00.000Z' } }));
     await pokazi('BILJESKA', await page.request.post(`/api/v1/mentorships/${MENT}/notes`, { ...o, data: { body: `Izmišljena bilješka (${oznaka}).` } }));
     await pokazi('TIM', await page.request.get('/api/v1/courses/87087218-38ac-4df9-bd46-ccde4018b7ad/team'));
-    await page.goto(`${BASE}/app/web/nastavnik/rad/${DOC}/konzultacije`); await page.waitForTimeout(6000); await skipGuide(page);
+    await page.goto(`${APLIKACIJA}/nastavnik/rad/${DOC}/konzultacije`); await page.waitForTimeout(6000); await skipGuide(page);
     log('UI-KONZ ' + ((await page.locator('main').innerText().catch(() => '')).includes(oznaka) ? 'zapis vidljiv' : 'zapis NIJE vidljiv'));
     await page.context().clearCookies(); await signIn(page, 'demo-student-2');
     const poruke = await (await page.request.get(`${W}/messages`)).text();
@@ -287,7 +287,7 @@ ${(await r.text()).slice(0, 1500)}`);
     await page.context().clearCookies(); await signIn(page, 'demo-teacher');
     const t = await (await page.request.get(`${W}/consultation-slots`)).text();
     log(`MENTOR-VIDI ${t.includes('2099-12-04') ? 'da' : 'NE'} ${t.slice(0, 200)}`);
-    await page.goto(`${BASE}/app/web/nastavnik/rad/${DOC}/konzultacije`); await page.waitForTimeout(6000); await skipGuide(page);
+    await page.goto(`${APLIKACIJA}/nastavnik/rad/${DOC}/konzultacije`); await page.waitForTimeout(6000); await skipGuide(page);
     log(`UI-TERMIN ${(await page.locator('main').innerText().catch(() => '')).slice(0, 400).replace(/\s+/g, ' ')}`);
   },
   async nastavnikPolja(page) {
@@ -295,7 +295,7 @@ ${(await r.text()).slice(0, 1500)}`);
     await signIn(page, 'demo-teacher');
     const A = '9ff97f5f-3ebc-40bc-822a-0223b482b7e2';
     for (const u of ['novi?kolegij=87087218-38ac-4df9-bd46-ccde4018b7ad', `${A}/uredi`, `${A}/uredi?kopiraj=1`, `${A}/produljenje`, `${A}/merlin`]) {
-      await page.goto(`${BASE}/app/web/nastavnik/zadatak/${u}`); await page.waitForTimeout(5000); await skipGuide(page);
+      await page.goto(`${APLIKACIJA}/nastavnik/zadatak/${u}`); await page.waitForTimeout(5000); await skipGuide(page);
       const polja = await page.evaluate(() => [...document.querySelectorAll('main input, main select, main textarea, main button, main [role=radio], main [role=checkbox]')].map((e) => {
         const l = (e.labels && e.labels[0] && e.labels[0].innerText) || e.getAttribute('aria-label') || e.innerText || e.getAttribute('name') || '';
         return `${e.tagName.toLowerCase()}${e.type ? ':' + e.type : ''}${e.disabled ? '(x)' : ''}=${l.trim().replace(/\s+/g, ' ').slice(0, 50)}`;
@@ -313,7 +313,7 @@ ${(await r.text()).slice(0, 1500)}`);
     const api = (p) => page.evaluate(async (u) => { const r = await fetch(u, { credentials: 'include' }); return `${r.status} ${(await r.text()).replace(/\s+/g, ' ').slice(0, 300)}`; }, `${BASE}/api/v1${p}`);
     page.on('response', async (r) => { const m = r.request().method(); if (r.url().includes('/api/') && m !== 'GET' && !r.url().includes('client-context')) log(`  ${m} ${r.status()} ${r.url().split('/api')[1]} ${r.status() >= 400 ? (await r.text().catch(() => '')).slice(0, 200) : ''}`); });
     const tim = async (oznaci) => {
-      await page.goto(`${BASE}/app/web/nastavnik`); await page.waitForTimeout(7000); await skipGuide(page);
+      await page.goto(`${APLIKACIJA}/nastavnik`); await page.waitForTimeout(7000); await skipGuide(page);
       const otvori = page.getByRole('button', { name: `Nastavni tim i grupe · ${KOLEGIJ}`, exact: true });
       log(`TIM gumb panela: ${await otvori.count()}`);
       if (!(await otvori.count())) return;
@@ -337,7 +337,7 @@ ${(await r.text()).slice(0, 1500)}`);
       log(`${n} team/view ${await api(`/courses/${K}/team/view`)}`);
       log(`${n} team ${await api(`/courses/${K}/team`)}`);
       log(`${n} zadatak ${await api(`/institution/assignments/${A}`)}`);
-      await page.goto(`${BASE}/app/web/nastavnik`); await page.waitForTimeout(7000); await skipGuide(page);
+      await page.goto(`${APLIKACIJA}/nastavnik`); await page.waitForTimeout(7000); await skipGuide(page);
       const main = await page.locator('main').innerText().catch(() => '');
       log(`${n} /nastavnik h1="${(await page.locator('h1').first().innerText().catch(() => '')).slice(0, 60)}" vidi kolegij=${main.includes(KOLEGIJ)} uloga="${(main.match(/Vaša uloga: [^.]*\./) || [''])[0]}"`);
       await snap(page, `tim-${n.toLowerCase()}`);
@@ -362,8 +362,8 @@ ${(await r.text()).slice(0, 1500)}`);
     const oznaka = `INT-32 ${Date.now()}`;
     const dt = (dana) => { const d = new Date(Date.now() + dana * 864e5); d.setMinutes(0, 0, 0); return d.toISOString().slice(0, 16); };
     page.on('response', async (r) => { const m = r.request().method(); if (r.url().includes('/api/') && m !== 'GET' && !r.url().includes('client-context')) { log(`  ${m} ${r.status()} ${r.url().split('/api')[1].slice(0, 110)}`); if (r.status() >= 400) log(`    REQ ${(r.request().postData() ?? '').slice(0, 500)} RESP ${(await r.text().catch(() => '')).slice(0, 300)}`); } });
-    const stanje = async (n) => { await page.waitForTimeout(4000); log(`${n} url=${page.url().split('/app/web')[1]} h1="${(await page.locator('h1').first().innerText().catch(() => '')).slice(0, 60)}" alert="${(await page.locator('[role=alert],[role=status]').allInnerTexts().catch(() => [])).join(' | ').replace(/\s+/g, ' ').slice(0, 200)}"`); };
-    const idi = async (u) => { await page.goto(`${BASE}/app/web/nastavnik/zadatak/${u}`); await page.waitForTimeout(5000); await skipGuide(page); };
+    const stanje = async (n) => { await page.waitForTimeout(4000); log(`${n} url=${page.url().split(APP)[1]} h1="${(await page.locator('h1').first().innerText().catch(() => '')).slice(0, 60)}" alert="${(await page.locator('[role=alert],[role=status]').allInnerTexts().catch(() => [])).join(' | ').replace(/\s+/g, ' ').slice(0, 200)}"`); };
+    const idi = async (u) => { await page.goto(`${APLIKACIJA}/nastavnik/zadatak/${u}`); await page.waitForTimeout(5000); await skipGuide(page); };
     const prviIzbor = async (l) => { const s = page.getByLabel(l, { exact: true }); const v = await s.locator('option').evaluateAll((o) => o.map((x) => x.value).filter(Boolean)); if (v.length) await s.selectOption(v[0]); return v; };
     await signIn(page, 'demo-teacher');
 
@@ -418,7 +418,7 @@ ${(await r.text()).slice(0, 1500)}`);
     const A = '9ff97f5f-3ebc-40bc-822a-0223b482b7e2';
     page.on('response', async (r) => { if (r.url().includes('/api/') && (r.url().includes('merlin') || r.status() >= 400)) log(`  ${r.request().method()} ${r.status()} ${r.url().split('/api')[1].slice(0, 120)}`); });
     await signIn(page, 'demo-teacher');
-    await page.goto(`${BASE}/app/web/nastavnik/zadatak/${A}/merlin`); await page.waitForTimeout(6000); await skipGuide(page);
+    await page.goto(`${APLIKACIJA}/nastavnik/zadatak/${A}/merlin`); await page.waitForTimeout(6000); await skipGuide(page);
     const s = page.getByLabel('Zadatak', { exact: true });
     const opcije = await s.locator('option').evaluateAll((o) => o.map((x) => [x.value, x.textContent.trim()]).filter((x) => x[0]));
     log(`MERLIN api ${await page.evaluate(async (u) => { const r = await fetch(u, { credentials: 'include' }); return `${r.status} ${(await r.text()).slice(0, 600)}`; }, `${BASE}/api/v1/teacher/assignments/${A}/merlin/roster`)}`);
@@ -473,7 +473,7 @@ ${(await r.text()).slice(0, 1500)}`);
     if (!moje?.assignmentId) throw new Error('student ne vidi zadatak mentorstva');
     teza.assignmentId = moje.assignmentId;
     fs.writeFileSync(datoteka, JSON.stringify(teza, null, 1));
-    await page.goto(`${BASE}/app/web/rad/${teza.assignmentId}`); await page.waitForTimeout(5000); await skipGuide(page);
+    await page.goto(`${APLIKACIJA}/rad/${teza.assignmentId}`); await page.waitForTimeout(5000); await skipGuide(page);
     await snap(page, 'teza prije', 2000);
     if (page.url().includes('/zadatak/')) {
       // The notice comes first: confirm it as a student would, then the editor opens.
@@ -491,7 +491,7 @@ ${(await r.text()).slice(0, 1500)}`);
     const chip = page.locator('footer[aria-label="Stanje rada"]').getByRole('status');
     await editor.click(); await page.keyboard.press('Control+End'); await page.keyboard.insertText(` Izmišljena rečenica diplomskog rada ${Date.now()}.`);
     await chip.filter({ hasText: 'Spremljeno na poslužitelju' }).waitFor({ timeout: 60000 }).then(() => log('PROLAZ spremljeno na poslužitelju'), () => log('PAD nije „Spremljeno na poslužitelju”'));
-    await page.goto(`${BASE}/app/web/rad/${teza.assignmentId}/predaja/izjava`); await page.waitForTimeout(5000);
+    await page.goto(`${APLIKACIJA}/rad/${teza.assignmentId}/predaja/izjava`); await page.waitForTimeout(5000);
     await snap(page, 'izjava', 4000);
   },
   async tezaIzjava(page) {
@@ -501,10 +501,10 @@ ${(await r.text()).slice(0, 1500)}`);
     page.on('response', async (r) => { const u = r.url(); if (u.includes('/api/')) log(`RESP ${r.request().method()} ${u.split('/api')[1]} ${r.status()} ${r.status() >= 400 ? (await r.text().catch(() => '')).slice(0, 200) : ''}`); });
     await signIn(page, 'demo-student-2');
     for (const x of ['', '/predaja', '/predaja/izjava']) {
-      const h = await page.request.get(`${BASE}/app/web/rad/${teza.assignmentId}${x}`); const b = await h.text();
+      const h = await page.request.get(`${APLIKACIJA}/rad/${teza.assignmentId}${x}`); const b = await h.text();
       log(`HTML ${x || '/'} ${h.status()} next=${(b.match(/\/_next\/static\/[a-z]+/) ?? [''])[0]} web=${b.includes('/web/_next') } nf=${(b.match(/NEXT_HTTP_ERROR_FALLBACK;d+|NEXT_NOT_FOUND|NEXT_REDIRECT[^"]{0,80}/g) ?? []).join(",")} len=${b.length}`);
     }
-    await page.goto(`${BASE}/app/web/rad/${teza.assignmentId}/predaja/izjava`); await page.waitForTimeout(8000); await skipGuide(page);
+    await page.goto(`${APLIKACIJA}/rad/${teza.assignmentId}/predaja/izjava`); await page.waitForTimeout(8000); await skipGuide(page);
     await snap(page, 'izjava', 2000);
   },
   async tezaPredaja(page) {
@@ -555,11 +555,11 @@ ${(await r.text()).slice(0, 1500)}`);
       if (/\/declaration|enrollment-code\/state/.test(u) && r.request().method() === 'GET') ciljevi.set(u, r.status());
     });
     await signIn(page, 'demo-teacher');
-    for (const u of [`${BASE}/app/web/nastavnik/kolegiji`, `${BASE}/app/web/nastavnik/rad/${teza.documentId}/predaja`]) {
+    for (const u of [`${APLIKACIJA}/nastavnik/kolegiji`, `${APLIKACIJA}/nastavnik/rad/${teza.documentId}/predaja`]) {
       await page.goto(u).catch(() => {}); await page.waitForTimeout(6000); await skipGuide(page);
       const al = (await page.getByRole('alert').allInnerTexts().catch(() => [])).join(' | ').slice(0, 200);
       const nemoze = await page.getByText(/nije moguće učitati/i).count();
-      log(`STR ${u.replace(BASE + '/app/web', '')} alert="${al}" nijeMoguceUcitati=${nemoze}`);
+      log(`STR ${u.replace(APLIKACIJA, '')} alert="${al}" nijeMoguceUcitati=${nemoze}`);
       await snap(page, 'zavrsetak ' + u.split('/').slice(-2).join(' '), 1000);
     }
     for (const [u, s] of ciljevi) log(`VLASNIK demo-teacher ${s} ${u}`);
@@ -579,7 +579,7 @@ ${(await r.text()).slice(0, 1500)}`);
   },
   async teza(page) {
     await signIn(page, 'demo-student-2');
-    await page.goto(`${BASE}/app/web/rad/${TEZA}`); await page.waitForTimeout(4000); await skipGuide(page);
+    await page.goto(`${APLIKACIJA}/rad/${TEZA}`); await page.waitForTimeout(4000); await skipGuide(page);
     const start = page.getByRole('button', { name: /Započni rad/ });
     if (await start.count()) { await start.first().click(); await page.waitForTimeout(4000); await skipGuide(page); }
     await snap(page, 'nakon zapocni', 2000);
@@ -597,7 +597,7 @@ ${(await r.text()).slice(0, 1500)}`);
   async int33(page) {
     const K = 'b895e480-e38b-4b87-a081-3bc8dd352a93', Z = '0da788a3-e8e5-44d2-b4eb-edd52f71ff1e', DZ = 'ffb84a9b-2e03-4305-a4d7-b95e45e21888';
     const M = '6dfeefa0-5905-4859-9074-54ad633fe563', DM = 'e8efbf5a-3061-460d-b791-f4c11e81f7a1', ADMIN = 'sim:nastavnik:demo-admin@demo.ductus.test';
-    const W = BASE + '/app/web';
+    const W = APLIKACIJA;
     const zbroj = { PROLAZ: 0, PAD: 0 };
     const api = async (who, v, path, ok) => {
       const r = await page.request.get('/api/v1' + path, { headers: H }).catch((e) => ({ status: () => 0, text: async () => e.message }));
@@ -647,7 +647,7 @@ ${(await r.text()).slice(0, 1500)}`);
   async int33zapis(page) {
     const Z = '0da788a3-e8e5-44d2-b4eb-edd52f71ff1e', DZ = 'ffb84a9b-2e03-4305-a4d7-b95e45e21888', DM = 'e8efbf5a-3061-460d-b791-f4c11e81f7a1';
     const MS = 'f23146ef-86b9-43c7-91c5-33daa95371a1', ST = '1c857278-be91-4d3c-ac60-a03698a63757', ST3 = '4d43d9e2-e85d-4943-a8fc-6cfb9907c6f4';
-    const ADMIN = 'sim:nastavnik:demo-admin@demo.ductus.test', W = BASE + '/app/web';
+    const ADMIN = 'sim:nastavnik:demo-admin@demo.ductus.test', W = APLIKACIJA;
     const zbroj = { PROLAZ: 0, PAD: 0 };
     const call = async (v, who, method, path, data, ok) => {
       if (typeof data === 'function') { ok = data; data = undefined; }
@@ -738,7 +738,7 @@ ${(await r.text()).slice(0, 1500)}`);
   async int33zapis2(page) {
     const Z = '0da788a3-e8e5-44d2-b4eb-edd52f71ff1e', DZ = 'ffb84a9b-2e03-4305-a4d7-b95e45e21888', DM = 'e8efbf5a-3061-460d-b791-f4c11e81f7a1';
     const MS = 'f23146ef-86b9-43c7-91c5-33daa95371a1', ST = '1c857278-be91-4d3c-ac60-a03698a63757', ST3 = '4d43d9e2-e85d-4943-a8fc-6cfb9907c6f4';
-    const ADMIN = 'sim:nastavnik:demo-admin@demo.ductus.test', W = BASE + '/app/web';
+    const ADMIN = 'sim:nastavnik:demo-admin@demo.ductus.test', W = APLIKACIJA;
     const zbroj = { PROLAZ: 0, PAD: 0 };
     const call = async (v, who, method, path, data, ok) => {
       if (typeof data === 'function') { ok = data; data = undefined; }
@@ -814,7 +814,7 @@ ${(await r.text()).slice(0, 1500)}`);
   },
   // INT-33: where the student sees the rubric (V17) and the stage after submission (V16).
   async int33prikaz(page) {
-    const W = BASE + '/app/web';
+    const W = APLIKACIJA;
     const look = async (who, u, want, tabs = []) => {
       await page.context().clearCookies(); await signIn(page, who);
       await page.goto(W + u).catch(() => {}); await page.waitForTimeout(8000); await skipGuide(page);
@@ -838,7 +838,7 @@ ${(await r.text()).slice(0, 1500)}`);
       const r = await page.request.get('/api/v1' + u, { headers: H }); const t = await r.text();
       const at = t.indexOf('0da788a3'); log(`API ${r.status()} ${u} ${t.slice(Math.max(0, at - 200), at + 900)}`);
     }
-    await page.goto(BASE + '/app/web/rad/0da788a3-e8e5-44d2-b4eb-edd52f71ff1e').catch(() => {}); await page.waitForTimeout(12000);
+    await page.goto(APLIKACIJA + '/rad/0da788a3-e8e5-44d2-b4eb-edd52f71ff1e').catch(() => {}); await page.waitForTimeout(12000);
     log('TEKST ' + (await page.locator('body').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 300));
   },
   // INT-34: what merged after INT-33 (WEB 47fa401d / SRV aff4a7d2) — V16 forms and mentor consent, V19 anonymous
@@ -848,7 +848,7 @@ ${(await r.text()).slice(0, 1500)}`);
   // assignment "danas" that int35.mjs danas allocated and reviewed. Logs the text of each screen and the API
   // calls that fail; anonymity is checked by the author names (from the teacher overview) not being shown.
   async ekraniV19(page) {
-    const A = '7d45112c-de89-46ce-8cc8-37007faccffd', W = BASE + '/app/web';
+    const A = '7d45112c-de89-46ce-8cc8-37007faccffd', W = APLIKACIJA;
     const R = (i) => `sim:student:demo-recenzent-${i}@demo.ductus.test`;
     const zbroj = { PROLAZ: 0, PAD: 0 };
     const mark = (pass, what) => { zbroj[pass ? 'PROLAZ' : 'PAD']++; log(`${pass ? 'PROLAZ' : 'PAD'} ${what}`); };
@@ -908,7 +908,7 @@ ${(await r.text()).slice(0, 1500)}`);
   },
   async int34(page) {
     const Z = '0da788a3-e8e5-44d2-b4eb-edd52f71ff1e', DM = 'e8efbf5a-3061-460d-b791-f4c11e81f7a1';
-    const ADMIN = 'sim:nastavnik:demo-admin@demo.ductus.test', W = BASE + '/app/web';
+    const ADMIN = 'sim:nastavnik:demo-admin@demo.ductus.test', W = APLIKACIJA;
     const zbroj = { PROLAZ: 0, PAD: 0 };
     const call = async (v, who, method, path, data, ok) => {
       if (typeof data === 'function' || typeof data === 'boolean') { ok = data; data = undefined; }
