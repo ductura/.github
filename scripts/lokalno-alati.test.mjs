@@ -38,7 +38,7 @@ test('known-failure patterns are valid and explained', () => {
   }
 });
 
-for (const tool of ['graditelj.py', 'ci.py']) test(`${tool} pure functions pass their self-test`, (t) => {
+for (const tool of ['graditelj.py', 'ci.py', 'stog.py']) test(`${tool} pure functions pass their self-test`, (t) => {
   const python = process.env.PYTHON ?? (process.platform === 'win32' ? 'python' : 'python3');
   const r = spawnSync(python, [join(dir, tool), 'samotest'], {
     env: { ...process.env, DUCTURA_LOKALNO: lokalno, PYTHONIOENCODING: 'utf-8' },
