@@ -95,6 +95,12 @@ Ova tablica ima prednost pred retcima gore kad se razlikuju.
 | 15 | F4-V18-22-R05 | Nije val 1: treba pohrana provenance-share (val 2, migracija) i ožičenje (val 3). **Odgođeno nakon pilota**, zajedno sa shemom v4. |
 | 16 | F4-PM2-R18 | Rastavljeno po preporuci A (vlasnik, 27. 11.): (1) ugovor `ductus-import-manifest-v2` (SRV#946, samo dokument); (2) migracija `file_format` s `odt` (val 2); (3) čitač ODT-a; (4) tragovi u PDF čitaču. Koraci 2–4 kreću tek kad se spoji korak 1. |
 
+| 18 | Provjera i zatvaranje A | Provjera na bazi `72a77d5` našla je dvije rupe. NAS-R01, student-removal i student-return su zatvoreni. Rupe su nove stavke 18a i 18b. |
+| 18a | F4-OPE-R03-SRV rukovatelj | `institution.enrollments.post` je samo ugovor (`CONTRACT_ONLY`, `inventory.ts`). Rukovatelj ide kao zaseban PR, Risk critical (prava i baza). Spaja se tek uz Danielov ODOBRENO i ne ide u vlak bez toga (orkestrator, c.7221917826). |
+| 18b | F4-STU-R02 `isPractice` | Polje je u ugovoru i bazi, ali ga `student.assignments.get` namjerno izostavlja, jer ga klijenti 2.9.1 odbijaju (VLAK-WEB934-ISPRACTICE, #873). **Blokirano** dok WEB ne prijeđe na novi ugovor; ne pokreće se. |
+| 19 | Provjera i zatvaranje B | Zatvoreno: `admin-actions.get`, `working-criteria.get` i `milestones.delete` imaju ugovor, rukovatelja i test. Uvoz popisa čeka OPE-03, a za PM1-R04 ostaje WEB izvadak. |
+| 20 | REGRESIJA-BAZE-SRV | Zatvoreno: baza `72a77d5` je zelena, API 1.183.0. |
+
 Verzije: zbog paralelnih PR-ova vrijedi pravilo da onaj koji prvi bude spreman dobiva sljedeći minor, a drugi spaja bazu i ide na idući minor (npr. #947 i #948: 1.183.0 i 1.184.0). Brojevi u §3 su zato samo okvirni.
 
 Retci 18 i 19 završavaju kao GOTOVO bez koda s dokazom (put do rute i testa) ili, ako nešto nedostaje, kao novi redak u valu 2.
