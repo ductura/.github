@@ -92,11 +92,19 @@ def sazmi_poslove(run_created: str, jobs: list[dict]) -> dict:
     }
 
 
+# Commit statusi koji čekaju ljudski pregled, ne CI: dok čekaju, ne drže `cekaj`
+# (SRV#933 je 27. 11. „čekao CI” satima, a CI je bio gotov za 4,5 min).
+CEKA_PREGLED = {"Engineering review gate"}
+
+
 def stanje_provjera(checks: list[dict]) -> str:
-    """CEKA dok išta radi; inače PROLAZ ili PAD po ci-ok, a bez ci-ok po svim provjerama."""
+    """CEKA dok išta od CI-ja radi; inače PROLAZ ili PAD po ci-ok, a bez ci-ok po svim provjerama.
+
+    Provjere iz CEKA_PREGLED ne drže čekanje dok su na čekanju (čekaju čovjeka)."""
     if not checks:
         return "NEMA"
-    if any(c.get("state") in ("PENDING", "QUEUED", "IN_PROGRESS", "WAITING", "REQUESTED") for c in checks):
+    radi = ("PENDING", "QUEUED", "IN_PROGRESS", "WAITING", "REQUESTED")
+    if any(c.get("state") in radi and c.get("name") not in CEKA_PREGLED for c in checks):
         return "CEKA"
     ok = [c for c in checks if c.get("name") == "ci-ok"]
     gledaj = ok or checks
@@ -193,6 +201,9 @@ def cekaj(argv: list[str]) -> int:
     print(f"{argv[0]}: {stanje} ({len(checks)} provjera, čekao {proslo:.1f} min)")
     for c in sorted(checks, key=lambda c: (c["state"] == "SUCCESS", c["state"] == "SKIPPED", c["name"])):
         if c["state"] not in ("SUCCESS", "SKIPPED") or c["name"] == "ci-ok":
+            if c["name"] in CEKA_PREGLED and c["state"] in ("PENDING", "WAITING"):
+                print(f"    {c['state']:<10} {'—':>6}  {c['name']} (čeka pregled, nije CI)")
+                continue
             print(f"    {c['state']:<10} {mmss(sek(c.get('startedAt'), c.get('completedAt'))):>6}  {c['name']}")
     return 0 if stanje == "PROLAZ" else 1
 
@@ -268,6 +279,10 @@ def samotest() -> int:
     assert stanje_provjera([{"name": "ci-ok", "state": "SUCCESS"}, {"name": "x", "state": "IN_PROGRESS"}]) == "CEKA"
     assert stanje_provjera([{"name": "ci-ok", "state": "SUCCESS"}, {"name": "ui-baselines", "state": "FAILURE"}]) == "PROLAZ"
     assert stanje_provjera([{"name": "ci-ok", "state": "FAILURE"}]) == "PAD"
+    assert stanje_provjera([{"name": "ci-ok", "state": "SUCCESS"},
+                            {"name": "Engineering review gate", "state": "PENDING"}]) == "PROLAZ"
+    assert stanje_provjera([{"name": "ci-ok", "state": "IN_PROGRESS"},
+                            {"name": "Engineering review gate", "state": "PENDING"}]) == "CEKA"
     assert stanje_provjera([{"name": "test", "state": "FAILURE"}]) == "PAD"
     izlaz = "TAP\nnot ok 3 - changes: x\nℹ tests 5\nℹ pass 4\nℹ fail 1\n"
     assert pass_fail(izlaz) == (4, 1, ["not ok 3 - changes: x"])

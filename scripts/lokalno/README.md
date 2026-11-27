@@ -19,7 +19,7 @@ Pokreću se s Pythonom 3.12+ uz `PYTHONIOENCODING=utf-8`. Radna stabla, zapisi i
 | `graditelj.py prati [minuta]` | Petlja za Monitor: ispisuje red samo kad se promijeni CI zaključak PR-a ili stog ili stigne poruka za graditelja; sama završava (zadano 25 min). Samo čita. |
 | `graditelj.py ocisti [--obrisi]` | Popis izgradnih mapa (`.next`, `dist`, `test-results`, `playwright-report`, `blob-report`) s veličinom u stablima pod `_lokalno` iz kojih ne radi nijedan proces. Javlja i stabla čija je grana obrisana na originu (spojeni PR-ovi). `--obrisi` briše samo te izgradne mape, nikad stabla ni grane. Zabranjena stabla preskače. |
 | `ci.py mjeri <cilj> [...] [--koraci N]` | Trajanje CI pokreta po workflowu: ukupno, najsporiji poslovi, čekanje na runner. Cilj je `web#748`, `web@<run_id>` ili `web:<grana>`. Više ciljeva daje usporedbu. Samo čita. |
-| `ci.py cekaj <repo#broj> [--max min]` | Čeka da sve provjere PR-a završe i ispiše sažetak. Izlaz: 0 prolaz (po ci-ok), 1 pad, 2 isteklo vrijeme, 3 nema provjera. Samo čita. |
+| `ci.py cekaj <repo#broj> [--max min]` | Čeka da sve CI provjere PR-a završe i ispiše sažetak. Commit status „Engineering review gate” dok čeka pregled ne drži čekanje (čeka čovjeka, ne CI). Izlaz: 0 prolaz (po ci-ok), 1 pad, 2 isteklo vrijeme, 3 nema provjera. Samo čita. |
 | `ci.py testovi <mapa> <datoteke…>` | `node --test` s Git Bashom na PATH-u (WSL bash daje lažne padove). Kad mapa nema `node_modules`, privremeno se spaja na `g-teza-web` i spojnica se poslije briše. Treba barem 1,5 GB slobodnog RAM-a. |
 
 Provjere koje troše memoriju (`korak`, `testovi`) traže najmanje 1,5 GB slobodnog RAM-a, a `start` najmanje 4 GB.
