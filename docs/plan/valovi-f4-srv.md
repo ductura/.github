@@ -94,8 +94,8 @@ Ova tablica ima prednost pred retcima gore kad se razlikuju.
 | 13 | 1.5 | SRV#948. |
 | 15 | F4-V18-22-R05 | Nije val 1: treba pohrana provenance-share (val 2, migracija) i ožičenje (val 3). **Odgođeno nakon pilota**, zajedno sa shemom v4. |
 | 16 | F4-PM2-R18 | Rastavljeno po preporuci A (vlasnik, 27. 11.): (1) ugovor `ductus-import-manifest-v2` (SRV#946, samo dokument); (2) migracija `file_format` s `odt` (val 2); (3) čitač ODT-a; (4) tragovi u PDF čitaču. Koraci 2–4 kreću tek kad se spoji korak 1. |
-| 9 | F4-1.1-3-SRV | SRV#952: `public.verification-code.post`, migracija preimenovana u `20261220600000`, API 1.185.0. Ide u vlak #965. |
-| 10 | F4-1.1-4-6-SRV | Spojeno u vlaku #961 (SRV#957): QR `/provjera#k={kod}` i kod ispod QR-a. Potvrda bez koda zadržava stari QR. Nastavak SRV#964: kod i u skupnom ZIP-u, prijenosnom zapisu i izvozu. |
+| 9 | F4-1.1-3-SRV | SRV#952: `public.verification-code.post`, migracija preimenovana u `20261220600000`, API 1.185.0. Spojeno u vlaku #965. |
+| 10 | F4-1.1-4-6-SRV | Spojeno u vlaku #961 (SRV#957): QR `/provjera#k={kod}` i kod ispod QR-a. Potvrda bez koda zadržava stari QR. Nastavak SRV#964: kod i u skupnom ZIP-u, prijenosnom zapisu i paketu za izvoz. Izvoz podataka u workeru čeka DB funkciju (val 2). |
 | — | SRV-MIGRACIJE-BROJEVI | Spojeno u vlaku #958 (SRV#953, #956): provjera redoslijeda u `migrations-ledger --base`, `pnpm db:new` i `pnpm db:renumber`. Vlak na sudar ispisuje LEDGER-SUDAR. |
 | 18 | Provjera i zatvaranje A | Provjera na bazi `72a77d5` našla je dvije rupe. NAS-R01, student-removal i student-return su zatvoreni. Rupe su nove stavke 18a i 18b. |
 | 18a | F4-OPE-R03-SRV rukovatelj | `institution.enrollments.post` je samo ugovor (`CONTRACT_ONLY`, `inventory.ts`). Rukovatelj ide kao zaseban PR, Risk critical (prava i baza). Spojeno u vlaku #962 (SRV#951), uz ODOBRENO. |
