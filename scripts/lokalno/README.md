@@ -6,9 +6,10 @@ Pokreću se s Pythonom 3.12+ uz `PYTHONIOENCODING=utf-8`. Radna stabla, zapisi i
 
 | Naredba | Što radi |
 |---|---|
-| `stog.py status` | Prikazuje slobodni RAM, portove (SRV 4000, Preloader 3100, Edge 8000, WEB 5173, baza 54329, OIDC 8090), Docker i stablo iz kojeg radi SRV. |
+| `stog.py status` | Prikazuje slobodni RAM, portove (SRV 4000, Preloader 3100, Edge 8000, WEB 5173, baza 54329, OIDC 8090), Docker i stablo iz kojeg radi SRV. Javlja i je li stablo Preloadera na 3100 svježe prema grani koju WEB-ov posao sistem uzima (`preloader_ref` u `.github/workflows/sistem.yml`). Stari edge šalje `/aplikacija` na staru putanju. |
 | `stog.py start <stablo> [--local-iz <stablo>]` | Pokreće `pnpm lokalno`. Odbija ako je slobodno manje od 4 GB RAM-a, ako je port 4000 zauzet ili ako je `.local` spojnica. `--local-iz` radi pravu kopiju lokalnog S3. Pokreni ga kao pozadinski zadatak. |
 | `stog.py upit "<sql>"` | Upit u bazu stoga samo za čitanje (`READ ONLY` transakcija). |
+| `stog.py stop <port> [...]` | Gasi stablo procesa koji sluša na portu, ali samo ako radi iz stabla pod `_lokalno`. Bazu u Dockeru (54329) ne dira. Na Windowsu TaskStop zna ostaviti `next start` živim, pa on i dalje drži port. |
 | `tok.py korak <ime>` | Pokreće korak iz `koraci.mjs` u pravom pregledniku (Playwright iz WEB stabla, `TOK_WEB`). Izlaz: 0 gotovo, 1 greška u koraku, 2 nepoznat korak, 3 neuspjela prijava (nije pad proizvoda), 4 stog ne radi. |
 | `tok.py testovi <stablo> [putanje]` | Pokreće vitest i odvaja nove padove od poznatih (`poznati-padovi.json`). Odbija `tests/db` dok port 54329 drži baza stoga. |
 | `graditelj.py pocetak` | Jedan sažet pregled nakon pokretanja sesije ili kompresije konteksta: kontrolna točka, RAM i stog, CI PR-ova iz točke, stanje radnih stabala i poruke za graditelja na Ductus #2055 od zadnjeg čitanja. |
