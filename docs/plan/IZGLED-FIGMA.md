@@ -106,6 +106,10 @@ Izvodi se u fazi koda, svaka stavka u svom PR-u.
 
 Opće pravilo za svaki ekran: Figma daje kostur, a funkcija bez mjesta u Figmi ide u najbliži Figma blok iste vrste, ne u novi uzorak. Svaki ekran se crta u obje teme, na 390 i 1440, sa svim stanjima koja Figma već ima (prazno, učitavanje, nedostupno, prijava istekla, 403).
 
+**Sastav kartice (vlasnik, 28. 11.).** Sve kartice su složene jednako: nadnaslov, naslov i činjenice u jednoj skupini s razmakom 6, radnja desno na širinama od 834 naviše i ispod na 390, unutarnji razmak 24, radijus 10, staklo kao kartica rada na S-04. Donji redovi u uskim stupcima idu u stupac.
+
+**Završni prolaz (vlasnik, 28. 11.).** Svaki ekran se prvo nacrta do kraja s tim sastavom. Dodatna uljepšavanja se zapisuju na popis i rade jednom, preko svih ekrana u Figmi, prije PR-ova koda, da se kod piše jednom.
+
 ### Zajedničko: ljuska (bočna traka)
 Figma: oznaka D, „Glavna navigacija” s pet stavki, razmak, podnožje (Obavijesti s brojem, ◐, Odjava). Sadržaj je širok 880, a obavijest o zadatku 640.
 - **Navigacija studenta:** Figma ima pet glavnih stavki (Moji zadaci, Moji kolegiji, Moji radovi, Radni prostor, Upis u kolegij). Ispod razdjelnika bez naslova dolazi druga skupina istog izgleda: Upitnici, Gradivo za kodiranje, Izvoz kodiranja, Dnevnik prakse, Zahtjev za mentorstvo, Statistička analiza. Prema odluci vlasnika, mentorstvo i analiza ulaze u navigaciju. Analiza se prikazuje samo kad je poslužitelj uključi.
@@ -146,6 +150,7 @@ Figma: oznaka D, „Glavna navigacija” s pet stavki, razmak, podnožje (Obavij
 - Statusna traka: lijevo „Spremljeno na poslužitelju.” kao u Figmi, desno opseg i stranice tihim tekstom.
 - Stanja E2 do E7 su nacrtana. Sukob, zadržani tekst i čarobnjak „Započnite rad” crtaju se kao stakleni Dialog.
 - Slajdovi (V13), tablica (V14) i čitanje naglas (V20) slijede svoje Figma stranice.
+- Nacrtano 28. 11.: radnje zaglavlja (na 390 u drugom redu „Prikaz”), plutajuća alatna traka (široka i uska varijanta), odjeljak E8 s otvorenim pločama (lijevo Struktura s Napretkom, Rokovima i Poviješću dokumenta; desno Izvori s Bilježnicom izvora) i odjeljak E9 sa staklenim dijalozima (Sukob, Kopija teksta, Započnite rad). Statusna traka pokazuje i opseg odabira.
 
 **S-08 `/rad/[id]/predaja`.** Figma: koraci (Tekst, Izjava, Prije predaje, Predaja, Potvrda) i kartice.
 - Izjava I1: Figma ima samo zabilježeno i potvrdu. Studentova izjava (vanjski alati, svrha, faza rada, ljudska pomoć), prilozi razgovora i pitanje nastavnika ulaze u karticu „Vaša izjava”, iznad gumba „Potvrđujem izjavu”.
