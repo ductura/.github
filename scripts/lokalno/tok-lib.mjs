@@ -21,11 +21,8 @@ export class PrijavaError extends Error {}
 export async function signIn(page, account) {
   for (let i = 0; i < 3; i++) {
     try {
-      await page.goto(BASE + '/');
-      const link = page.getByRole('link', { name: 'Prijava preko AAI@EduHr', exact: true });
-      await link.waitFor({ timeout: 20000 });
-      // Izravno na href: klik na poveznicu na sporom računalu zapinje na „stabilnosti” elementa.
-      await page.goto(BASE + (await link.getAttribute('href')));
+      // Naslovnica vodi /ulaz -> /aplikacija/prijava -> AAI; ide se izravno na prijavnu rutu (dev prijevod stranica je spor).
+      await page.goto(BASE + '/api/v1/auth/login?returnTo=%2Faplikacija%2F', { waitUntil: 'domcontentloaded', timeout: 90000 });
       if (account.startsWith('sim:')) {
         // Lažni OIDC nema gumb za sim: račune; obrazac prima bilo koji račun, kao što ga šalje seed-predaja.ts.
         await page.locator('button[name="account"]').first().waitFor({ timeout: 20000 });
@@ -33,7 +30,7 @@ export async function signIn(page, account) {
       } else {
         await page.locator(`button[name="account"][value="${account}"]`).click({ timeout: 20000 });
       }
-      await page.waitForURL((u) => u.origin === BASE && u.pathname.startsWith('/app/web/'), { timeout: 30000 });
+      await page.waitForURL((u) => u.origin === BASE && (u.pathname.startsWith('/aplikacija/') || u.pathname.startsWith('/app/web/')), { timeout: 90000 });
       log(`prijava ${account}: pokušaj ${i + 1} uspio`);
       return;
     } catch (e) {
