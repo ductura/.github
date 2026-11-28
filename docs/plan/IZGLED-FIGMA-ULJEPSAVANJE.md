@@ -73,3 +73,74 @@ Skupljeno iz izvještaja crtača 27. i 28. 11. 2026. Stavke označene s Kod (faz
 - Kontrole (val 1): Button Stanje=zauzet (izgled kao zadano, tekst „Objavljujem…”, kod nema spinner); Checkbox i Radio novi prop Onemoguceno (ne/da), prihvaćeno jer Stanje nosi označenost; TextField unutarnji dijelovi FILL; Prekidac BOOLEAN Treca opcija i Cetvrta opcija. Val 2: Onemoguceno=da i Stanje=zauzet gdje kod to prikazuje.
 - Za PR koda (ustanova): Figma ima 6 dodatnih stavki bočne trake (treba sve). Uz njih u routes.ts current mora biti vlastita putanja: /ustanova/postavke i /postavke/asistent -> /ustanova/postavke, /ustanova/pragovi -> /ustanova/pragovi, etape, predlozak-rada, zavrsni-radovi isto. U-04, U-05, U-07 u Figmi već tako.
 - Val 1 B: DiffView 328:192367, Klizač reprodukcije 328:214875, Polje za datoteku 328:216898, QR 328:216899, TextArea oznaka se prelama. Oznaka osporavanja = Tag Ton=warn (bez nove komponente, odlučeno). Val 2: pogledati TextArea instance; N-22 usporedba i N-23 reprodukcija na nove komponente.
+
+## Val 2, N-20 do N-24 (prvi krug)
+- N-20: PanelTabs (28) i Disclosure (4) su instance; padding 24 na 390. N-21: Disclosure (4). N-22: DiffView je odvojen u 4 okvira U1 (333:60026, 333:60135, 333:60244, 333:60353), jer komponenta nema utor ni broj riječi.
+- N-23 R1: klizač ostaje lokalan. Instanca Klizač reprodukcije 328:214875 nema „Skok na”, a oznake joj nisu kao u kodu (ReplayPage.tsx: „Prethodna promjena”, „Pokreni”, „Sljedeća promjena”). Za knjižnicu: oznake prema kodu, „Skok na” i redoslijed kao u ReplayPage.tsx.
+- Za knjižnicu: DiffView treba utor za Dio. Disclosure ima strelicu kao znak „▸”; provjeriti što kod crta.
+- Na 390 PanelTabs odreže „Izjava”, jer se traka u kodu vodoravno pomiče. To ostaje tako.
+- N-20 Q8 (drugi krug): „Izjava potvrđena” je sada običan tekst (TeacherAiAttachments.tsx, p.meta). Dijalog „Razgovor n” postoji samo kod studenta, a nastavnik otvara razgovor u istoj stranici. Napomenu 319:12866 treba dopuniti tom rečenicom.
+- N-24: Notice za spremanje i Radio Onemoguceno ostaju isključeni, jer za njih nije nađena komponenta u kodu.
+- Ostaje za završni prolaz preko svih stranica: pravilo kartice; snimke 390 u tamnoj temi (N-20 Q2 do Q7, N-21, N-23); MarkedText; okviri grešaka Q7, S2, R3; mrvica na N-24.
+
+## Val 2, U i V22 (prvi krug)
+- U-01 do U-09: kartice na 390 imaju padding 24 i okvire koji prate visinu. Na U-03 je 6 dijaloga prebačeno na Uski. Na U-09 je UUID uklonjen iz „Oznaka studenta” (E10, E11).
+- V22: nove sekcije CSV 3 Greške unosa (333:88007) i CSV 4 Upis nije uspio (333:88606), u dijalogu prema CsvImport.tsx:180.
+- Za knjižnicu: Alert nema varijantu Širina=FILL, pa je u utoru Dialoga ručno prilagođen.
+- Ostaje: snimke 1440 i svijetla tema za U-02, U-03, U-05 do U-08; zamjena lokalnih crteža na U stranicama.
+
+## Val 2, N-10 i N-17 (prvi krug)
+- N-10: 78 dijaloga je sada instanca Dialog s utorima („Sadržaj dijaloga (utori)” na dnu stranice). Oko 1080 zatvorenih Details je postalo Disclosure. „Pogledi na rad” su poveznice (nav) kao u WorkFrame.tsx, ne PanelTabs. Moja odluka: ostaju poveznice.
+- N-17: 4 dijaloga „Povijest predaja” su instance. Tablica je nanovo složena prema history/messages.hr.ts.
+- Za knjižnicu: Disclosure u otvorenom stanju s bogatim sadržajem (otvoreni Details na N-10 ostaju lokalni). Alert ima varijantu FILL.
+- Na N-10 nazivi slojeva sadrže „·” (meta). Ljudi ih ne vide, ali ih u završnom prolazu treba preimenovati.
+
+## Val 2, S (prvi krug)
+- S-08: 272 Steps, 24 Dialoga, 48 StateTag, 32 Disclosure i 8 QR su instance. Nova sekcija K8 „Povući predaju?” (333:79370), tekst iz withdraw/messages.hr.ts. Redak potvrde slijedi confirmSaved iz declaration/messages.hr.ts.
+- S-07: 4 dijaloga E9 su Uski. Traka sukoba ima Ton=warn.
+- Za PR koda: na S-08 tekst PD-3 ima malo slovo „verzija na poslužitelju” (provjeriti katalog); historyText.attempt u katalogu još ima „·”.
+- Za knjižnicu: Steps ima fiksnih 5 oznaka. Izbornik Više ima fiksnih 5 stavki ustanove, pa nema izbornika Prečaci.
+
+## Val 2, L, J i O (prvi krug)
+- L-01: izbornik Više (D), Popover (A2, A3) i Dialog (C1, C2, B) su instance; utori su 333:58867 i 333:59795. A1 popover s bogatim sadržajem ostaje lokalan.
+- J-04: naslovi uloga 17px, 600. J-07 i O-05 B: Button zauzet (StudentDataExport.tsx:238, SecurityKeyPage.tsx:35).
+- O-01 do O-06: padding 24 na 390 (132 kartice).
+- Za knjižnicu: Dialog Uski bi trebao imati gumbe FILL i širinu 358. Izbornik Više nema varijantu 358. Popover nema utor. Nema stila teksta Newsreader 17/600.
+
+## Val 2, N-00 do N-03 i N-09 (prvi krug)
+- N-02: dijalozi na 390 su Uski. 208 oznaka stanja je postalo StateTag. N-09: 64 StateTag i 32 Select „Zadatak”; širine stupaca podešene.
+- Za PR koda: na N-02 (CourseStudents.tsx) i N-09 (Overview.tsx) stanje je u kodu običan tekst, a Figma (prije Tag) pokazuje StateTag. Moja odluka: kod prelazi na StateTag.
+- N-01: K4 do K6 su instance. Treća radnja odstupa od koda i ide na ispravak (dva dijaloga). K6 „Izdajem…” je zauzet (AssignmentCards.tsx).
+- N-03: dijalozi M6 do M9 i M15 su lokalni, gumbi na 390 su u stupcu.
+- Za knjižnicu: Steps nema inačicu s proizvoljnim nazivima (čarobnjak N-05, 112 lokalnih). U Tablici/Celiji nedostaje naziv stupca radnje.
+
+## Val 2, V i L dopuna
+- V18: dijalozi B11 i C9 na 390 su Uski. V13: 10 dijaloga na 390 su Uski; redoslijed hinta i potvrdnog okvira na P10 ide na ispravak preko utora.
+- V15, V16, V17, V20, V21: lokalni Koraci, StepSection, dijalozi „Prikaz i čitanje” i izbornici s kvačicom ostaju, jer zamjena mijenja raspored.
+- Za knjižnicu: okomiti Steps s 3 koraka na 390; Izbornik Više s kvačicom na stavci.
+- V22: stara sekcija 29:1784 crta Alert ispod tablice, a kod ga ima u dijalogu potvrde (IsvuPage.tsx:175-183). Mjerodavna je nova sekcija CSV 4.
+- L-01 Odjava: dodaje se „Odjavi me iz svih” (SignOut.tsx:62-64). J-07 B: zauzet je ispravan (StudentDataDownloadPage.tsx). E1 i E2 su centrirani. Na O-01 skupina Naslov i činjenice ima razmak 6.
+- L-01 Odjava: treća radnja „Odjavi sve sesije” (text.ts:16, SignOut.tsx:63, tone quiet). „Ostani” je ghost. Provjereno u kodu.
+- S-06: Tag „Moj tim” i „Recenzija radova” sada su Poveznice (160). S-45 je preimenovan. S-44 i S-46 imaju napomenu o /rad/[id]/razgovor. S-07 E8: polje bez placeholdera.
+- Za knjižnicu: ghost Button nema poravnanje uz tekst (pomak 10 px u „Moje predaje”). Kostur u svijetloj temi je slabo vidljiv (varijabla 6:165), a to je token, koji se ne mijenja.
+- N-16: 44 Steps su instance s oznakama iz koda; dijalozi na 390 su Uski. N-15: 64 dijaloga su instance s utorima. „Spremam…” ostaje onemogućen, a zauzet nije uključen jer izvor nije potvrđen.
+- Završni prolaz za nastavnika: N-18, N-11, N-14; pravilo kartice na N-15, N-16, N-17; TextArea na N-10, N-15, N-16; snimke svijetle teme na N-10.
+- S-07 „Započnite rad”: instance su 560 široke, Tekst je u utoru iza koraka (assist/messages.hr.ts:225). Pregledano očima.
+- S-42 A8: kod daje DeniedState za „denied” (index.tsx:93), a za 403 i 404 dnevnika notFound(), što je opća 404 (read.ts:64, index.tsx:130). Ključ accessLog.notFound se u hostu ne koristi. Moja odluka: Figma prati kod. A8 je DeniedState, a 404 je J-08. Ništa ne čeka vlasnika; ključ accessLog.notFound treba javiti kao mrtvi ključ u PR-u koda.
+- N-01: izdavanje je K4 do K8, a opoziv je novi K10 (AssignmentCards.tsx:282-300); Treća radnja je isključena. Tekstovi K4 do K8 se usklađuju s katalogom (ne čekaju vlasnika). K7 i K8 te N-03 M6 do M9 i M15 ostaju lokalni.
+- N-07 na 390: stupac „Zabilježeno” nedostaje; provjerava se u kodu.
+- N-01 K4 do K10: tekstovi su usklađeni s assignment-card/messages.hr.ts (dialogTitle, dialogLead, validUntilLabel, issue, issuing, cancel, revokeTitle, revokeLead, revokeCode, codeOnce, errors.unavailable).
+- Za PR koda: N-07 „Produljeni rokovi” se u kodu (n13/Extensions.tsx) prikazuje kao redovi s meta tekstom, a Figma ima tablicu s vodoravnim pomicanjem (Tko, Novi rok, Stari rok, Razlog, Zabilježeno). Moja odluka: kod slijedi Figmu.
+- V13 P10: utor ima potvrdni okvir pa hint (SubmitStep.tsx:333-334). P9 do P13 na 1440 ostaju lokalni (520/16 prema Siroko 480/24).
+- N-01 K7: u kodu se dijalog nakon izdavanja zatvara, a kod se prikazuje na kartici kolegija (AssignmentCards.tsx:198-203 i 257-266: codeOnce, codeHowTo, copyCode). Figma prikazuje kod u dijalogu s gumbom „Kopiraj kod”. Za završni prolaz: K7 prekrojiti u stanje kartice prema kodu (naslov dijaloga ondje nije iz koda).
+
+### Val 2, N-18, N-11 i N-14 (završni prolaz)
+- N-18: padding 24 na 10 kartica na 390.
+- N-11: bez izmjena.
+- N-14: dijalozi na P4 postali instance (Uski na 390, Siroko na 560, Zatamnjenje instanca 208:22542); prvi stupac tablice na 390 s 76 na 96.
+- Rupe knjižnice: komponenta zaglavlja kartice; onemogućeni TextArea (N-11 K14 i K19 još ručno crtani).
+
+### Val 2, N-01 K7 (prekrojeno)
+- K7 (8 okvira): dijalog i Zatamnjenje skriveni; kartica kolegija prikazuje kod, codeOnce, codeHowTo i gumb „Kopiraj kod”, pa „Kod za upis” (AssignmentCards.tsx:198-203, 257-266). Kod označen kao izmišljeni podatak. Okviri 390 visine 1111.
+- Stanje „Kod je kopiran.” nije nacrtano (opcionalno, za završni prolaz).
+- Lokalno za završni prolaz: N-03 dijalozi M6 do M9 i M15; N-01 K8 (nema utora za grešku ni ispis); Steps na N-05; N-00 odjeljci „Nastavni tim i grupe” i „Upitnici”; točka stanja na N-08.

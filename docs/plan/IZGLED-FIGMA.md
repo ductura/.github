@@ -257,3 +257,9 @@ Svi nastavnički Figma ekrani imaju iznad sadržaja put (mrvice), na primjer „
 - Nastavnik: stranice `/nastavnik/rad/[id]/*` nemaju `current` i u Figmi nemaju aktivnu stavku (N-10, N-20 do N-23); N-18 ima aktivno „Moji kolegiji”. Kod se tu ne mijenja.
 - Dijalog na uskom zaslonu: Figma (Dialog, Prikaz=Uski) ima gumbe u stupcu, primarni prvi, visine 44; kod (`Dialog.module.css`) ih drži u retku s prelamanjem, primarni zadnji. PR koda slijedi Figmu (stupac, obrnuti redoslijed ispod 640).
 - Bočna traka: stavke ostaju visine 44; na niskom zaslonu traka se pomiče kao danas.
+- N-02 (`CourseStudents.tsx`) i N-09 (`Overview.tsx`): stanje je StateTag, kao u Figmi; obični tekst stanja postaje StateTag.
+- N-07 Produljeni rokovi: Figma ima tablicu; `n13/Extensions.tsx` (retci) prelazi u tablicu.
+- L-01 Odjava: treća radnja „Odjavi sve sesije” (`text.ts:16`, `SignOut.tsx:63`, ton quiet) postoji u kodu i nacrtana je; redoslijed Ostani, Odjavi sve sesije, Odjavi se.
+- S-42: A8 je DeniedState (`index.tsx:93`), 404 ide na J-08 (`read.ts:64`, `index.tsx:130`). Figma slijedi kod. Ključ `accessLog.notFound` je mrtav; ukloniti ga u PR-u koda.
+- N-01: izdavanje (K4 do K8) i opoziv (K10) su odvojeni dijalozi (`AssignmentCards.tsx:282-300`). K7: dijalog se zatvara, kod ostaje na kartici kolegija (`AssignmentCards.tsx:198-203`, `257-266`). Kod se ne mijenja.
+- S-08 PD-3: „verzija” malim slovom; `historyText.attempt` sadrži „·” i treba ga zamijeniti.
