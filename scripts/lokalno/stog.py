@@ -296,12 +296,15 @@ BAZA_KONTEJNER_IME = "ductura-server-postgres-main-1"
 
 def docker_radi() -> bool:
     try:
-        return subprocess.run(["docker", "info", "--format", "{{.ServerVersion}}"], capture_output=True, text=True, timeout=90).returncode == 0
+        return subprocess.run(["docker", "version", "--format", "{{.Server.Version}}"], capture_output=True, text=True, timeout=30).returncode == 0
     except Exception:  # noqa: BLE001
         return False
 
 
 def docker_upali() -> int:
+    if port_otvoren(54329):
+        print("Docker i baza rade")
+        return 0
     if not docker_radi():
         print("palim Docker Desktop…", flush=True)
         subprocess.run(["docker", "desktop", "start", "--timeout", "240"], capture_output=True, text=True, timeout=300)
