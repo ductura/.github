@@ -349,7 +349,11 @@ def docker_ugasi() -> int:
             print(f"ODBIJENO: bazu koristi klijent ili provjera nije uspjela ({(r.stdout or r.stderr).strip()[:80]})")
             return 2
         subprocess.run(["docker", "stop", baza], capture_output=True, text=True, timeout=120)
-    subprocess.run(["docker", "desktop", "stop", "--timeout", "120"], capture_output=True, text=True, timeout=180)
+    # Prvi `docker desktop stop` zna se vratiti dok Docker još radi (28. 11.); drugi ga ugasi.
+    for _ in range(2):
+        subprocess.run(["docker", "desktop", "stop", "--timeout", "120"], capture_output=True, text=True, timeout=180)
+        if not docker_radi():
+            break
     print("Docker ugašen" if not docker_radi() else "upozorenje: Docker još radi")
     return 0
 
