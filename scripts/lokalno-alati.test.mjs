@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,6 +18,23 @@ test('log never writes link tokens', async () => {
   const text = readFileSync(OUT, 'utf8');
   assert.doesNotMatch(text, /1111111111111|izmisljeniToken|abc/);
   assert.match(text, /token=…&kind=package/);
+});
+
+test('the route map is the current one and lives in tok-lib.mjs only (D-318, DAN-1574)', async () => {
+  const { APP, APLIKACIJA, BASE, PRIJAVA, ULAZ, uAplikaciji } = await import('./lokalno/tok-lib.mjs');
+  assert.equal(APP, '/aplikacija');
+  assert.equal(APLIKACIJA, BASE + '/aplikacija');
+  assert.equal(PRIJAVA, '/aplikacija/prijava');
+  assert.equal(ULAZ, '/ulaz');
+  assert.ok(uAplikaciji(new URL(BASE + '/aplikacija/')));
+  assert.ok(!uAplikaciji(new URL(BASE + '/aplikacijax/')));
+  assert.ok(!uAplikaciji(new URL(BASE + '/app/web/')));
+  // The old base must not come back anywhere in scripts/lokalno.
+  const files = readdirSync(dir, { withFileTypes: true }).filter((e) => e.isFile()).map((e) => e.name);
+  assert.ok(files.includes('koraci.mjs'));
+  for (const f of files) {
+    assert.doesNotMatch(readFileSync(join(dir, f), 'utf8'), /\/app\/web/, f);
+  }
 });
 
 test('an unknown step exits 2 without loading the browser', () => {
