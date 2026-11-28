@@ -250,3 +250,4 @@ Svi nastavnički Figma ekrani imaju iznad sadržaja put (mrvice), na primjer „
 - 27. 11.: izgled iz Figme, a sve funkcije ostaju kakve su na localhostu. N-00 i N-01 smiju biti dva ekrana.
 - 27. 11.: „treba sve”. Napravljeno, a nevidljivo, uključuje se.
 - 27. 11.: ustanova dobiva pet stavki navigacije, a operater šest.
+- 28. 11.: `/kako-radi` je javna stranica. Neprijavljeni je vidi bez ljuske (J-03 A), prijavljeni u ljusci (J-03 B). Za kod: u `routes.ts` ruta dobiva `public: true`. Stranica 404 za neprijavljenog ostaje kako je u hostu.
