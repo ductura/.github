@@ -1,0 +1,65 @@
+# Izgled u Figmi: popis za završni prolaz i fazu PR-a
+
+Skupljeno iz izvještaja crtača 27. i 28. 11. 2026. Stavke označene s Kod (faza PR-a) idu u PR-ove po ekranu, stavke Knjižnica u prvi val završnog prolaza, a ostalo u drugi val po stranicama.
+# Popis za završni prolaz uljepšavanja (Figma)
+
+- S-06: razmak između skupina naslova u kartici „Što se bilježi”.
+- S-07 E8: polje „Pretraži bilješke” ima istu oznaku i rezervirani tekst; oznaku sakriti ili rezervirani tekst skratiti.
+- S-07 E8: strelice sklopljenih odjeljaka (▸) su sitne; zamijeniti ikonom iz knjižnice.
+- S-07 E8: na 390 kartice desne ploče prelaze u drugi red (Asistent).
+- S-07 E9: polje „Naslov rada” u dijalogu „Započnite rad” na 1440 je uže od dijaloga.
+- S-07 E9: zatamnjenje u svijetlom modu je jako tamno; provjeriti prozirnost Zatamnjenja.
+- S-07 E9: dijalozi na 390 su odvojeni od komponente (radnje u stupcu); u knjižnici dodati Dialog varijantu za usko.
+- S-07 E6/E9: statusna traka u sukobu treba „Sukob: tekst ostaje na uređaju.”.
+- S-07: Prečaci na uskom zaglavlju idu u Više; nacrtati izbornik Više.
+- S-08 K1: na 390 „Dopuni opis” i „Ospori opis” u jedan red; gumbi bez okvira u „Moje predaje” lijevo, ne centrirano.
+- S-08: nacrtati dijalog „Povući predaju?” (withdraw dialogTitle, explain).
+- Knjižnica: nedostaju Steps, Disclosure/Details, zamjena za QR, oznaka osporavanja (sad Tag warn + tekst).
+- S-08 I1: stari tekst „Potvrda se ne šalje poslužitelju…” proturječi katalogu (confirmSaved); uskladiti.
+- Kod (faza PR-a): katalog student submission history/summary sadrži „·” (historyText.attempt, afterDeadline, summaryText.pastes.item).
+- S-47: razmak potvrdnih okvira u „Obavijestima u aplikaciji” na 1440 veći nego drugdje.
+- S-03: ghost radnje u retku zahtjeva na 390 ujednačiti; Prošlo/Predstoji uskladiti s nastavničkim KeyDates.
+- S-03/S-04b/S-47: nacrtati učitavanje, poruke nakon slanja zahtjeva, isteklu prijavu i loadFailed na profilu.
+- Kod (faza PR-a): routes.ts /zadaci/mentorstvo current „/zadaci” -> „/zadaci/mentorstvo” (stavka u navigaciji, odluka vlasnika). „·” u MentorshipRequestPage (redak zahtjeva, Select), KeyDates.forMentor, WorkIndex redak.
+- Profil i Moja prava nisu u bočnoj traci namjerno: idu u izbornik „Više” (plan, Podnožje).
+- S-06: „Moj tim” i „Recenzija radova” zamijeniti s Poveznica 208:22536 umjesto Taga (u kodu su poveznice). N7 zadržava red o Asistentu.
+- S-06: nacrtati stanja Asistenta summaryOnly i unavailable.
+- S-06: snimiti 834/1920 i N1 na 390 (agent nije snimio).
+- S-42 A8: nacrtano po današnjem kodu (DeniedState 403, notFound 404), u skladu s „Kod ostaje” iz odluke 27. 11.; provjeriti tekst u Napomenama 190:7555 da ne proturječi.
+- S-45: preimenovati stranicu u „S-45 Reprodukcija Vašeg rada” (naslov iz koda).
+- S-44/S-46: poveznica na /rad/[id]/razgovor (odluka vlasnika) iz S-07 zaglavlja ili S-04 kartice rada; nacrtati.
+- Knjižnica: TextArea s prelamanjem oznake, Klizač (range), Polje za datoteku.
+- S-45: podloga dirnutog odlomka u Tamnoj slabo vidljiva; onemogućeni Select na 1440 Tamna gotovo kao zadani; napomena na S-42 kao kartica.
+- Kod (faza PR-a): „·” u S-43 (oznaka i postotak) i S-44 (naslov i termin); replay position mrtav kod; S-44 onChooseSlot se ne predaje (gumb „Odaberi termin” skriven).
+- U-01..U-09: bočne trake zamijenjene instancom Bocna traka Uloga=ustanova (142 mjesta). Na nižim okvirima 1440 (npr. U-01 K1) stavke se režu ispod „Završni i diplomski radovi”; u komponenti dodati pomicanje ili skupljanje stavki.
+- U-09: UUID studenta vidljiv u polju referade; ljuska referade nedefinirana; „·” u katalozima ustanove.
+- V22: stanja pogreške CSV uvoza, nepodudarni ID-ovi; okvir 1440 Svijetla možda prekratak.
+- N-02: dijalog „Dopusti povratak” i sadržaj izbornika „Više” po retku; gusti gumbi na 390 (padding).
+- N-01: provjeriti K4 do K8 na 390.
+- N-00: „Demo ·” u Napomenama očistiti.
+- Knjižnica: Notice s naslovom i radnjom, Dialog s utorom za sadržaj, Više popover, StateTag.
+- Knjižnica: Button bez varijante „zauzet” (O-05, J-07 B glume prozirnošću 60 %); TextField ne ispunjava širinu kartice; Dialog padding 20 prema karticama 24.
+- J-04: naslovi uloga u kodu h3, nacrtani UI/ui jako; mjesta za snimke prazni okviri. J-03: ploče 1152 prema uvodu 640.
+- Kod (faza PR-a): „·” u PilotMetrics asOf i landing.eyebrow; tekst skraćenog popisa prijava problema za male brojeve; ActionLog/Events bez teksta učitavanja; redoslijed operaterske bočne trake prema navigaciji stranice; J-05 formatDate dvostruka točka.
+- Redoslijed stranica: J-01 iza J-02 (zamijeniti).
+- N-09: prazno zaglavlje stupca „Otvori rad”; na 834 Grupa i Prikaži u drugom redu; tablica na 390 odrezana. „Predaja” bez teksta u katalogu, ne crta se.
+- N-10/N-11: završne snimke P9–P12, P15, B5–C8 nisu napravljene; redak poveznica na 390 bez prelamanja.
+- N-04: odluka o staklu za receipt i „Način unosa teksta”.
+- L-01: Knjižnica nema „Izbornik ljuske” ni stakleni Popover (Više i Obavijesti nacrtani lokalno); staklo dijaloga na Zatamnjenju; centriranje E1/E2.
+- L-01: Odjava, redoslijed gumba: kod ima „Odjavi se” prvi, Dialog komponenta sekundarni lijevo. Odluka: na 1440 redoslijed komponente (primarni desno), na 390 stupac s primarnim prvim. Ujednačiti u kodu i komponenti u fazi PR-a.
+- L-01: mobilni „Izbornik” (ladica) nacrtan približno; format datuma u Obavijestima uskladiti s formatDate.
+- N-10 P15 pretvara se u predani rad (banner praznina samo uz predan rad).
+- ZA VLASNIKA (promjena ruta): /kako-radi i 404 u hostu za neprijavljenog vode na prijavu AAI@EduHr (routes.ts bez public:true). Javni J-03 A i J-08 crtani su po starom src/app. Figma prati kod: vrijedi inačica u ljusci (J-03 B, L-01 E4); javne inačice ostaju samo ako vlasnik odluči rutu učiniti javnom.
+- RIJEŠENO 28. 11. (vlasnik): /kako-radi javna; J-03 A i B oba vrijede. Kod: routes.ts public:true (PR faza). J-08 javna inačica: 404 neprijavljenog ostaje kako je u hostu, J-08 Napomene uskladiti u završnom prolazu.
+- S-03 M4/M7: kostur jedva vidljiv u Svijetloj; okviri viši od sadržaja. Nove poruke grešaka (S-03, S-47) običan tekst, ujednačiti s uputom za poruke.
+- N-10: 1440 snimke P10 i P15 pogledati očima (agent provjerio samo programski).
+- N-20 Q8 (Izjava): oznaku „Izjava potvrđena …” zamijeniti običnim retkom kao u kodu; nacrtati dijalog „Razgovor n, datum” (Zatvori); 1440 pregledati očima. Imena N stranica u Figmi ne prate inventar (N-06 Merlin, N-07 Produljenje, pregled rada N-10 i N-20): uskladiti inventar ili imena u završnom prolazu.
+- N-10 R1–R6: R1 i R3 bez naslova, u R3 suvišna traka „Rad još nije predan.”; nazivi okvira uskladiti („Racunalo”); 834 i 1920 nisu crtani; R5 i svijetle varijante R2/R4/R6 nisu pregledane. Četiri samostalna „·” na N-10 R6 uklonio sam; provjera cijele datoteke: nema „·” izvan Napomena.
+- S-06 N12: svijetla 1440 i 390 nisu pregledane.
+- Knjižnica (fn): Dialog utor za tijelo (N-16 kopiranje, N-17 P2 odvojeni); Checkbox i Radio onemoguceno; Prekidac s više opcija; Details/Disclosure (N-20 glumljen „›”); DiffView (dodano podcrtano accent-soft, uklonjeno precrtano error-soft); Slider za reprodukciju.
+- N-16..N-24: breadcrumb uvijek „Početna > Moji kolegiji”, uskladiti s kodom (N-20 headingOf); duga Select vrijednost na 390 lomi (N-22, N-23); naslovi kartica h4 prema cardTitle 17 px (N-23, N-24); MarkedText N-20 i dirnuti odlomak N-23 bez accent-soft; N-24 razmak Radio stavki, poruka spremanja kao Notice.
+- N-16..N-24 bočna traka: aktivna „Moji kolegiji”, N-18 „Zbirni pregled”; provjeriti prema routes.ts.
+- Odluka (plan prema kodu): N-17 postavka povlačenja iznad tablice i povijest kao sekcija, N-18 grafikon pa popis, kako je u kodu (kod ostaje). Plan uskladiti.
+- Nenacrtana stanja (fn, popisana u Napomenama): N-16 Checkbox onemogućen; N-21 notFound; N-22 compareError, notFound; N-23 praznina u tekstu, Zaustavi, obrisani odlomak; N-24 notFound, invalid/unauthorized/forbidden/unavailable, „Spremanje…”.
+- Kod (faza PR-a): „·” u katalogu n11 (redak trenutne verzije i opcije).
+
