@@ -63,3 +63,13 @@ Skupljeno iz izvještaja crtača 27. i 28. 11. 2026. Stavke označene s Kod (faz
 - Nenacrtana stanja (fn, popisana u Napomenama): N-16 Checkbox onemogućen; N-21 notFound; N-22 compareError, notFound; N-23 praznina u tekstu, Zaustavi, obrisani odlomak; N-24 notFound, invalid/unauthorized/forbidden/unavailable, „Spremanje…”.
 - Kod (faza PR-a): „·” u katalogu n11 (redak trenutne verzije i opcije).
 
+## Val 1, nalazi (28. 11.)
+- Riješeno 28. 11.: bočna traka ustanova (234:261) ima stavke min 44 i padding 6 kao ostale uloge; manji su samo razmaci (skupine 2, navigacija 6, varijanta 6/8). Svi U okviri 1440 su visoki 900 ili više, 12 stavki stane uz 52 px zalihe.
+- Napomene U-02 do U-09 kažu da bočna traka nema stavke Postavke, Etape, Pragovi, Predložak rada, Završni radovi, ISVU; to je zastarjelo, varijanta ustanova ih sad ima. Val 2: ispraviti napomene.
+- Dialog je sad set 327:101460 (Prikaz=Siroko/Uski, BOOLEAN Sadrzaj, INSTANCE_SWAP Utor sadrzaj, Utor 327:100952). Val 2: 390 okviri prelaze na Uski. Ghost Zatvori u uskom stupcu: tekst lijevo, uljepšati.
+- Dialog uski: Figma stupac, primarni prvi, visina 44; kod (Dialog.module.css) redak s wrap, primarni zadnji. Za PR koda: column-reverse ispod 640 (izgled iz Figme).
+- Riješeno 28. 11.: aktivna stavka bočne trake prema routes.ts. N-18 Moji kolegiji (current /nastavnik); N-20 do N-23 (/nastavnik/rad/[id]/*) bez aktivne stavke, kao i N-10.
+- Riješeno 28. 11.: J-08 napomena prema odluci vlasnika (404 neprijavljenog ide na prijavu, sekcija A samo crtež kartice).
+- Kontrole (val 1): Button Stanje=zauzet (izgled kao zadano, tekst „Objavljujem…”, kod nema spinner); Checkbox i Radio novi prop Onemoguceno (ne/da), prihvaćeno jer Stanje nosi označenost; TextField unutarnji dijelovi FILL; Prekidac BOOLEAN Treca opcija i Cetvrta opcija. Val 2: Onemoguceno=da i Stanje=zauzet gdje kod to prikazuje.
+- Za PR koda (ustanova): Figma ima 6 dodatnih stavki bočne trake (treba sve). Uz njih u routes.ts current mora biti vlastita putanja: /ustanova/postavke i /postavke/asistent -> /ustanova/postavke, /ustanova/pragovi -> /ustanova/pragovi, etape, predlozak-rada, zavrsni-radovi isto. U-04, U-05, U-07 u Figmi već tako.
+- Val 1 B: DiffView 328:192367, Klizač reprodukcije 328:214875, Polje za datoteku 328:216898, QR 328:216899, TextArea oznaka se prelama. Oznaka osporavanja = Tag Ton=warn (bez nove komponente, odlučeno). Val 2: pogledati TextArea instance; N-22 usporedba i N-23 reprodukcija na nove komponente.

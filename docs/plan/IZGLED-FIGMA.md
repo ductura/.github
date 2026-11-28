@@ -251,3 +251,9 @@ Svi nastavnički Figma ekrani imaju iznad sadržaja put (mrvice), na primjer „
 - 27. 11.: „treba sve”. Napravljeno, a nevidljivo, uključuje se.
 - 27. 11.: ustanova dobiva pet stavki navigacije, a operater šest.
 - 28. 11.: `/kako-radi` je javna stranica. Neprijavljeni je vidi bez ljuske (J-03 A), prijavljeni u ljusci (J-03 B). Za kod: u `routes.ts` ruta dobiva `public: true`. Stranica 404 za neprijavljenog ostaje kako je u hostu.
+
+## Za fazu koda (posljedice odluka, 28. 11.)
+- Ustanova: uz pet novih stavki bočne trake (odluka 27. 11.) u `routes.ts` `current` tih stranica mora biti njihova vlastita putanja (`/ustanova/postavke` i `/ustanova/postavke/asistent` na `/ustanova/postavke`, `/ustanova/pragovi`, `/ustanova/etape`, `/ustanova/predlozak-rada`, `/ustanova/zavrsni-radovi`). U Figmi je tako (U-04, U-05, U-07).
+- Nastavnik: stranice `/nastavnik/rad/[id]/*` nemaju `current` i u Figmi nemaju aktivnu stavku (N-10, N-20 do N-23); N-18 ima aktivno „Moji kolegiji”. Kod se tu ne mijenja.
+- Dijalog na uskom zaslonu: Figma (Dialog, Prikaz=Uski) ima gumbe u stupcu, primarni prvi, visine 44; kod (`Dialog.module.css`) ih drži u retku s prelamanjem, primarni zadnji. PR koda slijedi Figmu (stupac, obrnuti redoslijed ispod 640).
+- Bočna traka: stavke ostaju visine 44; na niskom zaslonu traka se pomiče kao danas.
